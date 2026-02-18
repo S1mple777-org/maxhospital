@@ -1,0 +1,231 @@
+export type Language = "uz" | "ru" | "en";
+
+export const translations = {
+  uz: {
+    nav: {
+      home: "Bosh sahifa",
+      departments: "Bo'limlar",
+      doctors: "Shifokorlar",
+      news: "Yangiliklar",
+      login: "Kirish",
+      register: "Ro'yxatdan o'tish",
+      profile: "Profil",
+      admin: "Admin panel",
+    },
+    hero: {
+      title: "Online tibbiy maslahat",
+      subtitle: "Professional shifokorlar bilan qulay va tezkor konsultatsiya",
+      description: "Uydan chiqmasdan malakali shifokorlardan maslahat oling. Video, audio yoki chat orqali bog'laning.",
+      cta: "Hozir boshlang",
+      learnMore: "Batafsil",
+      stats: {
+        doctors: "Shifokorlar",
+        patients: "Bemorlar",
+        consultations: "Konsultatsiyalar",
+        satisfaction: "Mamnunlik",
+      },
+    },
+    departments: {
+      title: "Bo'limlar",
+      subtitle: "Bizning ixtisoslashgan tibbiy bo'limlarimiz",
+      traumatology: "Travmatologiya",
+      cardiology: "Kardiologiya",
+      neurology: "Nevrologiya",
+      pediatrics: "Pediatriya",
+      dermatology: "Dermatologiya",
+      ophthalmology: "Oftalmologiya",
+      dentistry: "Stomatologiya",
+      therapy: "Terapiya",
+    },
+    doctors: {
+      title: "Shifokorlar",
+      subtitle: "Tajribali va malakali shifokorlar jamoasi",
+      experience: "yil tajriba",
+      patients: "bemor",
+      viewProfile: "Profilni ko'rish",
+      online: "Online",
+      offline: "Offline",
+    },
+    news: {
+      title: "Yangiliklar",
+      subtitle: "Tibbiyot sohasidagi eng so'nggi yangiliklar",
+      readMore: "Batafsil o'qish",
+    },
+    footer: {
+      description: "Professional onlayn tibbiy xizmatlar platformasi",
+      quickLinks: "Tezkor havolalar",
+      contact: "Bog'lanish",
+      rights: "Barcha huquqlar himoyalangan",
+      address: "Toshkent, O'zbekiston",
+    },
+    theme: {
+      medical: "Tibbiy",
+      light: "Yorug'",
+      dark: "Qorong'u",
+    },
+    auth: {
+      loginWithGoogle: "Google orqali kirish",
+      loginWithEmail: "Email orqali kirish",
+      email: "Elektron pochta",
+      password: "Parol",
+      forgotPassword: "Parolni unutdingizmi?",
+      noAccount: "Hisobingiz yo'qmi?",
+      hasAccount: "Hisobingiz bormi?",
+    },
+  },
+  ru: {
+    nav: {
+      home: "Главная",
+      departments: "Отделения",
+      doctors: "Врачи",
+      news: "Новости",
+      login: "Войти",
+      register: "Регистрация",
+      profile: "Профиль",
+      admin: "Админ панель",
+    },
+    hero: {
+      title: "Онлайн медицинская консультация",
+      subtitle: "Удобная и быстрая консультация с профессиональными врачами",
+      description: "Получите консультацию квалифицированных врачей не выходя из дома. Свяжитесь через видео, аудио или чат.",
+      cta: "Начать сейчас",
+      learnMore: "Подробнее",
+      stats: {
+        doctors: "Врачей",
+        patients: "Пациентов",
+        consultations: "Консультаций",
+        satisfaction: "Удовлетворённость",
+      },
+    },
+    departments: {
+      title: "Отделения",
+      subtitle: "Наши специализированные медицинские отделения",
+      traumatology: "Травматология",
+      cardiology: "Кардиология",
+      neurology: "Неврология",
+      pediatrics: "Педиатрия",
+      dermatology: "Дерматология",
+      ophthalmology: "Офтальмология",
+      dentistry: "Стоматология",
+      therapy: "Терапия",
+    },
+    doctors: {
+      title: "Врачи",
+      subtitle: "Команда опытных и квалифицированных врачей",
+      experience: "лет опыта",
+      patients: "пациентов",
+      viewProfile: "Смотреть профиль",
+      online: "Онлайн",
+      offline: "Офлайн",
+    },
+    news: {
+      title: "Новости",
+      subtitle: "Последние новости в области медицины",
+      readMore: "Читать далее",
+    },
+    footer: {
+      description: "Профессиональная платформа онлайн медицинских услуг",
+      quickLinks: "Быстрые ссылки",
+      contact: "Контакты",
+      rights: "Все права защищены",
+      address: "Ташкент, Узбекистан",
+    },
+    theme: {
+      medical: "Медицинский",
+      light: "Светлый",
+      dark: "Тёмный",
+    },
+    auth: {
+      loginWithGoogle: "Войти через Google",
+      loginWithEmail: "Войти через Email",
+      email: "Электронная почта",
+      password: "Пароль",
+      forgotPassword: "Забыли пароль?",
+      noAccount: "Нет аккаунта?",
+      hasAccount: "Уже есть аккаунт?",
+    },
+  },
+  en: {
+    nav: {
+      home: "Home",
+      departments: "Departments",
+      doctors: "Doctors",
+      news: "News",
+      login: "Login",
+      register: "Register",
+      profile: "Profile",
+      admin: "Admin Panel",
+    },
+    hero: {
+      title: "Online Medical Consultation",
+      subtitle: "Convenient and fast consultation with professional doctors",
+      description: "Get advice from qualified doctors without leaving your home. Connect via video, audio, or chat.",
+      cta: "Get Started",
+      learnMore: "Learn More",
+      stats: {
+        doctors: "Doctors",
+        patients: "Patients",
+        consultations: "Consultations",
+        satisfaction: "Satisfaction",
+      },
+    },
+    departments: {
+      title: "Departments",
+      subtitle: "Our specialized medical departments",
+      traumatology: "Traumatology",
+      cardiology: "Cardiology",
+      neurology: "Neurology",
+      pediatrics: "Pediatrics",
+      dermatology: "Dermatology",
+      ophthalmology: "Ophthalmology",
+      dentistry: "Dentistry",
+      therapy: "Therapy",
+    },
+    doctors: {
+      title: "Doctors",
+      subtitle: "A team of experienced and qualified doctors",
+      experience: "years exp.",
+      patients: "patients",
+      viewProfile: "View Profile",
+      online: "Online",
+      offline: "Offline",
+    },
+    news: {
+      title: "News",
+      subtitle: "Latest news in the field of medicine",
+      readMore: "Read More",
+    },
+    footer: {
+      description: "Professional online medical services platform",
+      quickLinks: "Quick Links",
+      contact: "Contact",
+      rights: "All rights reserved",
+      address: "Tashkent, Uzbekistan",
+    },
+    theme: {
+      medical: "Medical",
+      light: "Light",
+      dark: "Dark",
+    },
+    auth: {
+      loginWithGoogle: "Login with Google",
+      loginWithEmail: "Login with Email",
+      email: "Email",
+      password: "Password",
+      forgotPassword: "Forgot password?",
+      noAccount: "Don't have an account?",
+      hasAccount: "Already have an account?",
+    },
+  },
+} as const;
+
+export type TranslationKey = typeof translations.uz;
+
+export function t(lang: Language, path: string): string {
+  const keys = path.split(".");
+  let result: any = translations[lang];
+  for (const key of keys) {
+    result = result?.[key];
+  }
+  return result || path;
+}
