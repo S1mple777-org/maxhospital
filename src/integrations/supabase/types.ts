@@ -14,16 +14,295 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      consultations: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          doctor_id: string
+          ended_at: string | null
+          id: string
+          patient_id: string
+          price_uzs: number
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          doctor_id: string
+          ended_at?: string | null
+          id?: string
+          patient_id: string
+          price_uzs?: number
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          doctor_id?: string
+          ended_at?: string | null
+          id?: string
+          patient_id?: string
+          price_uzs?: number
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          is_active: boolean
+          name_en: string
+          name_ru: string
+          name_uz: string
+          price_uzs: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_ru: string
+          name_uz: string
+          price_uzs?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_ru?: string
+          name_uz?: string
+          price_uzs?: number
+        }
+        Relationships: []
+      }
+      doctors: {
+        Row: {
+          bio_en: string | null
+          bio_ru: string | null
+          bio_uz: string | null
+          created_at: string
+          department_id: string | null
+          experience_years: number
+          id: string
+          is_online: boolean
+          patients_count: number
+          rating: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          bio_en?: string | null
+          bio_ru?: string | null
+          bio_uz?: string | null
+          created_at?: string
+          department_id?: string | null
+          experience_years?: number
+          id?: string
+          is_online?: boolean
+          patients_count?: number
+          rating?: number
+          title?: string
+          user_id: string
+        }
+        Update: {
+          bio_en?: string | null
+          bio_ru?: string | null
+          bio_uz?: string | null
+          created_at?: string
+          department_id?: string | null
+          experience_years?: number
+          id?: string
+          is_online?: boolean
+          patients_count?: number
+          rating?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          consultation_id: string
+          content: string | null
+          created_at: string
+          file_url: string | null
+          id: string
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          consultation_id: string
+          content?: string | null
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          consultation_id?: string
+          content?: string | null
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string | null
+          content_en: string
+          content_ru: string
+          content_uz: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_published: boolean
+          title_en: string
+          title_ru: string
+          title_uz: string
+        }
+        Insert: {
+          author_id?: string | null
+          content_en: string
+          content_ru: string
+          content_uz: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          title_en: string
+          title_ru: string
+          title_uz: string
+        }
+        Update: {
+          author_id?: string | null
+          content_en?: string
+          content_ru?: string
+          content_uz?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          title_en?: string
+          title_ru?: string
+          title_uz?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          balance_uzs: number
+          ban_reason: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          balance_uzs?: number
+          ban_reason?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_banned?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          balance_uzs?: number
+          ban_reason?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_banned?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "doctor" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +429,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "doctor", "user"],
+    },
   },
 } as const
