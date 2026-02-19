@@ -14,8 +14,8 @@ const Footer = () => {
               <div className="w-9 h-9 rounded-lg bg-hero-gradient flex items-center justify-center">
                 <Stethoscope className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-lg text-foreground">
-                Online Hospital
+              <span className="font-display font-bold text-lg text-foreground">Max Hospital Online
+
               </span>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm">
@@ -43,8 +43,9 @@ const Footer = () => {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {t("footer.address")}</li>
-              <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> +998 71 123 45 67</li>
-              <li className="flex items-center gap-2"><Mail className="w-4 h-4" /> info@onlinehospital.uz</li>
+              <li className="flex items-center gap-2"><Phone className="w-4 h-4" />+998 93 265 21 58</li>
+              <li className="flex items-center gap-2"><Mail className="w-4 h-4" />iabduraxmondadaboyev7@gmail.com
+              </li>
             </ul>
           </div>
         </div>
@@ -53,8 +54,7 @@ const Footer = () => {
           © {new Date().getFullYear()} Online Hospital. {t("footer.rights")}.
         </div>
       </div>
-    </footer>
-  );
+    </footer>);
 };
 
 export default Footer;
