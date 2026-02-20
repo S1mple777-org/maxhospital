@@ -11,6 +11,9 @@ import AuthPage from "./pages/AuthPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPanel from "./pages/AdminPanel";
 import OwnerPanel from "./pages/OwnerPanel";
+import DepartmentsPage from "./pages/DepartmentsPage";
+import DoctorsPage from "./pages/DoctorsPage";
+import NewsPage from "./pages/NewsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +33,9 @@ const App = () => (
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/owner" element={<OwnerPanel />} />
+                <Route path="/departments" element={<DepartmentsPage />} />
+                <Route path="/doctors" element={<DoctorsPage />} />
+                <Route path="/news" element={<NewsPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>

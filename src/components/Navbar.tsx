@@ -31,9 +31,9 @@ const Navbar = () => {
 
   const navItems = [
     { label: t("nav.home"), href: "/" },
-    { label: t("nav.departments"), href: "/#departments" },
-    { label: t("nav.doctors"), href: "/#doctors" },
-    { label: t("nav.news"), href: "/#news" },
+    { label: t("nav.departments"), href: "/departments" },
+    { label: t("nav.doctors"), href: "/doctors" },
+    { label: t("nav.news"), href: "/news" },
   ];
 
   const handleSignOut = async () => {

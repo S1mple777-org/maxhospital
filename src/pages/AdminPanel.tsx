@@ -111,16 +111,40 @@ const AdminPanel = () => {
       toast.error("Email va bo'lim tanlang");
       return;
     }
-    // Find user by email in profiles
-    const { data: foundProfile } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .eq("user_id", newDoctorEmail) // We need to search differently
-      .maybeSingle();
-    
-    // Actually search all profiles and match - we need a different approach
-    // Let's just use the user_id directly or search by name
-    toast.error("Doktor qo'shish uchun foydalanuvchi ID sini kiriting");
+    try {
+      // Find user by email via edge function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/find-user-by-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ email: newDoctorEmail }),
+      });
+      const result = await res.json();
+      if (!res.ok) { toast.error(result.error || "Foydalanuvchi topilmadi"); return; }
+
+      // Insert doctor
+      const { error } = await supabase.from("doctors").insert({
+        user_id: result.user_id,
+        department_id: newDoctorDept,
+        title: newDoctorTitle || "Shifokor",
+      });
+      if (error) { toast.error(error.message); return; }
+
+      // Add doctor role
+      await supabase.from("user_roles").insert({ user_id: result.user_id, role: "doctor" });
+      toast.success("Doktor qo'shildi");
+      setNewDoctorEmail("");
+      setNewDoctorDept("");
+      setNewDoctorTitle("");
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || "Xatolik yuz berdi");
+    }
   };
 
   const handleRemoveDoctor = async (doctorId: string) => {
@@ -301,7 +325,7 @@ const AdminPanel = () => {
                       type="text"
                       value={newDoctorEmail}
                       onChange={(e) => setNewDoctorEmail(e.target.value)}
-                      placeholder="Foydalanuvchi ID"
+                      placeholder="Foydalanuvchi emaili"
                       className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm"
                     />
                   </div>
