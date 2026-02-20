@@ -50,9 +50,15 @@ const DepartmentsSection = () => {
             return (
               <motion.div key={dept.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }} className="group cursor-pointer">
                 <div className="bg-card rounded-xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 text-center">
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
+                  {dept.icon_url ? (
+                    <div className="w-14 h-14 rounded-xl mx-auto mb-4 overflow-hidden group-hover:scale-110 transition-transform">
+                      <img src={dept.icon_url} alt={getName(dept)} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                      <Icon className="w-7 h-7 text-white" />
+                    </div>
+                  )}
                   <h3 className="font-display font-semibold text-sm text-foreground">{getName(dept)}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{Number(dept.price_uzs).toLocaleString()} UZS</p>
                 </div>

@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, Search, UserPlus, UserMinus
+  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image
 } from "lucide-react";
 
 const OwnerPanel = () => {
@@ -23,6 +23,10 @@ const OwnerPanel = () => {
   // Dept form
   const [deptForm, setDeptForm] = useState({ name_uz: "", name_ru: "", name_en: "", icon: "stethoscope", price_uzs: 0 });
   const [editingDept, setEditingDept] = useState<string | null>(null);
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loading && !isOwner) {
@@ -33,7 +37,6 @@ const OwnerPanel = () => {
   }, [loading, user]);
 
   const loadData = async () => {
-    // Get admins
     const { data: adminRoles } = await supabase
       .from("user_roles")
       .select("user_id")
@@ -50,22 +53,40 @@ const OwnerPanel = () => {
       setAdmins([]);
     }
 
-    // Get departments
     const { data: depts } = await supabase.from("departments").select("*").order("created_at");
     if (depts) setDepartments(depts);
 
-    // Get all users
     const { data: allUsers } = await supabase.from("profiles").select("*");
     if (allUsers) setUsers(allUsers);
   };
 
+  const handleIconSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Fayl hajmi 2MB dan oshmasligi kerak");
+      return;
+    }
+    setIconFile(file);
+    setIconPreview(URL.createObjectURL(file));
+  };
+
+  const uploadIcon = async (): Promise<string | null> => {
+    if (!iconFile) return null;
+    setUploading(true);
+    const ext = iconFile.name.split(".").pop();
+    const fileName = `${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("department-icons").upload(fileName, iconFile);
+    setUploading(false);
+    if (error) { toast.error("Rasm yuklashda xatolik: " + error.message); return null; }
+    const { data: urlData } = supabase.storage.from("department-icons").getPublicUrl(fileName);
+    return urlData.publicUrl;
+  };
+
   const handleAddAdmin = async () => {
     if (!searchEmail) { toast.error("Foydalanuvchi ID kiriting"); return; }
-    
-    // Search user by checking profiles
     const matchedUser = users.find(u => u.user_id === searchEmail || u.full_name?.toLowerCase().includes(searchEmail.toLowerCase()));
     if (!matchedUser) { toast.error("Foydalanuvchi topilmadi"); return; }
-
     const { error } = await supabase.from("user_roles").insert({ user_id: matchedUser.user_id, role: "admin" });
     if (error) {
       if (error.code === "23505") toast.error("Bu foydalanuvchi allaqachon admin");
@@ -85,27 +106,45 @@ const OwnerPanel = () => {
 
   const handleAddDept = async () => {
     if (!deptForm.name_uz) { toast.error("Bo'lim nomini kiriting"); return; }
+    let icon_url: string | null = null;
+    if (iconFile) {
+      icon_url = await uploadIcon();
+      if (!icon_url && iconFile) return; // upload failed
+    }
     const { error } = await supabase.from("departments").insert({
       ...deptForm,
       price_uzs: Number(deptForm.price_uzs) || 0,
+      icon_url,
     });
     if (error) toast.error(error.message);
     else {
       toast.success("Bo'lim qo'shildi");
       setDeptForm({ name_uz: "", name_ru: "", name_en: "", icon: "stethoscope", price_uzs: 0 });
+      setIconFile(null);
+      setIconPreview(null);
       loadData();
     }
   };
 
   const handleUpdateDept = async (id: string) => {
-    const { error } = await supabase.from("departments").update({
+    let icon_url: string | undefined;
+    if (iconFile) {
+      const url = await uploadIcon();
+      if (!url) return;
+      icon_url = url;
+    }
+    const updateData: any = {
       ...deptForm,
       price_uzs: Number(deptForm.price_uzs) || 0,
-    }).eq("id", id);
+    };
+    if (icon_url) updateData.icon_url = icon_url;
+    const { error } = await supabase.from("departments").update(updateData).eq("id", id);
     if (error) toast.error(error.message);
     else {
       toast.success("Bo'lim yangilandi");
       setEditingDept(null);
+      setIconFile(null);
+      setIconPreview(null);
       loadData();
     }
   };
@@ -120,7 +159,6 @@ const OwnerPanel = () => {
     if (!limitEmail || !limitAmount) { toast.error("Ma'lumotlarni to'ldiring"); return; }
     const foundUser = users.find(u => u.full_name?.toLowerCase().includes(limitEmail.toLowerCase()) || u.user_id === limitEmail);
     if (!foundUser) { toast.error("Foydalanuvchi topilmadi"); return; }
-
     const newBalance = Number(foundUser.balance_uzs) + Number(limitAmount);
     const { error } = await supabase.from("profiles").update({ balance_uzs: newBalance }).eq("user_id", foundUser.user_id);
     if (error) toast.error(error.message);
@@ -141,6 +179,21 @@ const OwnerPanel = () => {
     { id: "departments", label: "Bo'limlar", icon: Building2 },
     { id: "limits", label: "Limitlar", icon: Wallet },
   ];
+
+  const IconUploader = () => (
+    <div className="flex items-center gap-3">
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleIconSelect} className="hidden" />
+      <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-input bg-background text-sm text-muted-foreground hover:border-primary hover:text-foreground transition-colors">
+        <Upload className="w-4 h-4" />
+        {iconFile ? iconFile.name : "Logo yuklash"}
+      </button>
+      {(iconPreview) && (
+        <div className="w-10 h-10 rounded-lg overflow-hidden border border-border">
+          <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -230,8 +283,11 @@ const OwnerPanel = () => {
                     <input value={deptForm.name_en} onChange={e => setDeptForm(p => ({ ...p, name_en: e.target.value }))} placeholder="Name (EN)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <input type="number" value={deptForm.price_uzs} onChange={e => setDeptForm(p => ({ ...p, price_uzs: Number(e.target.value) }))} placeholder="Narx (UZS)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                   </div>
-                  <button onClick={handleAddDept} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium">
-                    <Plus className="w-4 h-4 inline mr-1" /> Qo'shish
+                  <div className="mb-3">
+                    <IconUploader />
+                  </div>
+                  <button onClick={handleAddDept} disabled={uploading} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium disabled:opacity-50">
+                    <Plus className="w-4 h-4 inline mr-1" /> {uploading ? "Yuklanmoqda..." : "Qo'shish"}
                   </button>
                 </div>
 
@@ -246,20 +302,34 @@ const OwnerPanel = () => {
                             <input value={deptForm.name_en} onChange={e => setDeptForm(p => ({ ...p, name_en: e.target.value }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                             <input type="number" value={deptForm.price_uzs} onChange={e => setDeptForm(p => ({ ...p, price_uzs: Number(e.target.value) }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                           </div>
+                          <div className="mb-3">
+                            <IconUploader />
+                          </div>
                           <div className="flex gap-2">
-                            <button onClick={() => handleUpdateDept(dept.id)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium"><Save className="w-3 h-3 inline mr-1" />Saqlash</button>
-                            <button onClick={() => setEditingDept(null)} className="px-3 py-1.5 rounded-lg border border-border text-foreground text-xs"><X className="w-3 h-3 inline mr-1" />Bekor</button>
+                            <button onClick={() => handleUpdateDept(dept.id)} disabled={uploading} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"><Save className="w-3 h-3 inline mr-1" />{uploading ? "..." : "Saqlash"}</button>
+                            <button onClick={() => { setEditingDept(null); setIconFile(null); setIconPreview(null); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground text-xs"><X className="w-3 h-3 inline mr-1" />Bekor</button>
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium text-foreground">{getDeptName(dept)}</div>
-                            <div className="text-sm text-muted-foreground">{Number(dept.price_uzs).toLocaleString()} UZS</div>
+                          <div className="flex items-center gap-3">
+                            {dept.icon_url ? (
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-border">
+                                <img src={dept.icon_url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                                <Image className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium text-foreground">{getDeptName(dept)}</div>
+                              <div className="text-sm text-muted-foreground">{Number(dept.price_uzs).toLocaleString()} UZS</div>
+                            </div>
                           </div>
                           <div className="flex gap-1">
                             <button
-                              onClick={() => { setEditingDept(dept.id); setDeptForm({ name_uz: dept.name_uz, name_ru: dept.name_ru, name_en: dept.name_en, icon: dept.icon, price_uzs: dept.price_uzs }); }}
+                              onClick={() => { setEditingDept(dept.id); setDeptForm({ name_uz: dept.name_uz, name_ru: dept.name_ru, name_en: dept.name_en, icon: dept.icon, price_uzs: dept.price_uzs }); setIconPreview(dept.icon_url || null); setIconFile(null); }}
                               className="p-2 rounded-lg text-foreground hover:bg-secondary"
                             >
                               <Edit className="w-4 h-4" />
