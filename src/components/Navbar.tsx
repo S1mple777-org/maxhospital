@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,12 +22,13 @@ const themes = [
 const Navbar = () => {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const { user, profile, isAdmin, isOwner, signOut } = useAuth();
+  const { user, profile, isAdmin, isOwner, hasRole, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const isDoctor = hasRole("doctor");
 
   const navItems = [
     { label: t("nav.home"), href: "/" },
@@ -54,13 +55,7 @@ const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-6">
             {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                {item.label}
-              </Link>
+              <Link key={item.href} to={item.href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{item.label}</Link>
             ))}
           </div>
 
@@ -68,8 +63,7 @@ const Navbar = () => {
             {/* Language */}
             <div className="relative">
               <button onClick={() => { setLangOpen(!langOpen); setThemeOpen(false); setUserMenuOpen(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                <Globe className="w-4 h-4" />
-                {languages.find((l) => l.code === language)?.flag}
+                <Globe className="w-4 h-4" />{languages.find((l) => l.code === language)?.flag}
               </button>
               {langOpen && (
                 <div className="absolute right-0 mt-1 w-36 rounded-lg border border-border bg-card shadow-lg py-1 z-50">
@@ -85,8 +79,7 @@ const Navbar = () => {
             {/* Theme */}
             <div className="relative">
               <button onClick={() => { setThemeOpen(!themeOpen); setLangOpen(false); setUserMenuOpen(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                <Palette className="w-4 h-4" />
-                {themes.find((th) => th.id === theme)?.icon}
+                <Palette className="w-4 h-4" />{themes.find((th) => th.id === theme)?.icon}
               </button>
               {themeOpen && (
                 <div className="absolute right-0 mt-1 w-40 rounded-lg border border-border bg-card shadow-lg py-1 z-50">
@@ -102,10 +95,7 @@ const Navbar = () => {
             {/* Auth */}
             {user ? (
               <div className="relative">
-                <button
-                  onClick={() => { setUserMenuOpen(!userMenuOpen); setLangOpen(false); setThemeOpen(false); }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors"
-                >
+                <button onClick={() => { setUserMenuOpen(!userMenuOpen); setLangOpen(false); setThemeOpen(false); }} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors">
                   <div className="w-7 h-7 rounded-full bg-hero-gradient flex items-center justify-center text-xs font-bold text-primary-foreground">
                     {profile?.full_name?.[0]?.toUpperCase() || "U"}
                   </div>
@@ -115,6 +105,14 @@ const Navbar = () => {
                   <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg py-1 z-50">
                     <Link to="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <User className="w-4 h-4" /> {t("nav.profile")}
+                    </Link>
+                    {isDoctor && (
+                      <Link to="/doctor-dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                        <MessageCircle className="w-4 h-4" /> Shifokor kabineti
+                      </Link>
+                    )}
+                    <Link to="/start-consultation" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Stethoscope className="w-4 h-4" /> Konsultatsiya
                     </Link>
                     {(isAdmin || isOwner) && (
                       <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
@@ -134,12 +132,8 @@ const Navbar = () => {
               </div>
             ) : (
               <>
-                <Link to="/auth" className="px-4 py-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
-                  {t("nav.login")}
-                </Link>
-                <Link to="/auth" className="px-4 py-2 text-sm font-medium rounded-lg bg-hero-gradient text-primary-foreground hover:opacity-90 transition-opacity">
-                  {t("nav.register")}
-                </Link>
+                <Link to="/auth" className="px-4 py-2 text-sm font-medium text-foreground hover:text-primary transition-colors">{t("nav.login")}</Link>
+                <Link to="/auth" className="px-4 py-2 text-sm font-medium rounded-lg bg-hero-gradient text-primary-foreground hover:opacity-90 transition-opacity">{t("nav.register")}</Link>
               </>
             )}
           </div>
@@ -160,6 +154,8 @@ const Navbar = () => {
               {user ? (
                 <>
                   <Link to="/profile" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.profile")}</Link>
+                  <Link to="/start-consultation" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Konsultatsiya</Link>
+                  {isDoctor && <Link to="/doctor-dashboard" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Shifokor kabineti</Link>}
                   {(isAdmin || isOwner) && <Link to="/admin" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Admin Panel</Link>}
                   {isOwner && <Link to="/owner" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Owner Panel</Link>}
                   <button onClick={handleSignOut} className="block text-sm font-medium text-destructive">Chiqish</button>
@@ -172,16 +168,12 @@ const Navbar = () => {
               )}
               <div className="flex gap-2 pt-2">
                 {languages.map((l) => (
-                  <button key={l.code} onClick={() => setLanguage(l.code)} className={`px-3 py-1.5 rounded-lg text-sm border ${language === l.code ? "border-primary text-primary bg-accent" : "border-border text-muted-foreground"}`}>
-                    {l.flag}
-                  </button>
+                  <button key={l.code} onClick={() => setLanguage(l.code)} className={`px-3 py-1.5 rounded-lg text-sm border ${language === l.code ? "border-primary text-primary bg-accent" : "border-border text-muted-foreground"}`}>{l.flag}</button>
                 ))}
               </div>
               <div className="flex gap-2">
                 {themes.map((th) => (
-                  <button key={th.id} onClick={() => setTheme(th.id)} className={`px-3 py-1.5 rounded-lg text-sm border ${theme === th.id ? "border-primary text-primary bg-accent" : "border-border text-muted-foreground"}`}>
-                    {th.icon}
-                  </button>
+                  <button key={th.id} onClick={() => setTheme(th.id)} className={`px-3 py-1.5 rounded-lg text-sm border ${theme === th.id ? "border-primary text-primary bg-accent" : "border-border text-muted-foreground"}`}>{th.icon}</button>
                 ))}
               </div>
             </div>
