@@ -14,6 +14,9 @@ import OwnerPanel from "./pages/OwnerPanel";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import DoctorsPage from "./pages/DoctorsPage";
 import NewsPage from "./pages/NewsPage";
+import ConsultationPage from "./pages/ConsultationPage";
+import DoctorDashboard from "./pages/DoctorDashboard";
+import StartConsultation from "./pages/StartConsultation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +39,9 @@ const App = () => (
                 <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/doctors" element={<DoctorsPage />} />
                 <Route path="/news" element={<NewsPage />} />
+                <Route path="/consultation/:id" element={<ConsultationPage />} />
+                <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+                <Route path="/start-consultation" element={<StartConsultation />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>
