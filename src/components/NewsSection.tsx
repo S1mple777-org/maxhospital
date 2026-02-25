@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Calendar, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const NewsSection = () => {
   const { language, t } = useLanguage();
@@ -36,7 +37,8 @@ const NewsSection = () => {
 
         <div className="grid md:grid-cols-3 gap-6">
           {posts.map((post, i) => (
-            <motion.article key={post.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="group cursor-pointer">
+            <motion.article key={post.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+              <Link to={`/news/${post.id}`} className="group cursor-pointer block">
               <div className="bg-card rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1">
                 {post.image_url ? (
                   <img src={post.image_url} alt="" className="h-44 w-full object-cover" />
@@ -57,6 +59,7 @@ const NewsSection = () => {
                   </span>
                 </div>
               </div>
+              </Link>
             </motion.article>
           ))}
         </div>

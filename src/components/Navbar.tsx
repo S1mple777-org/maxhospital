@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -92,6 +92,14 @@ const Navbar = () => {
               )}
             </div>
 
+            {/* Balance */}
+            {user && profile && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-secondary text-foreground text-xs font-medium">
+                <Wallet className="w-3.5 h-3.5 text-primary" />
+                {Number(profile.balance_uzs).toLocaleString()} UZS
+              </div>
+            )}
+
             {/* Auth */}
             {user ? (
               <div className="relative">
@@ -114,6 +122,11 @@ const Navbar = () => {
                     <Link to="/start-consultation" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Stethoscope className="w-4 h-4" /> Konsultatsiya
                     </Link>
+                    {(isAdmin || isOwner) && (
+                      <Link to="/users" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                        <Users className="w-4 h-4" /> Foydalanuvchilar
+                      </Link>
+                    )}
                     {(isAdmin || isOwner) && (
                       <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                         <Shield className="w-4 h-4" /> Admin Panel

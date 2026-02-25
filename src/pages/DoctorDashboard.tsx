@@ -5,7 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Clock, CheckCircle, MessageCircle, Users, XCircle } from "lucide-react";
+import { Clock, CheckCircle, MessageCircle, Users, XCircle, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 const DoctorDashboard = () => {
@@ -13,6 +13,8 @@ const DoctorDashboard = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [pending, setPending] = useState<any[]>([]);
   const [active, setActive] = useState<any[]>([]);
   const [ended, setEnded] = useState<any[]>([]);
@@ -22,9 +24,10 @@ const DoctorDashboard = () => {
     if (!user) return;
 
     const loadDoctor = async () => {
-      const { data: doc } = await supabase.from("doctors").select("id").eq("user_id", user.id).maybeSingle();
+      const { data: doc } = await supabase.from("doctors").select("id, is_online").eq("user_id", user.id).maybeSingle();
       if (!doc) return;
       setDoctorId(doc.id);
+      setIsOnline(doc.is_online);
       loadConsultations(doc.id);
     };
     loadDoctor();
@@ -59,6 +62,17 @@ const DoctorDashboard = () => {
     setEnded(withProfiles.filter(c => c.status === "ended"));
   };
 
+  const handleToggleOnline = async () => {
+    if (!doctorId) return;
+    setToggling(true);
+    const newStatus = !isOnline;
+    const { error } = await supabase.from("doctors").update({ is_online: newStatus }).eq("id", doctorId);
+    setToggling(false);
+    if (error) { toast.error(error.message); return; }
+    setIsOnline(newStatus);
+    toast.success(newStatus ? "Siz onlinesiz" : "Siz offlinesiz");
+  };
+
   const handleAccept = async (id: string) => {
     const { error } = await supabase
       .from("consultations")
@@ -69,12 +83,20 @@ const DoctorDashboard = () => {
   };
 
   const handleReject = async (id: string) => {
+    // Refund patient
+    const { data: cons } = await supabase.from("consultations").select("patient_id, price_uzs").eq("id", id).maybeSingle();
+    if (cons) {
+      const { data: patientProfile } = await supabase.from("profiles").select("balance_uzs").eq("user_id", cons.patient_id).maybeSingle();
+      if (patientProfile) {
+        await supabase.from("profiles").update({ balance_uzs: Number(patientProfile.balance_uzs) + Number(cons.price_uzs) }).eq("user_id", cons.patient_id);
+      }
+    }
     const { error } = await supabase
       .from("consultations")
       .update({ status: "ended", ended_at: new Date().toISOString() })
       .eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success("Rad etildi");
+    else toast.success("Rad etildi, pul qaytarildi");
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Yuklanmoqda...</p></div>;
@@ -84,7 +106,21 @@ const DoctorDashboard = () => {
       <Navbar />
       <div className="pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
-          <h1 className="font-display text-2xl font-bold text-foreground mb-6">Shifokor kabineti</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="font-display text-2xl font-bold text-foreground">Shifokor kabineti</h1>
+            <button
+              onClick={handleToggleOnline}
+              disabled={toggling}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                isOnline
+                  ? "bg-green-100 text-green-700 hover:bg-green-200"
+                  : "bg-muted text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              {isOnline ? "Online" : "Offline"}
+            </button>
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-8">

@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      consultation_ratings: {
+        Row: {
+          comment: string | null
+          consultation_id: string
+          created_at: string
+          doctor_id: string
+          id: string
+          patient_id: string
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          consultation_id: string
+          created_at?: string
+          doctor_id: string
+          id?: string
+          patient_id: string
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          consultation_id?: string
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          patient_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_ratings_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: true
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultations: {
         Row: {
           created_at: string

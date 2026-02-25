@@ -4,6 +4,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Bone, Heart, Brain, Baby, Fingerprint, Eye, SmilePlus, Stethoscope,
 } from "lucide-react";
@@ -51,20 +52,22 @@ const DepartmentsPage = () => {
               const Icon = iconMap[dept.icon] || Stethoscope;
               const color = colorMap[dept.icon] || "from-teal-400 to-emerald-400";
               return (
-                <motion.div key={dept.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="group cursor-pointer">
-                  <div className="bg-card rounded-xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 text-center">
-                    {dept.icon_url ? (
-                      <div className="w-16 h-16 rounded-xl mx-auto mb-4 overflow-hidden group-hover:scale-110 transition-transform">
-                        <img src={dept.icon_url} alt={getName(dept)} className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-8 h-8 text-white" />
-                      </div>
-                    )}
-                    <h3 className="font-display font-semibold text-foreground">{getName(dept)}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{Number(dept.price_uzs).toLocaleString()} UZS</p>
-                  </div>
+                <motion.div key={dept.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <Link to={`/departments/${dept.id}`} className="group cursor-pointer block">
+                    <div className="bg-card rounded-xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 text-center">
+                      {dept.icon_url ? (
+                        <div className="w-16 h-16 rounded-xl mx-auto mb-4 overflow-hidden group-hover:scale-110 transition-transform">
+                          <img src={dept.icon_url} alt={getName(dept)} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                          <Icon className="w-8 h-8 text-white" />
+                        </div>
+                      )}
+                      <h3 className="font-display font-semibold text-foreground">{getName(dept)}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{Number(dept.price_uzs).toLocaleString()} UZS</p>
+                    </div>
+                  </Link>
                 </motion.div>
               );
             })}

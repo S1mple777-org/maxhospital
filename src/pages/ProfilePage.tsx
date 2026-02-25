@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, FileText } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, FileText, Home } from "lucide-react";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
@@ -62,6 +62,9 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-background pt-20">
       <div className="container mx-auto px-4 max-w-2xl">
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <Home className="w-4 h-4" /> Bosh sahifaga qaytish
+        </button>
         <div className="bg-card rounded-2xl border border-border p-8 card-shadow">
           {/* Avatar & Name */}
           <div className="flex items-center justify-between mb-6">
