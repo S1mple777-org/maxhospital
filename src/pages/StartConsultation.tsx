@@ -39,7 +39,6 @@ const StartConsultation = () => {
       .from("doctors")
       .select("*")
       .eq("department_id", selectedDept.id)
-      .eq("is_online", true)
       .then(async ({ data }) => {
         if (!data) return;
         const withNames = await Promise.all(data.map(async (d: any) => {
@@ -148,8 +147,11 @@ const StartConsultation = () => {
                           : "border-border bg-card hover:border-primary/40"
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-hero-gradient flex items-center justify-center text-sm font-bold text-primary-foreground mb-2">
-                        {doc.profile?.full_name?.[0]?.toUpperCase() || "D"}
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-hero-gradient flex items-center justify-center text-sm font-bold text-primary-foreground">
+                          {doc.profile?.full_name?.[0]?.toUpperCase() || "D"}
+                        </div>
+                        <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-card ${doc.is_online ? "bg-green-500" : "bg-muted-foreground"}`} />
                       </div>
                       <p className="font-medium text-foreground text-sm">{doc.profile?.full_name || "Shifokor"}</p>
                       <p className="text-xs text-muted-foreground">{doc.title}</p>

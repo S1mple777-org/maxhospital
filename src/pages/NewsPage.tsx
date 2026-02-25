@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Calendar, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const NewsPage = () => {
   const { language, t } = useLanguage();
@@ -36,27 +37,29 @@ const NewsPage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map((post, i) => (
-              <motion.article key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="group cursor-pointer">
-                <div className="bg-card rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1">
-                  {post.image_url ? (
-                    <img src={post.image_url} alt="" className="h-48 w-full object-cover" />
-                  ) : (
-                    <div className="h-48 bg-secondary flex items-center justify-center text-5xl">📰</div>
-                  )}
-                  <div className="p-5">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(post.created_at).toLocaleDateString()}
+              <motion.article key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                <Link to={`/news/${post.id}`} className="group cursor-pointer block">
+                  <div className="bg-card rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1">
+                    {post.image_url ? (
+                      <img src={post.image_url} alt="" className="h-48 w-full object-cover" />
+                    ) : (
+                      <div className="h-48 bg-secondary flex items-center justify-center text-5xl">📰</div>
+                    )}
+                    <div className="p-5">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </div>
+                      <h3 className="font-display font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                        {getTitle(post)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{getContent(post)}</p>
+                      <span className="inline-flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
+                        {t("news.readMore")} <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
                     </div>
-                    <h3 className="font-display font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                      {getTitle(post)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{getContent(post)}</p>
-                    <span className="inline-flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
-                      {t("news.readMore")} <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
                   </div>
-                </div>
+                </Link>
               </motion.article>
             ))}
           </div>

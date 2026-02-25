@@ -12,11 +12,14 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminPanel from "./pages/AdminPanel";
 import OwnerPanel from "./pages/OwnerPanel";
 import DepartmentsPage from "./pages/DepartmentsPage";
+import DepartmentDetailPage from "./pages/DepartmentDetailPage";
 import DoctorsPage from "./pages/DoctorsPage";
 import NewsPage from "./pages/NewsPage";
+import NewsDetailPage from "./pages/NewsDetailPage";
 import ConsultationPage from "./pages/ConsultationPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import StartConsultation from "./pages/StartConsultation";
+import UsersPage from "./pages/UsersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,11 +40,14 @@ const App = () => (
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/owner" element={<OwnerPanel />} />
                 <Route path="/departments" element={<DepartmentsPage />} />
+                <Route path="/departments/:id" element={<DepartmentDetailPage />} />
                 <Route path="/doctors" element={<DoctorsPage />} />
                 <Route path="/news" element={<NewsPage />} />
+                <Route path="/news/:id" element={<NewsDetailPage />} />
                 <Route path="/consultation/:id" element={<ConsultationPage />} />
                 <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
                 <Route path="/start-consultation" element={<StartConsultation />} />
+                <Route path="/users" element={<UsersPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>

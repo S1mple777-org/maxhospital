@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Navbar from "@/components/Navbar";
-import { Send, ArrowLeft, PhoneOff } from "lucide-react";
+import { Send, ArrowLeft, PhoneOff, Star } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -25,13 +25,17 @@ const ConsultationPage = () => {
   const [consultation, setConsultation] = useState<any>(null);
   const [otherName, setOtherName] = useState("");
   const [sending, setSending] = useState(false);
+  const [showRating, setShowRating] = useState(false);
+  const [ratingValue, setRatingValue] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
+  const [hasRated, setHasRated] = useState(false);
+  const [submittingRating, setSubmittingRating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isDoctor = hasRole("doctor");
 
   useEffect(() => {
     if (!id || !user) return;
 
-    // Load consultation
     const loadConsultation = async () => {
       const { data: cons } = await supabase
         .from("consultations")
@@ -41,7 +45,14 @@ const ConsultationPage = () => {
       if (!cons) { navigate("/"); return; }
       setConsultation(cons);
 
-      // Get other participant's name
+      // Check if already rated
+      const { data: existingRating } = await supabase
+        .from("consultation_ratings")
+        .select("id")
+        .eq("consultation_id", id)
+        .maybeSingle();
+      if (existingRating) setHasRated(true);
+
       const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
       if (isDoctor) {
         const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", otherId).maybeSingle();
@@ -56,7 +67,6 @@ const ConsultationPage = () => {
     };
     loadConsultation();
 
-    // Load messages
     supabase
       .from("messages")
       .select("*")
@@ -64,7 +74,6 @@ const ConsultationPage = () => {
       .order("created_at", { ascending: true })
       .then(({ data }) => { if (data) setMessages(data as Message[]); });
 
-    // Realtime subscription
     const channel = supabase
       .channel(`consultation-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `consultation_id=eq.${id}` },
@@ -75,6 +84,9 @@ const ConsultationPage = () => {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },
         (payload) => {
           setConsultation(payload.new);
+          if ((payload.new as any).status === "ended" && !isDoctor) {
+            setShowRating(true);
+          }
         }
       )
       .subscribe();
@@ -112,6 +124,35 @@ const ConsultationPage = () => {
       .eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Konsultatsiya tugadi");
+  };
+
+  const handleSubmitRating = async () => {
+    if (!id || !user || !consultation) return;
+    setSubmittingRating(true);
+    const { error } = await supabase.from("consultation_ratings").insert({
+      consultation_id: id,
+      patient_id: user.id,
+      doctor_id: consultation.doctor_id,
+      rating: ratingValue,
+      comment: ratingComment.trim() || null,
+    });
+    setSubmittingRating(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Baholandi!");
+      setShowRating(false);
+      setHasRated(true);
+      // Update doctor's average rating
+      const { data: ratings } = await supabase
+        .from("consultation_ratings")
+        .select("rating")
+        .eq("doctor_id", consultation.doctor_id);
+      if (ratings && ratings.length > 0) {
+        const avg = ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length;
+        await supabase.from("doctors").update({ rating: Math.round(avg * 100) / 100 }).eq("id", consultation.doctor_id);
+      }
+    }
   };
 
   const isEnded = consultation?.status === "ended";
@@ -166,6 +207,33 @@ const ConsultationPage = () => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Rating Modal */}
+        {showRating && !hasRated && !isDoctor && (
+          <div className="bg-card border-t border-border px-4 py-6">
+            <h3 className="font-display font-semibold text-foreground text-center mb-3">Shifokorni baholang</h3>
+            <div className="flex justify-center gap-1 mb-3">
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} onClick={() => setRatingValue(s)}>
+                  <Star className={`w-8 h-8 transition-colors ${s <= ratingValue ? "fill-warning text-warning" : "text-muted"}`} />
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={ratingComment}
+              onChange={e => setRatingComment(e.target.value)}
+              placeholder="Izoh qoldiring (ixtiyoriy)"
+              className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm mb-3 resize-none h-20 focus:ring-2 focus:ring-primary outline-none"
+            />
+            <button
+              onClick={handleSubmitRating}
+              disabled={submittingRating}
+              className="w-full py-2.5 rounded-xl bg-hero-gradient text-primary-foreground font-medium text-sm hover:opacity-90 disabled:opacity-50"
+            >
+              {submittingRating ? "Yuborilmoqda..." : "Baholash"}
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         {!isEnded ? (
           <div className="bg-card border-t border-border px-4 py-3">
@@ -189,6 +257,11 @@ const ConsultationPage = () => {
         ) : (
           <div className="bg-secondary/50 border-t border-border px-4 py-4 text-center">
             <p className="text-sm text-muted-foreground">Bu konsultatsiya tugagan</p>
+            {!hasRated && !isDoctor && (
+              <button onClick={() => setShowRating(true)} className="mt-2 text-sm text-primary font-medium hover:underline">
+                Shifokorni baholash
+              </button>
+            )}
           </div>
         )}
       </div>
