@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          admin_type: Database["public"]["Enums"]["admin_type"]
+          created_at: string
+          department_id: string | null
+          id: string
+          month_reset_at: string
+          month_spent: number
+          monthly_limit: number
+          user_id: string
+        }
+        Insert: {
+          admin_type: Database["public"]["Enums"]["admin_type"]
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          month_reset_at?: string
+          month_spent?: number
+          monthly_limit?: number
+          user_id: string
+        }
+        Update: {
+          admin_type?: Database["public"]["Enums"]["admin_type"]
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          month_reset_at?: string
+          month_spent?: number
+          monthly_limit?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_settings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultation_ratings: {
         Row: {
           comment: string | null
@@ -58,7 +99,9 @@ export type Database = {
           department_id: string | null
           doctor_id: string
           ended_at: string | null
+          extended: boolean
           id: string
+          max_end_time: string | null
           patient_id: string
           price_uzs: number
           started_at: string | null
@@ -69,7 +112,9 @@ export type Database = {
           department_id?: string | null
           doctor_id: string
           ended_at?: string | null
+          extended?: boolean
           id?: string
+          max_end_time?: string | null
           patient_id: string
           price_uzs?: number
           started_at?: string | null
@@ -80,7 +125,9 @@ export type Database = {
           department_id?: string | null
           doctor_id?: string
           ended_at?: string | null
+          extended?: boolean
           id?: string
+          max_end_time?: string | null
           patient_id?: string
           price_uzs?: number
           started_at?: string | null
@@ -343,6 +390,7 @@ export type Database = {
       }
     }
     Enums: {
+      admin_type: "financial" | "dept_head" | "journalist"
       app_role: "owner" | "admin" | "doctor" | "user"
     }
     CompositeTypes: {
@@ -471,6 +519,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_type: ["financial", "dept_head", "journalist"],
       app_role: ["owner", "admin", "doctor", "user"],
     },
   },
