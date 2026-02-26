@@ -8,6 +8,14 @@ import {
   Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image
 } from "lucide-react";
 
+type AdminType = "financial" | "dept_head" | "journalist";
+
+const adminTypeLabels: Record<AdminType, string> = {
+  financial: "Moliyaviy admin",
+  dept_head: "Bo'lim boshlig'i",
+  journalist: "Jurnalist",
+};
+
 const OwnerPanel = () => {
   const { user, isOwner, loading } = useAuth();
   const { language } = useLanguage();
@@ -16,9 +24,16 @@ const OwnerPanel = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+
+  // Add admin form
   const [searchEmail, setSearchEmail] = useState("");
-  const [limitAmount, setLimitAmount] = useState("");
+  const [newAdminType, setNewAdminType] = useState<AdminType>("financial");
+  const [newAdminDept, setNewAdminDept] = useState("");
+  const [newAdminLimit, setNewAdminLimit] = useState("");
+
+  // Limit form
   const [limitEmail, setLimitEmail] = useState("");
+  const [limitAmount, setLimitAmount] = useState("");
 
   // Dept form
   const [deptForm, setDeptForm] = useState({ name_uz: "", name_ru: "", name_en: "", icon: "stethoscope", price_uzs: 0 });
@@ -29,26 +44,20 @@ const OwnerPanel = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!loading && !isOwner) {
-      navigate("/");
-      return;
-    }
+    if (!loading && !isOwner) { navigate("/"); return; }
     if (!loading && user) loadData();
   }, [loading, user]);
 
   const loadData = async () => {
-    const { data: adminRoles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "admin");
-    
+    // Load admins with their settings
+    const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     if (adminRoles && adminRoles.length > 0) {
       const adminIds = adminRoles.map((r: any) => r.user_id);
-      const { data: adminProfiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("user_id", adminIds);
-      if (adminProfiles) setAdmins(adminProfiles);
+      const { data: adminProfiles } = await supabase.from("profiles").select("*").in("user_id", adminIds);
+      const { data: adminSettings } = await supabase.from("admin_settings").select("*").in("user_id", adminIds);
+      const settingsMap: Record<string, any> = {};
+      adminSettings?.forEach((s: any) => { settingsMap[s.user_id] = s; });
+      if (adminProfiles) setAdmins(adminProfiles.map((p: any) => ({ ...p, settings: settingsMap[p.user_id] || null })));
     } else {
       setAdmins([]);
     }
@@ -63,10 +72,7 @@ const OwnerPanel = () => {
   const handleIconSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Fayl hajmi 2MB dan oshmasligi kerak");
-      return;
-    }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Fayl hajmi 2MB dan oshmasligi kerak"); return; }
     setIconFile(file);
     setIconPreview(URL.createObjectURL(file));
   };
@@ -84,21 +90,36 @@ const OwnerPanel = () => {
   };
 
   const handleAddAdmin = async () => {
-    if (!searchEmail) { toast.error("Foydalanuvchi ID kiriting"); return; }
-    const matchedUser = users.find(u => u.user_id === searchEmail || u.full_name?.toLowerCase().includes(searchEmail.toLowerCase()));
-    if (!matchedUser) { toast.error("Foydalanuvchi topilmadi"); return; }
-    const { error } = await supabase.from("user_roles").insert({ user_id: matchedUser.user_id, role: "admin" });
-    if (error) {
-      if (error.code === "23505") toast.error("Bu foydalanuvchi allaqachon admin");
-      else toast.error(error.message);
-    } else {
+    if (!searchEmail) { toast.error("Email kiriting"); return; }
+    try {
+      const res = await supabase.functions.invoke("find-user-by-email", { body: { email: searchEmail } });
+      if (res.error || !res.data?.user_id) { toast.error("Foydalanuvchi topilmadi"); return; }
+      const userId = res.data.user_id;
+
+      // Add admin role
+      const { error: roleError } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
+      if (roleError) {
+        if (roleError.code === "23505") toast.error("Bu foydalanuvchi allaqachon admin");
+        else toast.error(roleError.message);
+        return;
+      }
+
+      // Add admin settings
+      const settingsData: any = { user_id: userId, admin_type: newAdminType };
+      if (newAdminType === "financial") settingsData.monthly_limit = Number(newAdminLimit) || 0;
+      if (newAdminType === "dept_head") settingsData.department_id = newAdminDept || null;
+
+      await supabase.from("admin_settings").insert(settingsData);
       toast.success("Admin qo'shildi");
-      setSearchEmail("");
+      setSearchEmail(""); setNewAdminLimit(""); setNewAdminDept("");
       loadData();
+    } catch (err: any) {
+      toast.error(err.message || "Xatolik yuz berdi");
     }
   };
 
   const handleRemoveAdmin = async (userId: string) => {
+    await supabase.from("admin_settings").delete().eq("user_id", userId);
     const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
     if (error) toast.error(error.message);
     else { toast.success("Admin o'chirildi"); loadData(); }
@@ -107,46 +128,24 @@ const OwnerPanel = () => {
   const handleAddDept = async () => {
     if (!deptForm.name_uz) { toast.error("Bo'lim nomini kiriting"); return; }
     let icon_url: string | null = null;
-    if (iconFile) {
-      icon_url = await uploadIcon();
-      if (!icon_url && iconFile) return; // upload failed
-    }
-    const { error } = await supabase.from("departments").insert({
-      ...deptForm,
-      price_uzs: Number(deptForm.price_uzs) || 0,
-      icon_url,
-    });
+    if (iconFile) { icon_url = await uploadIcon(); if (!icon_url && iconFile) return; }
+    const { error } = await supabase.from("departments").insert({ ...deptForm, price_uzs: Number(deptForm.price_uzs) || 0, icon_url });
     if (error) toast.error(error.message);
     else {
       toast.success("Bo'lim qo'shildi");
       setDeptForm({ name_uz: "", name_ru: "", name_en: "", icon: "stethoscope", price_uzs: 0 });
-      setIconFile(null);
-      setIconPreview(null);
-      loadData();
+      setIconFile(null); setIconPreview(null); loadData();
     }
   };
 
   const handleUpdateDept = async (id: string) => {
     let icon_url: string | undefined;
-    if (iconFile) {
-      const url = await uploadIcon();
-      if (!url) return;
-      icon_url = url;
-    }
-    const updateData: any = {
-      ...deptForm,
-      price_uzs: Number(deptForm.price_uzs) || 0,
-    };
+    if (iconFile) { const url = await uploadIcon(); if (!url) return; icon_url = url; }
+    const updateData: any = { ...deptForm, price_uzs: Number(deptForm.price_uzs) || 0 };
     if (icon_url) updateData.icon_url = icon_url;
     const { error } = await supabase.from("departments").update(updateData).eq("id", id);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Bo'lim yangilandi");
-      setEditingDept(null);
-      setIconFile(null);
-      setIconPreview(null);
-      loadData();
-    }
+    else { toast.success("Bo'lim yangilandi"); setEditingDept(null); setIconFile(null); setIconPreview(null); loadData(); }
   };
 
   const handleDeleteDept = async (id: string) => {
@@ -157,17 +156,16 @@ const OwnerPanel = () => {
 
   const handleAddLimit = async () => {
     if (!limitEmail || !limitAmount) { toast.error("Ma'lumotlarni to'ldiring"); return; }
-    const foundUser = users.find(u => u.full_name?.toLowerCase().includes(limitEmail.toLowerCase()) || u.user_id === limitEmail);
-    if (!foundUser) { toast.error("Foydalanuvchi topilmadi"); return; }
-    const newBalance = Number(foundUser.balance_uzs) + Number(limitAmount);
-    const { error } = await supabase.from("profiles").update({ balance_uzs: newBalance }).eq("user_id", foundUser.user_id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`${Number(limitAmount).toLocaleString()} UZS qo'shildi`);
-      setLimitEmail("");
-      setLimitAmount("");
-      loadData();
-    }
+    try {
+      const res = await supabase.functions.invoke("find-user-by-email", { body: { email: limitEmail } });
+      if (res.error || !res.data?.user_id) { toast.error("Foydalanuvchi topilmadi"); return; }
+      const foundUser = users.find(u => u.user_id === res.data.user_id);
+      if (!foundUser) { toast.error("Foydalanuvchi topilmadi"); return; }
+      const newBalance = Number(foundUser.balance_uzs) + Number(limitAmount);
+      const { error } = await supabase.from("profiles").update({ balance_uzs: newBalance }).eq("user_id", foundUser.user_id);
+      if (error) toast.error(error.message);
+      else { toast.success(`${Number(limitAmount).toLocaleString()} UZS qo'shildi`); setLimitEmail(""); setLimitAmount(""); loadData(); }
+    } catch { toast.error("Xatolik yuz berdi"); }
   };
 
   const getDeptName = (dept: any) => language === "ru" ? dept.name_ru : language === "en" ? dept.name_en : dept.name_uz;
@@ -187,7 +185,7 @@ const OwnerPanel = () => {
         <Upload className="w-4 h-4" />
         {iconFile ? iconFile.name : "Logo yuklash"}
       </button>
-      {(iconPreview) && (
+      {iconPreview && (
         <div className="w-10 h-10 rounded-lg overflow-hidden border border-border">
           <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
         </div>
@@ -208,9 +206,7 @@ const OwnerPanel = () => {
               <p className="text-sm text-muted-foreground">Tizim egasi boshqaruvi</p>
             </div>
           </div>
-          <button onClick={() => navigate("/")} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">
-            ← Bosh sahifa
-          </button>
+          <button onClick={() => navigate("/")} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← Bosh sahifa</button>
         </div>
       </div>
 
@@ -219,15 +215,9 @@ const OwnerPanel = () => {
           <div className="w-56 shrink-0">
             <div className="bg-card rounded-xl border border-border p-2 space-y-1">
               {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
+                  <tab.icon className="w-4 h-4" />{tab.label}
                 </button>
               ))}
             </div>
@@ -239,18 +229,30 @@ const OwnerPanel = () => {
               <div className="space-y-4">
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Yangi admin qo'shish</h3>
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={searchEmail}
-                      onChange={(e) => setSearchEmail(e.target.value)}
-                      placeholder="Foydalanuvchi ismi yoki ID"
-                      className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm"
-                    />
-                    <button onClick={handleAddAdmin} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium">
-                      <UserPlus className="w-4 h-4 inline mr-1" /> Qo'shish
-                    </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <input type="email" value={searchEmail} onChange={(e) => setSearchEmail(e.target.value)} placeholder="Foydalanuvchi emaili" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <select value={newAdminType} onChange={(e) => setNewAdminType(e.target.value as AdminType)} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm">
+                      <option value="financial">Moliyaviy admin</option>
+                      <option value="dept_head">Bo'lim boshlig'i</option>
+                      <option value="journalist">Jurnalist</option>
+                    </select>
                   </div>
+                  {newAdminType === "financial" && (
+                    <div className="mb-3">
+                      <input type="number" value={newAdminLimit} onChange={(e) => setNewAdminLimit(e.target.value)} placeholder="Oylik limit (UZS)" className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    </div>
+                  )}
+                  {newAdminType === "dept_head" && (
+                    <div className="mb-3">
+                      <select value={newAdminDept} onChange={(e) => setNewAdminDept(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm">
+                        <option value="">Bo'lim tanlang</option>
+                        {departments.map((d: any) => (<option key={d.id} value={d.id}>{getDeptName(d)}</option>))}
+                      </select>
+                    </div>
+                  )}
+                  <button onClick={handleAddAdmin} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium">
+                    <UserPlus className="w-4 h-4 inline mr-1" /> Qo'shish
+                  </button>
                 </div>
 
                 <div className="space-y-2">
@@ -258,7 +260,29 @@ const OwnerPanel = () => {
                     <div key={admin.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
                       <div>
                         <div className="font-medium text-foreground">{admin.full_name || "Noma'lum"}</div>
-                        <div className="text-xs text-muted-foreground">ID: {admin.user_id}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {admin.settings ? (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              admin.settings.admin_type === "financial" ? "bg-green-100 text-green-700" :
+                              admin.settings.admin_type === "dept_head" ? "bg-primary/10 text-primary" :
+                              "bg-warning/10 text-warning"
+                            }`}>
+                              {adminTypeLabels[admin.settings.admin_type as AdminType] || admin.settings.admin_type}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">Admin (eski)</span>
+                          )}
+                          {admin.settings?.admin_type === "financial" && admin.settings.monthly_limit > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              Limit: {Number(admin.settings.month_spent).toLocaleString()}/{Number(admin.settings.monthly_limit).toLocaleString()} UZS
+                            </span>
+                          )}
+                          {admin.settings?.admin_type === "dept_head" && admin.settings.department_id && (
+                            <span className="text-xs text-muted-foreground">
+                              Bo'lim: {getDeptName(departments.find(d => d.id === admin.settings.department_id) || { name_uz: "-", name_ru: "-", name_en: "-" })}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <button onClick={() => handleRemoveAdmin(admin.user_id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10">
                         <UserMinus className="w-4 h-4" />
@@ -283,9 +307,7 @@ const OwnerPanel = () => {
                     <input value={deptForm.name_en} onChange={e => setDeptForm(p => ({ ...p, name_en: e.target.value }))} placeholder="Name (EN)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <input type="number" value={deptForm.price_uzs} onChange={e => setDeptForm(p => ({ ...p, price_uzs: Number(e.target.value) }))} placeholder="Narx (UZS)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                   </div>
-                  <div className="mb-3">
-                    <IconUploader />
-                  </div>
+                  <div className="mb-3"><IconUploader /></div>
                   <button onClick={handleAddDept} disabled={uploading} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium disabled:opacity-50">
                     <Plus className="w-4 h-4 inline mr-1" /> {uploading ? "Yuklanmoqda..." : "Qo'shish"}
                   </button>
@@ -302,9 +324,7 @@ const OwnerPanel = () => {
                             <input value={deptForm.name_en} onChange={e => setDeptForm(p => ({ ...p, name_en: e.target.value }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                             <input type="number" value={deptForm.price_uzs} onChange={e => setDeptForm(p => ({ ...p, price_uzs: Number(e.target.value) }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                           </div>
-                          <div className="mb-3">
-                            <IconUploader />
-                          </div>
+                          <div className="mb-3"><IconUploader /></div>
                           <div className="flex gap-2">
                             <button onClick={() => handleUpdateDept(dept.id)} disabled={uploading} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"><Save className="w-3 h-3 inline mr-1" />{uploading ? "..." : "Saqlash"}</button>
                             <button onClick={() => { setEditingDept(null); setIconFile(null); setIconPreview(null); }} className="px-3 py-1.5 rounded-lg border border-border text-foreground text-xs"><X className="w-3 h-3 inline mr-1" />Bekor</button>
@@ -328,15 +348,8 @@ const OwnerPanel = () => {
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            <button
-                              onClick={() => { setEditingDept(dept.id); setDeptForm({ name_uz: dept.name_uz, name_ru: dept.name_ru, name_en: dept.name_en, icon: dept.icon, price_uzs: dept.price_uzs }); setIconPreview(dept.icon_url || null); setIconFile(null); }}
-                              className="p-2 rounded-lg text-foreground hover:bg-secondary"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDeleteDept(dept.id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <button onClick={() => { setEditingDept(dept.id); setDeptForm({ name_uz: dept.name_uz, name_ru: dept.name_ru, name_en: dept.name_en, icon: dept.icon, price_uzs: dept.price_uzs }); setIconPreview(dept.icon_url || null); setIconFile(null); }} className="p-2 rounded-lg text-foreground hover:bg-secondary"><Edit className="w-4 h-4" /></button>
+                            <button onClick={() => handleDeleteDept(dept.id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>
                       )}
@@ -352,43 +365,12 @@ const OwnerPanel = () => {
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Foydalanuvchiga limit qo'shish</h3>
                   <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={limitEmail}
-                      onChange={(e) => setLimitEmail(e.target.value)}
-                      placeholder="Foydalanuvchi ismi yoki ID"
-                      className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm"
-                    />
-                    <input
-                      type="number"
-                      value={limitAmount}
-                      onChange={(e) => setLimitAmount(e.target.value)}
-                      placeholder="Summa (UZS)"
-                      className="w-40 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm"
-                    />
-                    <button onClick={handleAddLimit} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium">
-                      <Wallet className="w-4 h-4 inline mr-1" /> Qo'shish
+                    <input type="email" value={limitEmail} onChange={(e) => setLimitEmail(e.target.value)} placeholder="Foydalanuvchi emaili" className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <input type="number" value={limitAmount} onChange={(e) => setLimitAmount(e.target.value)} placeholder="Summa (UZS)" className="w-40 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <button onClick={handleAddLimit} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium whitespace-nowrap">
+                      <Plus className="w-4 h-4 inline mr-1" /> Qo'shish
                     </button>
                   </div>
-                </div>
-
-                <div className="bg-card rounded-xl border border-border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/50">
-                        <th className="text-left px-4 py-3 font-medium text-foreground">Ism</th>
-                        <th className="text-right px-4 py-3 font-medium text-foreground">Balans (UZS)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((u: any) => (
-                        <tr key={u.id} className="border-b border-border last:border-0">
-                          <td className="px-4 py-3 font-medium text-foreground">{u.full_name || "Noma'lum"}</td>
-                          <td className="px-4 py-3 text-right text-foreground font-medium">{Number(u.balance_uzs).toLocaleString()} UZS</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}
