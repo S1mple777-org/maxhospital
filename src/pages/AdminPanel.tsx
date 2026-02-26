@@ -5,15 +5,15 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, UserPlus, FileText, BarChart3, ShieldBan, ShieldCheck,
-  Trash2, Plus, Search, Ban, CheckCircle
+  Users, UserPlus, FileText, BarChart3, ShieldBan, Search, Ban, CheckCircle, Plus, Trash2
 } from "lucide-react";
 
 const AdminPanel = () => {
   const { user, isAdmin, isOwner, loading } = useAuth();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("stats");
+  const [adminSettings, setAdminSettings] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -21,7 +21,6 @@ const AdminPanel = () => {
   const [bannedUsers, setBannedUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [stats, setStats] = useState({ users: 0, doctors: 0, consultations: 0, posts: 0 });
-
   const [newPost, setNewPost] = useState({ title_uz: "", title_ru: "", title_en: "", content_uz: "", content_ru: "", content_en: "" });
   const [newDoctorEmail, setNewDoctorEmail] = useState("");
   const [newDoctorDept, setNewDoctorDept] = useState("");
@@ -34,6 +33,12 @@ const AdminPanel = () => {
   }, [loading, user]);
 
   const loadData = async () => {
+    // Load admin settings for current user
+    if (!isOwner) {
+      const { data: settings } = await supabase.from("admin_settings").select("*").eq("user_id", user!.id).maybeSingle();
+      setAdminSettings(settings);
+    }
+
     const [profilesRes, doctorsRes, deptsRes, postsRes, consultationsRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("doctors").select("*"),
@@ -48,13 +53,17 @@ const AdminPanel = () => {
       setStats(prev => ({ ...prev, users: profilesRes.data!.length }));
     }
     if (doctorsRes.data) {
-      // Fetch profiles for doctors
       const docsWithProfiles = await Promise.all(doctorsRes.data.map(async (d: any) => {
         const { data: p } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", d.user_id).maybeSingle();
         const dept = deptsRes.data?.find((dep: any) => dep.id === d.department_id);
         return { ...d, profileData: p, deptData: dept };
       }));
-      setDoctors(docsWithProfiles);
+      // Filter doctors for dept_head
+      if (adminSettings?.admin_type === "dept_head" && adminSettings.department_id) {
+        setDoctors(docsWithProfiles.filter(d => d.department_id === adminSettings.department_id));
+      } else {
+        setDoctors(docsWithProfiles);
+      }
       setStats(prev => ({ ...prev, doctors: doctorsRes.data!.length }));
     }
     if (deptsRes.data) setDepartments(deptsRes.data);
@@ -67,10 +76,18 @@ const AdminPanel = () => {
     }
   };
 
+  // Determine what tabs this admin can see
+  const adminType = adminSettings?.admin_type;
+  const canSeeStats = isOwner || !adminType;
+  const canSeeUsers = isOwner || adminType === "financial" || adminType === "dept_head" || !adminType;
+  const canSeeDoctors = isOwner || adminType === "dept_head" || !adminType;
+  const canSeePosts = isOwner || adminType === "journalist" || !adminType;
+  const canSeeBanned = isOwner || adminType === "financial" || !adminType;
+
   const handleBanUser = async (userId: string, ban: boolean, reason?: string) => {
     const { error } = await supabase.from("profiles").update({ is_banned: ban, ban_reason: ban ? (reason || "Admin tomonidan bloklangan") : null }).eq("user_id", userId);
     if (error) toast.error(error.message);
-    else { toast.success(ban ? "Foydalanuvchi bloklandi" : "Foydalanuvchi blokdan chiqarildi"); loadData(); }
+    else { toast.success(ban ? "Bloklandi" : "Blokdan chiqarildi"); loadData(); }
   };
 
   const handleCreatePost = async () => {
@@ -90,42 +107,23 @@ const AdminPanel = () => {
     if (!newDoctorEmail || !newDoctorDept) { toast.error("Email va bo'lim tanlang"); return; }
     setAddingDoctor(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const res = await supabase.functions.invoke("find-user-by-email", {
-        body: { email: newDoctorEmail },
-      });
-      if (res.error) { toast.error("Foydalanuvchi topilmadi"); setAddingDoctor(false); return; }
-      const result = res.data;
-      if (!result?.user_id) { toast.error("Foydalanuvchi topilmadi"); setAddingDoctor(false); return; }
-
-      // Check if already a doctor
-      const { data: existing } = await supabase.from("doctors").select("id").eq("user_id", result.user_id).maybeSingle();
+      const res = await supabase.functions.invoke("find-user-by-email", { body: { email: newDoctorEmail } });
+      if (res.error || !res.data?.user_id) { toast.error("Foydalanuvchi topilmadi"); setAddingDoctor(false); return; }
+      const { data: existing } = await supabase.from("doctors").select("id").eq("user_id", res.data.user_id).maybeSingle();
       if (existing) { toast.error("Bu foydalanuvchi allaqachon shifokor"); setAddingDoctor(false); return; }
-
-      const { error } = await supabase.from("doctors").insert({
-        user_id: result.user_id,
-        department_id: newDoctorDept,
-        title: newDoctorTitle || "Shifokor",
-      });
+      const { error } = await supabase.from("doctors").insert({ user_id: res.data.user_id, department_id: newDoctorDept, title: newDoctorTitle || "Shifokor" });
       if (error) { toast.error(error.message); setAddingDoctor(false); return; }
-
-      await supabase.from("user_roles").insert({ user_id: result.user_id, role: "doctor" });
+      await supabase.from("user_roles").insert({ user_id: res.data.user_id, role: "doctor" });
       toast.success("Doktor qo'shildi");
       setNewDoctorEmail(""); setNewDoctorDept(""); setNewDoctorTitle("");
       loadData();
-    } catch (err: any) {
-      toast.error(err.message || "Xatolik yuz berdi");
-    } finally {
-      setAddingDoctor(false);
-    }
+    } catch (err: any) { toast.error(err.message || "Xatolik"); } finally { setAddingDoctor(false); }
   };
 
   const handleRemoveDoctor = async (doctor: any) => {
     await supabase.from("doctors").delete().eq("id", doctor.id);
     await supabase.from("user_roles").delete().eq("user_id", doctor.user_id).eq("role", "doctor");
-    toast.success("Doktor o'chirildi");
-    loadData();
+    toast.success("Doktor o'chirildi"); loadData();
   };
 
   const getDeptName = (dept: any) => {
@@ -133,19 +131,23 @@ const AdminPanel = () => {
     return language === "ru" ? dept.name_ru : language === "en" ? dept.name_en : dept.name_uz;
   };
 
-  const filteredUsers = users.filter(u =>
-    u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.phone?.includes(searchQuery)
-  );
+  const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.phone?.includes(searchQuery));
+
+  // Departments that this admin can manage
+  const availableDepts = adminSettings?.admin_type === "dept_head" && adminSettings.department_id
+    ? departments.filter(d => d.id === adminSettings.department_id)
+    : departments;
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-muted-foreground">Yuklanmoqda...</div></div>;
 
-  const tabs = [
-    { id: "stats", label: "Statistika", icon: BarChart3 },
-    { id: "users", label: "Foydalanuvchilar", icon: Users },
-    { id: "doctors", label: "Shifokorlar", icon: UserPlus },
-    { id: "posts", label: "Postlar", icon: FileText },
-    { id: "banned", label: "Ban list", icon: ShieldBan },
+  const allTabs = [
+    { id: "stats", label: "Statistika", icon: BarChart3, visible: canSeeStats },
+    { id: "users", label: "Foydalanuvchilar", icon: Users, visible: canSeeUsers },
+    { id: "doctors", label: "Shifokorlar", icon: UserPlus, visible: canSeeDoctors },
+    { id: "posts", label: "Postlar", icon: FileText, visible: canSeePosts },
+    { id: "banned", label: "Ban list", icon: ShieldBan, visible: canSeeBanned },
   ];
+  const tabs = allTabs.filter(t => t.visible);
 
   return (
     <div className="min-h-screen bg-background">
@@ -153,7 +155,9 @@ const AdminPanel = () => {
         <div className="container mx-auto flex items-center justify-between">
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">Admin Panel</h1>
-            <p className="text-sm text-muted-foreground">Tizimni boshqarish</p>
+            <p className="text-sm text-muted-foreground">
+              {adminType === "financial" ? "Moliyaviy admin" : adminType === "dept_head" ? "Bo'lim boshlig'i" : adminType === "journalist" ? "Jurnalist" : "Tizimni boshqarish"}
+            </p>
           </div>
           <button onClick={() => navigate("/")} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← Bosh sahifa</button>
         </div>
@@ -172,7 +176,7 @@ const AdminPanel = () => {
           </div>
 
           <div className="flex-1 min-w-0">
-            {activeTab === "stats" && (
+            {activeTab === "stats" && canSeeStats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: "Foydalanuvchilar", value: stats.users, icon: Users, color: "from-blue-400 to-cyan-400" },
@@ -191,7 +195,7 @@ const AdminPanel = () => {
               </div>
             )}
 
-            {activeTab === "users" && (
+            {activeTab === "users" && canSeeUsers && (
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -230,7 +234,7 @@ const AdminPanel = () => {
               </div>
             )}
 
-            {activeTab === "doctors" && (
+            {activeTab === "doctors" && canSeeDoctors && (
               <div className="space-y-4">
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Yangi doktor qo'shish (email orqali)</h3>
@@ -238,7 +242,7 @@ const AdminPanel = () => {
                     <input type="email" value={newDoctorEmail} onChange={(e) => setNewDoctorEmail(e.target.value)} placeholder="Foydalanuvchi emaili" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <select value={newDoctorDept} onChange={(e) => setNewDoctorDept(e.target.value)} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm">
                       <option value="">Bo'lim tanlang</option>
-                      {departments.map((d: any) => (<option key={d.id} value={d.id}>{getDeptName(d)}</option>))}
+                      {availableDepts.map((d: any) => (<option key={d.id} value={d.id}>{getDeptName(d)}</option>))}
                     </select>
                     <input type="text" value={newDoctorTitle} onChange={(e) => setNewDoctorTitle(e.target.value)} placeholder="Unvon (masalan: Kardiolog)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                   </div>
@@ -278,7 +282,7 @@ const AdminPanel = () => {
               </div>
             )}
 
-            {activeTab === "posts" && (
+            {activeTab === "posts" && canSeePosts && (
               <div className="space-y-4">
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Yangi post</h3>
@@ -298,9 +302,8 @@ const AdminPanel = () => {
                   {posts.map((p: any) => (
                     <div key={p.id} className="bg-card rounded-xl border border-border p-4 flex items-start justify-between">
                       <div>
-                        <h4 className="font-medium text-foreground">{language === "ru" ? p.title_ru : language === "en" ? p.title_en : p.title_uz}</h4>
-                        <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{language === "ru" ? p.content_ru : language === "en" ? p.content_en : p.content_uz}</p>
-                        <span className="text-xs text-muted-foreground mt-1 block">{new Date(p.created_at).toLocaleDateString()}</span>
+                        <h4 className="font-medium text-foreground text-sm">{language === "ru" ? p.title_ru : language === "en" ? p.title_en : p.title_uz}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">{new Date(p.created_at).toLocaleDateString()}</p>
                       </div>
                       <button onClick={() => handleDeletePost(p.id)} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
                     </div>
@@ -309,35 +312,20 @@ const AdminPanel = () => {
               </div>
             )}
 
-            {activeTab === "banned" && (
-              <div className="space-y-4">
-                <h3 className="font-display font-semibold text-foreground">Ban list</h3>
+            {activeTab === "banned" && canSeeBanned && (
+              <div className="space-y-2">
                 {bannedUsers.length === 0 ? (
-                  <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">
-                    <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-                    <p>Hech kim bloklanmagan</p>
-                  </div>
+                  <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">Bloklangan foydalanuvchilar yo'q</div>
                 ) : (
-                  <div className="bg-card rounded-xl border border-border overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b border-border bg-secondary/50">
-                        <th className="text-left px-4 py-3 font-medium text-foreground">Ism</th>
-                        <th className="text-left px-4 py-3 font-medium text-foreground">Sabab</th>
-                        <th className="text-right px-4 py-3 font-medium text-foreground">Amal</th>
-                      </tr></thead>
-                      <tbody>
-                        {bannedUsers.map((u: any) => (
-                          <tr key={u.id} className="border-b border-border last:border-0">
-                            <td className="px-4 py-3 font-medium text-foreground">{u.full_name || "Noma'lum"}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{u.ban_reason || "-"}</td>
-                            <td className="px-4 py-3 text-right">
-                              <button onClick={() => handleBanUser(u.user_id, false)} className="px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200">Unban</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  bannedUsers.map((u: any) => (
+                    <div key={u.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-foreground">{u.full_name || "Noma'lum"}</div>
+                        {u.ban_reason && <p className="text-xs text-destructive mt-1">Sabab: {u.ban_reason}</p>}
+                      </div>
+                      <button onClick={() => handleBanUser(u.user_id, false)} className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200">Unban</button>
+                    </div>
+                  ))
                 )}
               </div>
             )}

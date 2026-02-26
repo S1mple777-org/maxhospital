@@ -122,11 +122,9 @@ const Navbar = () => {
                     <Link to="/start-consultation" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Stethoscope className="w-4 h-4" /> Konsultatsiya
                     </Link>
-                    {(isAdmin || isOwner) && (
-                      <Link to="/users" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                        <Users className="w-4 h-4" /> Foydalanuvchilar
-                      </Link>
-                    )}
+                    <Link to="/users" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Users className="w-4 h-4" /> Foydalanuvchilar
+                    </Link>
                     {(isAdmin || isOwner) && (
                       <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                         <Shield className="w-4 h-4" /> Admin Panel

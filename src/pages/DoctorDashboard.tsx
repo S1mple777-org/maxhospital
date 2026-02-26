@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Clock, CheckCircle, MessageCircle, Users, XCircle, Wifi, WifiOff } from "lucide-react";
+import { Clock, CheckCircle, MessageCircle, Users, Wifi, WifiOff, Timer } from "lucide-react";
 import { toast } from "sonner";
+
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
 const DoctorDashboard = () => {
   const { user, hasRole, loading } = useAuth();
-  const { language } = useLanguage();
   const navigate = useNavigate();
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(false);
@@ -22,7 +22,6 @@ const DoctorDashboard = () => {
   useEffect(() => {
     if (!loading && !hasRole("doctor")) { navigate("/"); return; }
     if (!user) return;
-
     const loadDoctor = async () => {
       const { data: doc } = await supabase.from("doctors").select("id, is_online").eq("user_id", user.id).maybeSingle();
       if (!doc) return;
@@ -51,12 +50,10 @@ const DoctorDashboard = () => {
       .eq("doctor_id", docId)
       .order("created_at", { ascending: false });
     if (!data) return;
-
     const withProfiles = await Promise.all(data.map(async (c: any) => {
       const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", c.patient_id).maybeSingle();
       return { ...c, patient_name: p?.full_name || "Bemor" };
     }));
-
     setPending(withProfiles.filter(c => c.status === "pending"));
     setActive(withProfiles.filter(c => c.status === "active"));
     setEnded(withProfiles.filter(c => c.status === "ended"));
@@ -74,29 +71,43 @@ const DoctorDashboard = () => {
   };
 
   const handleAccept = async (id: string) => {
+    const now = new Date();
+    const maxEnd = new Date(now.getTime() + TWO_DAYS_MS);
     const { error } = await supabase
       .from("consultations")
-      .update({ status: "active", started_at: new Date().toISOString() })
+      .update({ status: "active", started_at: now.toISOString(), max_end_time: maxEnd.toISOString() })
       .eq("id", id);
     if (error) toast.error(error.message);
     else navigate(`/consultation/${id}`);
   };
 
   const handleReject = async (id: string) => {
-    // Refund patient
     const { data: cons } = await supabase.from("consultations").select("patient_id, price_uzs").eq("id", id).maybeSingle();
     if (cons) {
-      const { data: patientProfile } = await supabase.from("profiles").select("balance_uzs").eq("user_id", cons.patient_id).maybeSingle();
-      if (patientProfile) {
-        await supabase.from("profiles").update({ balance_uzs: Number(patientProfile.balance_uzs) + Number(cons.price_uzs) }).eq("user_id", cons.patient_id);
+      const { data: pp } = await supabase.from("profiles").select("balance_uzs").eq("user_id", cons.patient_id).maybeSingle();
+      if (pp) {
+        await supabase.from("profiles").update({ balance_uzs: Number(pp.balance_uzs) + Number(cons.price_uzs) }).eq("user_id", cons.patient_id);
       }
     }
-    const { error } = await supabase
-      .from("consultations")
-      .update({ status: "ended", ended_at: new Date().toISOString() })
-      .eq("id", id);
+    const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Rad etildi, pul qaytarildi");
+  };
+
+  const handleExtend = async (id: string) => {
+    const newMax = new Date(Date.now() + TWO_DAYS_MS);
+    const { error } = await supabase.from("consultations").update({ max_end_time: newMax.toISOString(), extended: true }).eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Muddati uzaytirildi (+2 kun)"); loadConsultations(doctorId!); }
+  };
+
+  const getTimeLeft = (maxEnd: string | null) => {
+    if (!maxEnd) return null;
+    const diff = new Date(maxEnd).getTime() - Date.now();
+    if (diff <= 0) return "Muddati tugagan";
+    const hours = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    return `${hours}s ${mins}d qoldi`;
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Yuklanmoqda...</p></div>;
@@ -108,21 +119,13 @@ const DoctorDashboard = () => {
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="flex items-center justify-between mb-6">
             <h1 className="font-display text-2xl font-bold text-foreground">Shifokor kabineti</h1>
-            <button
-              onClick={handleToggleOnline}
-              disabled={toggling}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                isOnline
-                  ? "bg-green-100 text-green-700 hover:bg-green-200"
-                  : "bg-muted text-muted-foreground hover:bg-secondary"
-              }`}
-            >
+            <button onClick={handleToggleOnline} disabled={toggling}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isOnline ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-muted text-muted-foreground hover:bg-secondary"}`}>
               {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
               {isOnline ? "Online" : "Offline"}
             </button>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-card rounded-xl p-4 border border-border text-center">
               <Clock className="w-6 h-6 text-warning mx-auto mb-2" />
@@ -141,7 +144,6 @@ const DoctorDashboard = () => {
             </div>
           </div>
 
-          {/* Pending */}
           {pending.length > 0 && (
             <div className="mb-8">
               <h2 className="font-display font-semibold text-foreground mb-3">Yangi so'rovlar</h2>
@@ -163,25 +165,33 @@ const DoctorDashboard = () => {
             </div>
           )}
 
-          {/* Active */}
           {active.length > 0 && (
             <div className="mb-8">
               <h2 className="font-display font-semibold text-foreground mb-3">Faol konsultatsiyalar</h2>
               <div className="space-y-3">
                 {active.map(c => (
-                  <div key={c.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between cursor-pointer hover:bg-secondary/50" onClick={() => navigate(`/consultation/${c.id}`)}>
-                    <div>
-                      <p className="font-medium text-foreground">{c.patient_name}</p>
-                      <p className="text-xs text-muted-foreground">Boshlangan: {new Date(c.started_at).toLocaleString()}</p>
+                  <div key={c.id} className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="cursor-pointer" onClick={() => navigate(`/consultation/${c.id}`)}>
+                        <p className="font-medium text-foreground">{c.patient_name}</p>
+                        <p className="text-xs text-muted-foreground">Boshlangan: {new Date(c.started_at).toLocaleString()}</p>
+                        {c.max_end_time && (
+                          <p className="text-xs text-warning flex items-center gap-1 mt-1">
+                            <Timer className="w-3 h-3" /> {getTimeLeft(c.max_end_time)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleExtend(c.id)} className="px-2 py-1 rounded-lg border border-border text-xs text-foreground hover:bg-secondary">+2 kun</button>
+                        <MessageCircle className="w-5 h-5 text-primary cursor-pointer" onClick={() => navigate(`/consultation/${c.id}`)} />
+                      </div>
                     </div>
-                    <MessageCircle className="w-5 h-5 text-primary" />
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Ended */}
           {ended.length > 0 && (
             <div>
               <h2 className="font-display font-semibold text-foreground mb-3">Tugagan konsultatsiyalar</h2>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -22,18 +21,16 @@ const roleColors: Record<string, string> = {
 };
 
 const UsersPage = () => {
-  const { isAdmin, isOwner, loading } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !isAdmin && !isOwner) { navigate("/"); return; }
     const loadUsers = async () => {
       const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      if (!profiles) return;
-      // Load roles for each user
+      if (!profiles) { setLoading(false); return; }
       const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
       const rolesMap: Record<string, string[]> = {};
       allRoles?.forEach((r: any) => {
@@ -41,9 +38,10 @@ const UsersPage = () => {
         rolesMap[r.user_id].push(r.role);
       });
       setUsers(profiles.map((p: any) => ({ ...p, roles: rolesMap[p.user_id] || ["user"] })));
+      setLoading(false);
     };
     loadUsers();
-  }, [loading, isAdmin, isOwner]);
+  }, []);
 
   const filtered = users
     .filter(u => {
@@ -65,27 +63,17 @@ const UsersPage = () => {
               <Users className="w-6 h-6 text-primary" /> Foydalanuvchilar
             </h1>
 
-            {/* Search & Sort */}
             <div className="flex gap-3 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Ism yoki telefon bo'yicha qidiring..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
-                />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ism yoki telefon bo'yicha qidiring..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary outline-none" />
               </div>
-              <button
-                onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm hover:bg-secondary"
-              >
+              <button onClick={() => setSortAsc(!sortAsc)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm hover:bg-secondary">
                 <ArrowUpDown className="w-4 h-4" />
                 {sortAsc ? "Kam → Ko'p" : "Ko'p → Kam"}
               </button>
             </div>
 
-            {/* Users List */}
             <div className="space-y-2">
               {filtered.map((u, i) => (
                 <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
