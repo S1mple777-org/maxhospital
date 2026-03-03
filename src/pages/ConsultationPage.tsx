@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
-import { Send, ArrowLeft, PhoneOff, Star, Timer } from "lucide-react";
+import { Send, ArrowLeft, PhoneOff, Star, Timer, Video, X, Mic, MicOff, VideoOff } from "lucide-react";
 import { toast } from "sonner";
+import DailyIframe from "@daily-co/daily-js";
 
 interface Message {
   id: string;
@@ -31,17 +32,22 @@ const ConsultationPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isDoctor = hasRole("doctor");
 
+  // Video call state
+  const [inCall, setInCall] = useState(false);
+  const [joiningCall, setJoiningCall] = useState(false);
+  const [callFrame, setCallFrame] = useState<any>(null);
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!id || !user) return;
-
     const loadConsultation = async () => {
       const { data: cons } = await supabase.from("consultations").select("*").eq("id", id).maybeSingle();
       if (!cons) { navigate("/"); return; }
       setConsultation(cons);
-
       const { data: existingRating } = await supabase.from("consultation_ratings").select("id").eq("consultation_id", id).maybeSingle();
       if (existingRating) setHasRated(true);
-
       const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
       if (isDoctor) {
         const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", otherId).maybeSingle();
@@ -82,15 +88,15 @@ const ConsultationPage = () => {
     if (!consultation || consultation.status !== "active" || !consultation.max_end_time) return;
     const maxEnd = new Date(consultation.max_end_time).getTime();
     const remaining = maxEnd - Date.now();
-    if (remaining <= 0 && isDoctor) {
-      handleEndConsultation();
-      return;
-    }
-    const timer = setTimeout(() => {
-      if (isDoctor) handleEndConsultation();
-    }, Math.min(remaining, 60000)); // check every minute max
+    if (remaining <= 0 && isDoctor) { handleEndConsultation(); return; }
+    const timer = setTimeout(() => { if (isDoctor) handleEndConsultation(); }, Math.min(remaining, 60000));
     return () => clearTimeout(timer);
   }, [consultation]);
+
+  // Cleanup video on unmount
+  useEffect(() => {
+    return () => { if (callFrame) { callFrame.destroy(); } };
+  }, [callFrame]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || !id || sending) return;
@@ -106,10 +112,52 @@ const ConsultationPage = () => {
 
   const handleEndConsultation = async () => {
     if (!id) return;
+    if (callFrame) { callFrame.destroy(); setCallFrame(null); setInCall(false); }
     const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Konsultatsiya tugadi");
   };
+
+  const handleStartCall = async () => {
+    if (!id || joiningCall) return;
+    setJoiningCall(true);
+    try {
+      const res = await supabase.functions.invoke("create-video-room", { body: { consultation_id: id } });
+      if (res.error || !res.data?.url) {
+        toast.error("Video qo'ng'iroqni boshlashda xatolik");
+        setJoiningCall(false);
+        return;
+      }
+      const { url, token } = res.data;
+      const frame = DailyIframe.createCallObject({
+        audioSource: true,
+        videoSource: true,
+      });
+
+      frame.on("left-meeting", () => { setInCall(false); setCallFrame(null); frame.destroy(); });
+      frame.on("error", () => { toast.error("Video qo'ng'iroq xatoligi"); setInCall(false); setCallFrame(null); });
+
+      await frame.join({ url, token });
+      setCallFrame(frame);
+      setInCall(true);
+    } catch (err: any) {
+      toast.error(err.message || "Video xatolik");
+    } finally {
+      setJoiningCall(false);
+    }
+  };
+
+  const handleLeaveCall = useCallback(() => {
+    if (callFrame) { callFrame.leave(); callFrame.destroy(); setCallFrame(null); setInCall(false); }
+  }, [callFrame]);
+
+  const toggleMic = useCallback(() => {
+    if (callFrame) { callFrame.setLocalAudio(!micOn); setMicOn(!micOn); }
+  }, [callFrame, micOn]);
+
+  const toggleCam = useCallback(() => {
+    if (callFrame) { callFrame.setLocalVideo(!camOn); setCamOn(!camOn); }
+  }, [callFrame, camOn]);
 
   const handleSubmitRating = async () => {
     if (!id || !user || !consultation) return;
@@ -144,6 +192,7 @@ const ConsultationPage = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <div className="flex-1 flex flex-col pt-16 max-w-3xl mx-auto w-full">
+        {/* Header */}
         <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-secondary text-foreground">
@@ -159,14 +208,43 @@ const ConsultationPage = () => {
               </div>
             </div>
           </div>
-          {isDoctor && !isEnded && (
-            <button onClick={handleEndConsultation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20">
-              <PhoneOff className="w-3.5 h-3.5" /> Tugatish
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isEnded && !inCall && (
+              <button onClick={handleStartCall} disabled={joiningCall}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 disabled:opacity-50">
+                <Video className="w-3.5 h-3.5" /> {joiningCall ? "..." : "Video"}
+              </button>
+            )}
+            {isDoctor && !isEnded && (
+              <button onClick={handleEndConsultation}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20">
+                <PhoneOff className="w-3.5 h-3.5" /> Tugatish
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {/* Video Call Area */}
+        {inCall && (
+          <div className="bg-black relative" style={{ height: "50vh" }}>
+            <div ref={videoContainerRef} id="daily-video" className="w-full h-full" />
+            {/* Video controls overlay */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 rounded-2xl px-4 py-2">
+              <button onClick={toggleMic} className={`p-2.5 rounded-full ${micOn ? "bg-secondary text-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                {micOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+              </button>
+              <button onClick={toggleCam} className={`p-2.5 rounded-full ${camOn ? "bg-secondary text-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                {camOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              </button>
+              <button onClick={handleLeaveCall} className="p-2.5 rounded-full bg-destructive text-destructive-foreground">
+                <PhoneOff className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        <div className={`flex-1 overflow-y-auto px-4 py-4 space-y-3 ${inCall ? "max-h-[25vh]" : ""}`}>
           {messages.map((msg) => {
             const isMine = msg.sender_id === user?.id;
             return (
@@ -183,6 +261,7 @@ const ConsultationPage = () => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Rating */}
         {showRating && !hasRated && !isDoctor && (
           <div className="bg-card border-t border-border px-4 py-6">
             <h3 className="font-display font-semibold text-foreground text-center mb-3">Shifokorni baholang</h3>
@@ -202,6 +281,7 @@ const ConsultationPage = () => {
           </div>
         )}
 
+        {/* Message Input */}
         {!isEnded ? (
           <div className="bg-card border-t border-border px-4 py-3">
             <div className="flex gap-2">
