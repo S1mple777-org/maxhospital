@@ -1,0 +1,101 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const DAILY_API_KEY = Deno.env.get("DAILY_API_KEY");
+    if (!DAILY_API_KEY) {
+      return new Response(JSON.stringify({ error: "Daily API key not configured" }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { consultation_id } = await req.json();
+    if (!consultation_id) {
+      return new Response(JSON.stringify({ error: "consultation_id required" }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const roomName = `consultation-${consultation_id}`;
+
+    // Try to get existing room first
+    const getRes = await fetch(`https://api.daily.co/v1/rooms/${roomName}`, {
+      headers: { Authorization: `Bearer ${DAILY_API_KEY}` },
+    });
+
+    let roomUrl: string;
+
+    if (getRes.ok) {
+      const room = await getRes.json();
+      roomUrl = room.url;
+    } else {
+      // Create new room
+      const createRes = await fetch("https://api.daily.co/v1/rooms", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${DAILY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: roomName,
+          properties: {
+            exp: Math.floor(Date.now() / 1000) + 3600 * 48, // 48 hours
+            enable_chat: false,
+            enable_knocking: false,
+            max_participants: 2,
+          },
+        }),
+      });
+
+      if (!createRes.ok) {
+        const err = await createRes.text();
+        return new Response(JSON.stringify({ error: "Failed to create room", details: err }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const room = await createRes.json();
+      roomUrl = room.url;
+    }
+
+    // Create meeting token
+    const tokenRes = await fetch("https://api.daily.co/v1/meeting-tokens", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${DAILY_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        properties: {
+          room_name: roomName,
+          exp: Math.floor(Date.now() / 1000) + 3600 * 48,
+        },
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      return new Response(JSON.stringify({ error: "Failed to create token" }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tokenData = await tokenRes.json();
+
+    return new Response(JSON.stringify({ url: roomUrl, token: tokenData.token }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
