@@ -40,6 +40,15 @@ const ConsultationPage = () => {
   const [camOn, setCamOn] = useState(true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
+  // Video time limit state
+  const VIDEO_FREE_SECONDS = 600; // 10 minutes
+  const VIDEO_EXTRA_COST_PER_MIN = 20000; // 20,000 UZS per extra minute
+  const [callElapsed, setCallElapsed] = useState(0);
+  const [showExtendPrompt, setShowExtendPrompt] = useState(false);
+  const [callPaused, setCallPaused] = useState(false);
+  const callStartRef = useRef<number | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (!id || !user) return;
     const loadConsultation = async () => {
