@@ -200,7 +200,10 @@ const ConsultationPage = () => {
       await frame.join({ url, token });
       setCallFrame(frame);
       setInCall(true);
-    } catch (err: any) {
+      setCallElapsed(0);
+      setCallPaused(false);
+      setShowExtendPrompt(false);
+      callStartRef.current = Date.now();
       toast.error(err.message || "Video xatolik");
     } finally {
       setJoiningCall(false);
