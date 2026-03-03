@@ -104,8 +104,59 @@ const ConsultationPage = () => {
 
   // Cleanup video on unmount
   useEffect(() => {
-    return () => { if (callFrame) { callFrame.destroy(); } };
+    return () => {
+      if (callFrame) { callFrame.destroy(); }
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+    };
   }, [callFrame]);
+
+  // Video call timer - check 10 min limit
+  useEffect(() => {
+    if (inCall && !callPaused) {
+      if (!callStartRef.current) callStartRef.current = Date.now() - callElapsed * 1000;
+      callTimerRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - (callStartRef.current || Date.now())) / 1000);
+        setCallElapsed(elapsed);
+        if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
+          setShowExtendPrompt(true);
+          // Mute audio/video while waiting for decision
+          if (callFrame) {
+            callFrame.setLocalAudio(false);
+            callFrame.setLocalVideo(false);
+          }
+          setCallPaused(true);
+        }
+      }, 1000);
+      return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
+    }
+  }, [inCall, callPaused, showExtendPrompt]);
+
+  const handleExtendCall = async () => {
+    if (!user) return;
+    // Charge 20,000 UZS for next minute
+    const { data: prof } = await supabase.from("profiles").select("balance_uzs").eq("user_id", user.id).maybeSingle();
+    if (!prof || prof.balance_uzs < VIDEO_EXTRA_COST_PER_MIN) {
+      toast.error("Balans yetarli emas! Video qo'ng'iroq tugatiladi.");
+      handleLeaveCall();
+      return;
+    }
+    await supabase.from("profiles").update({ balance_uzs: prof.balance_uzs - VIDEO_EXTRA_COST_PER_MIN }).eq("user_id", user.id);
+    toast.success(`${VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS yechildi. +1 daqiqa`);
+    // Reset for next minute check
+    callStartRef.current = Date.now();
+    setCallElapsed(0);
+    setShowExtendPrompt(false);
+    setCallPaused(false);
+    if (callFrame) {
+      callFrame.setLocalAudio(micOn);
+      callFrame.setLocalVideo(camOn);
+    }
+  };
+
+  const handleEndCallFromPrompt = () => {
+    setShowExtendPrompt(false);
+    handleLeaveCall();
+  };
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || !id || sending) return;
