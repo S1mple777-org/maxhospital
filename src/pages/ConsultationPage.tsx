@@ -40,6 +40,15 @@ const ConsultationPage = () => {
   const [camOn, setCamOn] = useState(true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
+  // Video time limit state
+  const VIDEO_FREE_SECONDS = 600; // 10 minutes
+  const VIDEO_EXTRA_COST_PER_MIN = 20000; // 20,000 UZS per extra minute
+  const [callElapsed, setCallElapsed] = useState(0);
+  const [showExtendPrompt, setShowExtendPrompt] = useState(false);
+  const [callPaused, setCallPaused] = useState(false);
+  const callStartRef = useRef<number | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (!id || !user) return;
     const loadConsultation = async () => {
@@ -95,8 +104,59 @@ const ConsultationPage = () => {
 
   // Cleanup video on unmount
   useEffect(() => {
-    return () => { if (callFrame) { callFrame.destroy(); } };
+    return () => {
+      if (callFrame) { callFrame.destroy(); }
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+    };
   }, [callFrame]);
+
+  // Video call timer - check 10 min limit
+  useEffect(() => {
+    if (inCall && !callPaused) {
+      if (!callStartRef.current) callStartRef.current = Date.now() - callElapsed * 1000;
+      callTimerRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - (callStartRef.current || Date.now())) / 1000);
+        setCallElapsed(elapsed);
+        if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
+          setShowExtendPrompt(true);
+          // Mute audio/video while waiting for decision
+          if (callFrame) {
+            callFrame.setLocalAudio(false);
+            callFrame.setLocalVideo(false);
+          }
+          setCallPaused(true);
+        }
+      }, 1000);
+      return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
+    }
+  }, [inCall, callPaused, showExtendPrompt]);
+
+  const handleExtendCall = async () => {
+    if (!user) return;
+    // Charge 20,000 UZS for next minute
+    const { data: prof } = await supabase.from("profiles").select("balance_uzs").eq("user_id", user.id).maybeSingle();
+    if (!prof || prof.balance_uzs < VIDEO_EXTRA_COST_PER_MIN) {
+      toast.error("Balans yetarli emas! Video qo'ng'iroq tugatiladi.");
+      handleLeaveCall();
+      return;
+    }
+    await supabase.from("profiles").update({ balance_uzs: prof.balance_uzs - VIDEO_EXTRA_COST_PER_MIN }).eq("user_id", user.id);
+    toast.success(`${VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS yechildi. +1 daqiqa`);
+    // Reset for next minute check
+    callStartRef.current = Date.now();
+    setCallElapsed(0);
+    setShowExtendPrompt(false);
+    setCallPaused(false);
+    if (callFrame) {
+      callFrame.setLocalAudio(micOn);
+      callFrame.setLocalVideo(camOn);
+    }
+  };
+
+  const handleEndCallFromPrompt = () => {
+    setShowExtendPrompt(false);
+    handleLeaveCall();
+  };
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || !id || sending) return;
@@ -140,6 +200,10 @@ const ConsultationPage = () => {
       await frame.join({ url, token });
       setCallFrame(frame);
       setInCall(true);
+      setCallElapsed(0);
+      setCallPaused(false);
+      setShowExtendPrompt(false);
+      callStartRef.current = Date.now();
     } catch (err: any) {
       toast.error(err.message || "Video xatolik");
     } finally {
@@ -228,6 +292,31 @@ const ConsultationPage = () => {
         {inCall && (
           <div className="bg-black relative" style={{ height: "50vh" }}>
             <div ref={videoContainerRef} id="daily-video" className="w-full h-full" />
+            {/* Timer display */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-mono">
+              {Math.floor(callElapsed / 60).toString().padStart(2, "0")}:{(callElapsed % 60).toString().padStart(2, "0")} / 10:00
+            </div>
+            {/* Extend prompt overlay */}
+            {showExtendPrompt && (
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10">
+                <div className="bg-card rounded-2xl p-6 max-w-sm mx-4 text-center space-y-4">
+                  <h3 className="font-semibold text-foreground text-lg">10 daqiqa tugadi!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Davom etish uchun har bir qo'shimcha daqiqa uchun <span className="font-bold text-foreground">{VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS</span> to'lanadi.
+                  </p>
+                  <div className="flex gap-3">
+                    <button onClick={handleEndCallFromPrompt}
+                      className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-medium text-sm">
+                      Tugatish
+                    </button>
+                    <button onClick={handleExtendCall}
+                      className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm">
+                      Davom etish (+{VIDEO_EXTRA_COST_PER_MIN.toLocaleString()})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Video controls overlay */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 rounded-2xl px-4 py-2">
               <button onClick={toggleMic} className={`p-2.5 rounded-full ${micOn ? "bg-secondary text-foreground" : "bg-destructive text-destructive-foreground"}`}>
