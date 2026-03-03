@@ -288,6 +288,31 @@ const ConsultationPage = () => {
         {inCall && (
           <div className="bg-black relative" style={{ height: "50vh" }}>
             <div ref={videoContainerRef} id="daily-video" className="w-full h-full" />
+            {/* Timer display */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-mono">
+              {Math.floor(callElapsed / 60).toString().padStart(2, "0")}:{(callElapsed % 60).toString().padStart(2, "0")} / 10:00
+            </div>
+            {/* Extend prompt overlay */}
+            {showExtendPrompt && (
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10">
+                <div className="bg-card rounded-2xl p-6 max-w-sm mx-4 text-center space-y-4">
+                  <h3 className="font-semibold text-foreground text-lg">10 daqiqa tugadi!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Davom etish uchun har bir qo'shimcha daqiqa uchun <span className="font-bold text-foreground">{VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS</span> to'lanadi.
+                  </p>
+                  <div className="flex gap-3">
+                    <button onClick={handleEndCallFromPrompt}
+                      className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-medium text-sm">
+                      Tugatish
+                    </button>
+                    <button onClick={handleExtendCall}
+                      className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm">
+                      Davom etish (+{VIDEO_EXTRA_COST_PER_MIN.toLocaleString()})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Video controls overlay */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 rounded-2xl px-4 py-2">
               <button onClick={toggleMic} className={`p-2.5 rounded-full ${micOn ? "bg-secondary text-foreground" : "bg-destructive text-destructive-foreground"}`}>
