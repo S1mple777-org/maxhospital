@@ -204,6 +204,7 @@ const ConsultationPage = () => {
       setCallPaused(false);
       setShowExtendPrompt(false);
       callStartRef.current = Date.now();
+    } catch (err: any) {
       toast.error(err.message || "Video xatolik");
     } finally {
       setJoiningCall(false);
