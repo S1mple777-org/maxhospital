@@ -18,6 +18,7 @@ import NewsPage from "./pages/NewsPage";
 import NewsDetailPage from "./pages/NewsDetailPage";
 import ConsultationPage from "./pages/ConsultationPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
+import DoctorProfilePage from "./pages/DoctorProfilePage";
 import StartConsultation from "./pages/StartConsultation";
 import UsersPage from "./pages/UsersPage";
 import NotFound from "./pages/NotFound";
