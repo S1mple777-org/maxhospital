@@ -172,10 +172,20 @@ const ConsultationPage = () => {
 
   const handleEndConsultation = async () => {
     if (!id) return;
-    if (callFrame) { callFrame.destroy(); setCallFrame(null); setInCall(false); }
-    const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
-    if (error) toast.error(error.message);
-    else toast.success("Konsultatsiya tugadi");
+    try {
+      if (callFrame) {
+        try { await callFrame.destroy(); } catch (e) { console.error("Error destroying call frame:", e); }
+        setCallFrame(null);
+        setInCall(false);
+      }
+      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+      const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
+      if (error) toast.error(error.message);
+      else { toast.success("Konsultatsiya tugadi"); setShowRating(!isDoctor); }
+    } catch (err: any) {
+      console.error("Error ending consultation:", err);
+      toast.error("Konsultatsiyani tugatishda xatolik");
+    }
   };
 
   const handleStartCall = async () => {
