@@ -221,8 +221,16 @@ const ConsultationPage = () => {
     }
   };
 
-  const handleLeaveCall = useCallback(() => {
-    if (callFrame) { callFrame.leave(); callFrame.destroy(); setCallFrame(null); setInCall(false); }
+  const handleLeaveCall = useCallback(async () => {
+    if (callFrame) {
+      try {
+        await callFrame.leave();
+        await callFrame.destroy();
+      } catch (e) { console.error("Error leaving call:", e); }
+      setCallFrame(null);
+      setInCall(false);
+      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+    }
   }, [callFrame]);
 
   const toggleMic = useCallback(() => {
