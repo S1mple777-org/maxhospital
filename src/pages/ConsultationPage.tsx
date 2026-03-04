@@ -204,8 +204,17 @@ const ConsultationPage = () => {
         videoSource: true,
       });
 
-      frame.on("left-meeting", () => { setInCall(false); setCallFrame(null); frame.destroy(); });
-      frame.on("error", () => { toast.error("Video qo'ng'iroq xatoligi"); setInCall(false); setCallFrame(null); });
+      frame.on("left-meeting", () => {
+        setInCall(false); setCallFrame(null);
+        try { frame.destroy(); } catch (e) { console.error(e); }
+        if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+      });
+      frame.on("error", (e) => {
+        console.error("Daily error:", e);
+        toast.error("Video qo'ng'iroq xatoligi");
+        setInCall(false); setCallFrame(null);
+        try { frame.destroy(); } catch (err) { console.error(err); }
+      });
 
       await frame.join({ url, token });
       setCallFrame(frame);
