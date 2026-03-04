@@ -188,6 +188,7 @@ export type Database = {
       }
       doctors: {
         Row: {
+          address: string | null
           bio_en: string | null
           bio_ru: string | null
           bio_uz: string | null
@@ -198,10 +199,13 @@ export type Database = {
           is_online: boolean
           patients_count: number
           rating: number
+          telegram_username: string | null
           title: string
           user_id: string
+          workplace: string | null
         }
         Insert: {
+          address?: string | null
           bio_en?: string | null
           bio_ru?: string | null
           bio_uz?: string | null
@@ -212,10 +216,13 @@ export type Database = {
           is_online?: boolean
           patients_count?: number
           rating?: number
+          telegram_username?: string | null
           title?: string
           user_id: string
+          workplace?: string | null
         }
         Update: {
+          address?: string | null
           bio_en?: string | null
           bio_ru?: string | null
           bio_uz?: string | null
@@ -226,8 +233,10 @@ export type Database = {
           is_online?: boolean
           patients_count?: number
           rating?: number
+          telegram_username?: string | null
           title?: string
           user_id?: string
+          workplace?: string | null
         }
         Relationships: [
           {

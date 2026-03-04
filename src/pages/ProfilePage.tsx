@@ -1,19 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, FileText, Home } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
-  const { user, profile, roles, signOut, refreshProfile } = useAuth();
+  const { user, profile, roles, signOut, refreshProfile, isDoctor } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Doctor-specific fields
+  const [doctorData, setDoctorData] = useState<any>(null);
+  const [docTitle, setDocTitle] = useState("");
+  const [docAddress, setDocAddress] = useState("");
+  const [docWorkplace, setDocWorkplace] = useState("");
+  const [docExperience, setDocExperience] = useState(0);
+  const [docTelegram, setDocTelegram] = useState("");
+
+  useEffect(() => {
+    if (isDoctor && user) {
+      supabase.from("doctors").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+        if (data) {
+          setDoctorData(data);
+          setDocTitle(data.title || "");
+          setDocAddress(data.address || "");
+          setDocWorkplace(data.workplace || "");
+          setDocExperience(data.experience_years || 0);
+          setDocTelegram(data.telegram_username || "");
+        }
+      });
+    }
+  }, [isDoctor, user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -23,6 +46,13 @@ const ProfilePage = () => {
   const startEditing = () => {
     setFullName(profile?.full_name || "");
     setPhone(profile?.phone || "");
+    if (doctorData) {
+      setDocTitle(doctorData.title || "");
+      setDocAddress(doctorData.address || "");
+      setDocWorkplace(doctorData.workplace || "");
+      setDocExperience(doctorData.experience_years || 0);
+      setDocTelegram(doctorData.telegram_username || "");
+    }
     setEditing(true);
   };
 
@@ -36,14 +66,37 @@ const ProfilePage = () => {
       .from("profiles")
       .update({ full_name: fullName.trim(), phone: phone.trim() || null })
       .eq("user_id", user.id);
-    setSaving(false);
+
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success("Profil yangilandi");
-      setEditing(false);
-      await refreshProfile();
+      setSaving(false);
+      return;
     }
+
+    // Save doctor fields
+    if (isDoctor && doctorData) {
+      const { error: docErr } = await supabase
+        .from("doctors")
+        .update({
+          title: docTitle.trim(),
+          address: docAddress.trim(),
+          workplace: docWorkplace.trim(),
+          experience_years: docExperience,
+          telegram_username: docTelegram.trim(),
+        })
+        .eq("id", doctorData.id);
+      if (docErr) {
+        toast.error(docErr.message);
+        setSaving(false);
+        return;
+      }
+      setDoctorData({ ...doctorData, title: docTitle.trim(), address: docAddress.trim(), workplace: docWorkplace.trim(), experience_years: docExperience, telegram_username: docTelegram.trim() });
+    }
+
+    setSaving(false);
+    toast.success("Profil yangilandi");
+    setEditing(false);
+    await refreshProfile();
   };
 
   if (!user || !profile) {
@@ -58,6 +111,8 @@ const ProfilePage = () => {
       </div>
     );
   }
+
+  const inputClass = "px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm w-full";
 
   return (
     <div className="min-h-screen bg-background pt-20">
@@ -75,20 +130,10 @@ const ProfilePage = () => {
               <div>
                 {editing ? (
                   <div className="space-y-2">
-                    <input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="F.I.Sh."
-                      className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm w-full"
-                    />
+                    <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="F.I.Sh." className={inputClass} />
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                      <input
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="Telefon raqam"
-                        className="pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm w-full"
-                      />
+                      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon raqam" className="pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm w-full" />
                     </div>
                   </div>
                 ) : (
@@ -114,6 +159,56 @@ const ProfilePage = () => {
               </button>
             )}
           </div>
+
+          {/* Doctor edit fields */}
+          {editing && isDoctor && doctorData && (
+            <div className="bg-secondary/30 rounded-xl p-4 mb-6 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Stethoscope className="w-4 h-4 text-primary" /> Shifokor ma'lumotlari
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Lavozim</label>
+                  <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="Kardiolog" className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Tajriba (yil)</label>
+                  <input type="number" value={docExperience} onChange={(e) => setDocExperience(Number(e.target.value))} min={0} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Ish joyi</label>
+                  <input value={docWorkplace} onChange={(e) => setDocWorkplace(e.target.value)} placeholder="Toshkent tibbiyot akademiyasi" className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Manzil</label>
+                  <input value={docAddress} onChange={(e) => setDocAddress(e.target.value)} placeholder="Toshkent sh., Chilonzor t." className={inputClass} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-muted-foreground mb-1 block">Telegram username</label>
+                  <div className="relative">
+                    <Send className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input value={docTelegram} onChange={(e) => setDocTelegram(e.target.value)} placeholder="username" className="pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Doctor info display (non-editing) */}
+          {!editing && isDoctor && doctorData && (
+            <div className="bg-primary/5 rounded-xl p-4 mb-6">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+                <Stethoscope className="w-4 h-4 text-primary" /> Shifokor ma'lumotlari
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-2 text-sm">
+                {doctorData.title && <div className="flex justify-between"><span className="text-muted-foreground">Lavozim</span><span className="text-foreground font-medium">{doctorData.title}</span></div>}
+                {doctorData.experience_years > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Tajriba</span><span className="text-foreground font-medium">{doctorData.experience_years} yil</span></div>}
+                {doctorData.workplace && <div className="flex justify-between"><span className="text-muted-foreground">Ish joyi</span><span className="text-foreground font-medium">{doctorData.workplace}</span></div>}
+                {doctorData.address && <div className="flex justify-between"><span className="text-muted-foreground">Manzil</span><span className="text-foreground font-medium">{doctorData.address}</span></div>}
+                {doctorData.telegram_username && <div className="flex justify-between"><span className="text-muted-foreground">Telegram</span><span className="text-primary font-medium">@{doctorData.telegram_username.replace("@", "")}</span></div>}
+              </div>
+            </div>
+          )}
 
           {/* Info Cards */}
           <div className="grid grid-cols-2 gap-4 mb-6">

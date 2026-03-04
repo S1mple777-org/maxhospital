@@ -18,6 +18,7 @@ import NewsPage from "./pages/NewsPage";
 import NewsDetailPage from "./pages/NewsDetailPage";
 import ConsultationPage from "./pages/ConsultationPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
+import DoctorProfilePage from "./pages/DoctorProfilePage";
 import StartConsultation from "./pages/StartConsultation";
 import UsersPage from "./pages/UsersPage";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/departments/:id" element={<DepartmentDetailPage />} />
                 <Route path="/doctors" element={<DoctorsPage />} />
+                <Route path="/doctors/:id" element={<DoctorProfilePage />} />
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/news/:id" element={<NewsDetailPage />} />
                 <Route path="/consultation/:id" element={<ConsultationPage />} />

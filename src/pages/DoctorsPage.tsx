@@ -84,7 +84,7 @@ const DoctorsPage = () => {
                         ))}
                         <span className="text-xs text-muted-foreground ml-1">{Number(doc.rating).toFixed(1)}</span>
                       </div>
-                      <Link to="/start-consultation" className="w-full py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary hover:text-primary-foreground transition-colors block text-center">
+                      <Link to={`/doctors/${doc.id}`} className="w-full py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary hover:text-primary-foreground transition-colors block text-center">
                         {t("doctors.viewProfile")}
                       </Link>
                     </div>
