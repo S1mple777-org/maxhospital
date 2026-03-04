@@ -172,10 +172,20 @@ const ConsultationPage = () => {
 
   const handleEndConsultation = async () => {
     if (!id) return;
-    if (callFrame) { callFrame.destroy(); setCallFrame(null); setInCall(false); }
-    const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
-    if (error) toast.error(error.message);
-    else toast.success("Konsultatsiya tugadi");
+    try {
+      if (callFrame) {
+        try { await callFrame.destroy(); } catch (e) { console.error("Error destroying call frame:", e); }
+        setCallFrame(null);
+        setInCall(false);
+      }
+      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+      const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
+      if (error) toast.error(error.message);
+      else { toast.success("Konsultatsiya tugadi"); setShowRating(!isDoctor); }
+    } catch (err: any) {
+      console.error("Error ending consultation:", err);
+      toast.error("Konsultatsiyani tugatishda xatolik");
+    }
   };
 
   const handleStartCall = async () => {
@@ -194,8 +204,17 @@ const ConsultationPage = () => {
         videoSource: true,
       });
 
-      frame.on("left-meeting", () => { setInCall(false); setCallFrame(null); frame.destroy(); });
-      frame.on("error", () => { toast.error("Video qo'ng'iroq xatoligi"); setInCall(false); setCallFrame(null); });
+      frame.on("left-meeting", () => {
+        setInCall(false); setCallFrame(null);
+        try { frame.destroy(); } catch (e) { console.error(e); }
+        if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+      });
+      frame.on("error", (e) => {
+        console.error("Daily error:", e);
+        toast.error("Video qo'ng'iroq xatoligi");
+        setInCall(false); setCallFrame(null);
+        try { frame.destroy(); } catch (err) { console.error(err); }
+      });
 
       await frame.join({ url, token });
       setCallFrame(frame);
@@ -211,8 +230,16 @@ const ConsultationPage = () => {
     }
   };
 
-  const handleLeaveCall = useCallback(() => {
-    if (callFrame) { callFrame.leave(); callFrame.destroy(); setCallFrame(null); setInCall(false); }
+  const handleLeaveCall = useCallback(async () => {
+    if (callFrame) {
+      try {
+        await callFrame.leave();
+        await callFrame.destroy();
+      } catch (e) { console.error("Error leaving call:", e); }
+      setCallFrame(null);
+      setInCall(false);
+      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+    }
   }, [callFrame]);
 
   const toggleMic = useCallback(() => {
