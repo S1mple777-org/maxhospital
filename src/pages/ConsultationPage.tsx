@@ -36,7 +36,7 @@ const ConsultationPage = () => {
   // Video call state
   const [inCall, setInCall] = useState(false);
   const [joiningCall, setJoiningCall] = useState(false);
-  const [callFrame, setCallFrame] = useState<any>(null);
+  const frameRef = useRef<any>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +52,26 @@ const ConsultationPage = () => {
 
   // Track consultation ended state locally for immediate UI update
   const [localEnded, setLocalEnded] = useState(false);
+
+  const cleanupCallFrame = useCallback(async (targetFrame?: any) => {
+    const activeFrame = targetFrame ?? frameRef.current;
+
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+
+    if (activeFrame) {
+      try { await activeFrame.leave(); } catch (e) {}
+      try { await activeFrame.destroy(); } catch (e) {}
+    }
+
+    if (!targetFrame || targetFrame === frameRef.current) {
+      frameRef.current = null;
+    }
+
+    setInCall(false);
+  }, []);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -92,18 +112,14 @@ const ConsultationPage = () => {
             setLocalEnded(true);
             if (!isDoctor) setShowRating(true);
             // Auto-leave video call if active
-            if (callFrame) {
-              try { callFrame.leave(); callFrame.destroy(); } catch(e) {}
-              setCallFrame(null);
-              setInCall(false);
-            }
+            void cleanupCallFrame();
           }
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id, user]);
+  }, [id, user, isDoctor, navigate, cleanupCallFrame]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -128,15 +144,14 @@ const ConsultationPage = () => {
     checkAndEnd();
     const interval = setInterval(checkAndEnd, 5000);
     return () => clearInterval(interval);
-  }, [consultation?.status, consultation?.max_end_time]);
+  }, [consultation?.status, consultation?.max_end_time, isDoctor]);
 
   // Cleanup video on unmount
   useEffect(() => {
     return () => {
-      if (callFrame) { try { callFrame.destroy(); } catch(e) {} }
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
+      void cleanupCallFrame();
     };
-  }, [callFrame]);
+  }, [cleanupCallFrame]);
 
   // Video call timer
   useEffect(() => {
@@ -145,14 +160,14 @@ const ConsultationPage = () => {
       callTimerRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - (callStartRef.current || Date.now())) / 1000);
         setCallElapsed(elapsed);
-        if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
-          setShowExtendPrompt(true);
-          if (callFrame) {
-            callFrame.setLocalAudio(false);
-            callFrame.setLocalVideo(false);
+          if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
+            setShowExtendPrompt(true);
+            if (frameRef.current) {
+              frameRef.current.setLocalAudio(false);
+              frameRef.current.setLocalVideo(false);
+            }
+            setCallPaused(true);
           }
-          setCallPaused(true);
-        }
       }, 1000);
       return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
     }
@@ -172,9 +187,9 @@ const ConsultationPage = () => {
     setCallElapsed(0);
     setShowExtendPrompt(false);
     setCallPaused(false);
-    if (callFrame) {
-      callFrame.setLocalAudio(micOn);
-      callFrame.setLocalVideo(camOn);
+    if (frameRef.current) {
+      frameRef.current.setLocalAudio(micOn);
+      frameRef.current.setLocalVideo(camOn);
     }
   };
 
@@ -199,12 +214,7 @@ const ConsultationPage = () => {
     if (!id) return;
     try {
       setLocalEnded(true);
-      if (callFrame) {
-        try { await callFrame.leave(); await callFrame.destroy(); } catch (e) {}
-        setCallFrame(null);
-        setInCall(false);
-      }
-      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+      await cleanupCallFrame();
       const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
       if (error) {
         toast.error(error.message);
@@ -223,78 +233,87 @@ const ConsultationPage = () => {
   const handleStartCall = async () => {
     if (!id || joiningCall) return;
     setJoiningCall(true);
+
+    let frame: any = null;
+
     try {
+      if (frameRef.current) {
+        await cleanupCallFrame(frameRef.current);
+      }
+
       const res = await supabase.functions.invoke("create-video-room", { body: { consultation_id: id } });
       if (res.error || !res.data?.url) {
         toast.error("Video qo'ng'iroqni boshlashda xatolik");
-        setJoiningCall(false);
-        return;
-      }
-      const { url, token } = res.data;
-      
-      // Use createFrame to embed video in container
-      if (!videoContainerRef.current) {
-        toast.error("Video konteyner topilmadi");
-        setJoiningCall(false);
         return;
       }
 
-      const frame = DailyIframe.createFrame(videoContainerRef.current, {
+      const { url, token } = res.data;
+
+      if (!videoContainerRef.current) {
+        toast.error("Video konteyner topilmadi");
+        return;
+      }
+
+      frame = DailyIframe.createFrame(videoContainerRef.current, {
         iframeStyle: {
-          width: '100%',
-          height: '100%',
-          border: '0',
-          borderRadius: '12px',
+          width: "100%",
+          height: "100%",
+          border: "0",
+          borderRadius: "12px",
         },
         showLeaveButton: false,
         showFullscreenButton: true,
       });
 
+      frameRef.current = frame;
+
       frame.on("left-meeting", () => {
-        setInCall(false);
-        setCallFrame(null);
-        if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+        void cleanupCallFrame(frame);
       });
+
       frame.on("error", (e: any) => {
         console.error("Daily error:", e);
-        toast.error("Video qo'ng'iroq xatoligi");
-        setInCall(false);
-        setCallFrame(null);
+        if (e?.errorMsg === "account-missing-payment-method") {
+          toast.error("Video qo'ng'iroq hozircha mavjud emas. Hisob sozlamalari talab qilinadi.");
+        } else {
+          toast.error("Video qo'ng'iroq xatoligi");
+        }
+        void cleanupCallFrame(frame);
       });
 
       await frame.join({ url, token });
-      setCallFrame(frame);
       setInCall(true);
       setCallElapsed(0);
       setCallPaused(false);
       setShowExtendPrompt(false);
       callStartRef.current = Date.now();
     } catch (err: any) {
-      toast.error(err.message || "Video xatolik");
+      await cleanupCallFrame(frame);
+      toast.error(err?.message || "Video xatolik");
     } finally {
       setJoiningCall(false);
     }
   };
 
   const handleLeaveCall = useCallback(async () => {
-    if (callFrame) {
-      try {
-        await callFrame.leave();
-        await callFrame.destroy();
-      } catch (e) {}
-      setCallFrame(null);
-      setInCall(false);
-      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
-    }
-  }, [callFrame]);
+    await cleanupCallFrame();
+  }, [cleanupCallFrame]);
 
   const toggleMic = useCallback(() => {
-    if (callFrame) { callFrame.setLocalAudio(!micOn); setMicOn(!micOn); }
-  }, [callFrame, micOn]);
+    const frame = frameRef.current;
+    if (frame) {
+      frame.setLocalAudio(!micOn);
+      setMicOn(!micOn);
+    }
+  }, [micOn]);
 
   const toggleCam = useCallback(() => {
-    if (callFrame) { callFrame.setLocalVideo(!camOn); setCamOn(!camOn); }
-  }, [callFrame, camOn]);
+    const frame = frameRef.current;
+    if (frame) {
+      frame.setLocalVideo(!camOn);
+      setCamOn(!camOn);
+    }
+  }, [camOn]);
 
   const handleSubmitRating = async () => {
     if (!id || !user || !consultation) return;
