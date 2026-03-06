@@ -36,9 +36,9 @@ const ConsultationPage = () => {
   // Video call state
   const [inCall, setInCall] = useState(false);
   const [joiningCall, setJoiningCall] = useState(false);
-  const [callFrame, setCallFrame] = useState<any>(null);
   const frameRef = useRef<any>(null);
   const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
