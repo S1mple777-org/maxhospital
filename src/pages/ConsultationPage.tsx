@@ -151,10 +151,9 @@ const ConsultationPage = () => {
   // Cleanup video on unmount
   useEffect(() => {
     return () => {
-      if (callFrame) { try { callFrame.destroy(); } catch(e) {} }
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
+      void cleanupCallFrame();
     };
-  }, [callFrame]);
+  }, [cleanupCallFrame]);
 
   // Video call timer
   useEffect(() => {
