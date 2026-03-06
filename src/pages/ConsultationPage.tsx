@@ -54,6 +54,27 @@ const ConsultationPage = () => {
   // Track consultation ended state locally for immediate UI update
   const [localEnded, setLocalEnded] = useState(false);
 
+  const cleanupCallFrame = useCallback(async (targetFrame?: any) => {
+    const activeFrame = targetFrame ?? frameRef.current;
+
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+
+    if (activeFrame) {
+      try { await activeFrame.leave(); } catch (e) {}
+      try { await activeFrame.destroy(); } catch (e) {}
+    }
+
+    if (!targetFrame || targetFrame === frameRef.current) {
+      frameRef.current = null;
+    }
+
+    setCallFrame(null);
+    setInCall(false);
+  }, []);
+
   useEffect(() => {
     if (!id || !user) return;
     const loadConsultation = async () => {
