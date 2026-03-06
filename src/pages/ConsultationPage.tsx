@@ -70,7 +70,6 @@ const ConsultationPage = () => {
       frameRef.current = null;
     }
 
-    setCallFrame(null);
     setInCall(false);
   }, []);
 
