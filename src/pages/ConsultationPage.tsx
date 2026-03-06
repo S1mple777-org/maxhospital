@@ -303,12 +303,20 @@ const ConsultationPage = () => {
   }, [cleanupCallFrame]);
 
   const toggleMic = useCallback(() => {
-    if (callFrame) { callFrame.setLocalAudio(!micOn); setMicOn(!micOn); }
-  }, [callFrame, micOn]);
+    const frame = frameRef.current;
+    if (frame) {
+      frame.setLocalAudio(!micOn);
+      setMicOn(!micOn);
+    }
+  }, [micOn]);
 
   const toggleCam = useCallback(() => {
-    if (callFrame) { callFrame.setLocalVideo(!camOn); setCamOn(!camOn); }
-  }, [callFrame, camOn]);
+    const frame = frameRef.current;
+    if (frame) {
+      frame.setLocalVideo(!camOn);
+      setCamOn(!camOn);
+    }
+  }, [camOn]);
 
   const handleSubmitRating = async () => {
     if (!id || !user || !consultation) return;
