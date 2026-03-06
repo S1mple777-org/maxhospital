@@ -114,11 +114,7 @@ const ConsultationPage = () => {
             setLocalEnded(true);
             if (!isDoctor) setShowRating(true);
             // Auto-leave video call if active
-            if (callFrame) {
-              try { callFrame.leave(); callFrame.destroy(); } catch(e) {}
-              setCallFrame(null);
-              setInCall(false);
-            }
+            void cleanupCallFrame();
           }
         }
       )
