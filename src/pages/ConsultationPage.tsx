@@ -121,7 +121,7 @@ const ConsultationPage = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id, user]);
+  }, [id, user, isDoctor, navigate, cleanupCallFrame]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
