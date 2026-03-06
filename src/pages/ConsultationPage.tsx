@@ -189,9 +189,9 @@ const ConsultationPage = () => {
     setCallElapsed(0);
     setShowExtendPrompt(false);
     setCallPaused(false);
-    if (callFrame) {
-      callFrame.setLocalAudio(micOn);
-      callFrame.setLocalVideo(camOn);
+    if (frameRef.current) {
+      frameRef.current.setLocalAudio(micOn);
+      frameRef.current.setLocalVideo(camOn);
     }
   };
 
