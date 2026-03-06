@@ -216,12 +216,7 @@ const ConsultationPage = () => {
     if (!id) return;
     try {
       setLocalEnded(true);
-      if (callFrame) {
-        try { await callFrame.leave(); await callFrame.destroy(); } catch (e) {}
-        setCallFrame(null);
-        setInCall(false);
-      }
-      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+      await cleanupCallFrame();
       const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
       if (error) {
         toast.error(error.message);
