@@ -39,7 +39,6 @@ const ConsultationPage = () => {
   const frameRef = useRef<any>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Video time limit state
