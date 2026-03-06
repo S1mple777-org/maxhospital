@@ -282,7 +282,6 @@ const ConsultationPage = () => {
       });
 
       await frame.join({ url, token });
-      setCallFrame(frame);
       setInCall(true);
       setCallElapsed(0);
       setCallPaused(false);
