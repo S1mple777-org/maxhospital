@@ -162,14 +162,14 @@ const ConsultationPage = () => {
       callTimerRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - (callStartRef.current || Date.now())) / 1000);
         setCallElapsed(elapsed);
-        if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
-          setShowExtendPrompt(true);
-          if (callFrame) {
-            callFrame.setLocalAudio(false);
-            callFrame.setLocalVideo(false);
+          if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
+            setShowExtendPrompt(true);
+            if (frameRef.current) {
+              frameRef.current.setLocalAudio(false);
+              frameRef.current.setLocalVideo(false);
+            }
+            setCallPaused(true);
           }
-          setCallPaused(true);
-        }
       }, 1000);
       return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
     }
