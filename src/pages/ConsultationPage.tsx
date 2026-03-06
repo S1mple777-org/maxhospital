@@ -235,43 +235,52 @@ const ConsultationPage = () => {
   const handleStartCall = async () => {
     if (!id || joiningCall) return;
     setJoiningCall(true);
+
+    let frame: any = null;
+
     try {
+      if (frameRef.current) {
+        await cleanupCallFrame(frameRef.current);
+      }
+
       const res = await supabase.functions.invoke("create-video-room", { body: { consultation_id: id } });
       if (res.error || !res.data?.url) {
         toast.error("Video qo'ng'iroqni boshlashda xatolik");
-        setJoiningCall(false);
-        return;
-      }
-      const { url, token } = res.data;
-      
-      // Use createFrame to embed video in container
-      if (!videoContainerRef.current) {
-        toast.error("Video konteyner topilmadi");
-        setJoiningCall(false);
         return;
       }
 
-      const frame = DailyIframe.createFrame(videoContainerRef.current, {
+      const { url, token } = res.data;
+
+      if (!videoContainerRef.current) {
+        toast.error("Video konteyner topilmadi");
+        return;
+      }
+
+      frame = DailyIframe.createFrame(videoContainerRef.current, {
         iframeStyle: {
-          width: '100%',
-          height: '100%',
-          border: '0',
-          borderRadius: '12px',
+          width: "100%",
+          height: "100%",
+          border: "0",
+          borderRadius: "12px",
         },
         showLeaveButton: false,
         showFullscreenButton: true,
       });
 
+      frameRef.current = frame;
+
       frame.on("left-meeting", () => {
-        setInCall(false);
-        setCallFrame(null);
-        if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+        void cleanupCallFrame(frame);
       });
+
       frame.on("error", (e: any) => {
         console.error("Daily error:", e);
-        toast.error("Video qo'ng'iroq xatoligi");
-        setInCall(false);
-        setCallFrame(null);
+        if (e?.errorMsg === "account-missing-payment-method") {
+          toast.error("Video qo'ng'iroq hozircha mavjud emas. Hisob sozlamalari talab qilinadi.");
+        } else {
+          toast.error("Video qo'ng'iroq xatoligi");
+        }
+        void cleanupCallFrame(frame);
       });
 
       await frame.join({ url, token });
@@ -282,7 +291,8 @@ const ConsultationPage = () => {
       setShowExtendPrompt(false);
       callStartRef.current = Date.now();
     } catch (err: any) {
-      toast.error(err.message || "Video xatolik");
+      await cleanupCallFrame(frame);
+      toast.error(err?.message || "Video xatolik");
     } finally {
       setJoiningCall(false);
     }
