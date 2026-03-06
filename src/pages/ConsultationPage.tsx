@@ -144,7 +144,7 @@ const ConsultationPage = () => {
     checkAndEnd();
     const interval = setInterval(checkAndEnd, 5000);
     return () => clearInterval(interval);
-  }, [consultation?.status, consultation?.max_end_time]);
+  }, [consultation?.status, consultation?.max_end_time, isDoctor]);
 
   // Cleanup video on unmount
   useEffect(() => {
