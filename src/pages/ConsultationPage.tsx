@@ -299,16 +299,8 @@ const ConsultationPage = () => {
   };
 
   const handleLeaveCall = useCallback(async () => {
-    if (callFrame) {
-      try {
-        await callFrame.leave();
-        await callFrame.destroy();
-      } catch (e) {}
-      setCallFrame(null);
-      setInCall(false);
-      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
-    }
-  }, [callFrame]);
+    await cleanupCallFrame();
+  }, [cleanupCallFrame]);
 
   const toggleMic = useCallback(() => {
     if (callFrame) { callFrame.setLocalAudio(!micOn); setMicOn(!micOn); }
