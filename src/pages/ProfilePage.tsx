@@ -4,6 +4,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope } from "lucide-react";
+import TelegramLinkSection from "@/components/TelegramLinkSection";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
@@ -265,6 +266,11 @@ const ProfilePage = () => {
             <LogOut className="w-4 h-4" />
             Chiqish
           </button>
+        </div>
+
+        {/* Telegram Link Section */}
+        <div className="mt-6">
+          <TelegramLinkSection />
         </div>
       </div>
     </div>

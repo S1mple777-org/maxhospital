@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
-import { Stethoscope, Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Stethoscope, Mail, Lock, User, Eye, EyeOff, ArrowRight, MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,6 +16,46 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramMode, setTelegramMode] = useState(false);
+  const [telegramPolling, setTelegramPolling] = useState(false);
+  const [telegramRequestId, setTelegramRequestId] = useState<string | null>(null);
+
+  const handleTelegramLogin = async () => {
+    if (!email) { toast.error("Email kiriting"); return; }
+    setLoading(true);
+    try {
+      const res = await supabase.functions.invoke("telegram-auth", {
+        body: { action: "request_auth", email, type: "login" },
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      if (res.error) throw new Error(res.error.message);
+      setTelegramRequestId(res.data.request_id);
+      setTelegramPolling(true);
+      toast.success("Telegram botga xabar yuborildi. Tasdiqlang!");
+      // Start polling
+      const interval = setInterval(async () => {
+        const check = await supabase.functions.invoke("telegram-auth", {
+          body: { action: "check_auth", request_id: res.data.request_id },
+        });
+        if (check.data?.status === "approved" && check.data?.action_link) {
+          clearInterval(interval);
+          setTelegramPolling(false);
+          window.location.href = check.data.action_link;
+        } else if (check.data?.status === "rejected" || check.data?.status === "expired") {
+          clearInterval(interval);
+          setTelegramPolling(false);
+          setTelegramRequestId(null);
+          toast.error(check.data.status === "rejected" ? "So'rov rad etildi" : "So'rov muddati tugadi");
+        }
+      }, 2000);
+      // Auto-stop after 5 min
+      setTimeout(() => { clearInterval(interval); setTelegramPolling(false); }, 300000);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +153,49 @@ const AuthPage = () => {
 
           {/* OAuth buttons */}
           <div className="space-y-3 mb-6 mt-2">
+            {/* Telegram Login */}
+            {isLogin && (
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
+                onClick={() => setTelegramMode(!telegramMode)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl bg-[#229ED9] text-white font-medium text-sm hover:bg-[#229ED9]/90 transition-all duration-200 group"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span className="group-hover:translate-x-0.5 transition-transform">Telegram orqali kirish</span>
+              </motion.button>
+            )}
+
+            <AnimatePresence>
+              {telegramMode && isLogin && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  {telegramPolling ? (
+                    <div className="flex flex-col items-center gap-3 py-4">
+                      <Loader2 className="w-8 h-8 text-[#229ED9] animate-spin" />
+                      <p className="text-sm text-muted-foreground text-center">Telegram botdan tasdiqlang...</p>
+                      <a href="https://t.me/maxhospitalbot" target="_blank" className="text-xs text-[#229ED9] hover:underline">@maxhospitalbot ga o'tish →</a>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pb-2">
+                      <input
+                        type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email manzilingiz"
+                        className="w-full px-4 py-3 rounded-2xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-[#229ED9]/30 focus:border-[#229ED9] outline-none"
+                      />
+                      <button
+                        onClick={handleTelegramLogin} disabled={loading}
+                        className="w-full py-2.5 rounded-2xl bg-[#229ED9]/10 text-[#229ED9] font-medium text-sm hover:bg-[#229ED9]/20 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? "Yuborilmoqda..." : "Tasdiqlash so'rovi yuborish"}
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.button
               whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
               onClick={handleGoogleLogin}
