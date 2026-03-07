@@ -338,6 +338,9 @@ export type Database = {
           id: string
           is_banned: boolean
           phone: string | null
+          telegram_chat_id: number | null
+          telegram_link_code: string | null
+          telegram_notifications_enabled: boolean | null
           updated_at: string
           user_id: string
         }
@@ -350,6 +353,9 @@ export type Database = {
           id?: string
           is_banned?: boolean
           phone?: string | null
+          telegram_chat_id?: number | null
+          telegram_link_code?: string | null
+          telegram_notifications_enabled?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -362,7 +368,43 @@ export type Database = {
           id?: string
           is_banned?: boolean
           phone?: string | null
+          telegram_chat_id?: number | null
+          telegram_link_code?: string | null
+          telegram_notifications_enabled?: boolean | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_auth_requests: {
+        Row: {
+          action_link: string | null
+          created_at: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          request_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_link?: string | null
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          request_type?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_link?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          request_type?: string
+          status?: string
           user_id?: string
         }
         Relationships: []
@@ -390,6 +432,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_id_by_email: { Args: { email_input: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
