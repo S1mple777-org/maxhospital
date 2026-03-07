@@ -153,6 +153,49 @@ const AuthPage = () => {
 
           {/* OAuth buttons */}
           <div className="space-y-3 mb-6 mt-2">
+            {/* Telegram Login */}
+            {isLogin && (
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
+                onClick={() => setTelegramMode(!telegramMode)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl bg-[#229ED9] text-white font-medium text-sm hover:bg-[#229ED9]/90 transition-all duration-200 group"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span className="group-hover:translate-x-0.5 transition-transform">Telegram orqali kirish</span>
+              </motion.button>
+            )}
+
+            <AnimatePresence>
+              {telegramMode && isLogin && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  {telegramPolling ? (
+                    <div className="flex flex-col items-center gap-3 py-4">
+                      <Loader2 className="w-8 h-8 text-[#229ED9] animate-spin" />
+                      <p className="text-sm text-muted-foreground text-center">Telegram botdan tasdiqlang...</p>
+                      <a href="https://t.me/maxhospitalbot" target="_blank" className="text-xs text-[#229ED9] hover:underline">@maxhospitalbot ga o'tish →</a>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pb-2">
+                      <input
+                        type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email manzilingiz"
+                        className="w-full px-4 py-3 rounded-2xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-[#229ED9]/30 focus:border-[#229ED9] outline-none"
+                      />
+                      <button
+                        onClick={handleTelegramLogin} disabled={loading}
+                        className="w-full py-2.5 rounded-2xl bg-[#229ED9]/10 text-[#229ED9] font-medium text-sm hover:bg-[#229ED9]/20 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? "Yuborilmoqda..." : "Tasdiqlash so'rovi yuborish"}
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.button
               whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
               onClick={handleGoogleLogin}
