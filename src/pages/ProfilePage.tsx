@@ -267,6 +267,11 @@ const ProfilePage = () => {
             Chiqish
           </button>
         </div>
+
+        {/* Telegram Link Section */}
+        <div className="mt-6">
+          <TelegramLinkSection />
+        </div>
       </div>
     </div>
   );

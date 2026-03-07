@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
-import { Stethoscope, Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Stethoscope, Mail, Lock, User, Eye, EyeOff, ArrowRight, MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
