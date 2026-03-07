@@ -16,6 +16,46 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramMode, setTelegramMode] = useState(false);
+  const [telegramPolling, setTelegramPolling] = useState(false);
+  const [telegramRequestId, setTelegramRequestId] = useState<string | null>(null);
+
+  const handleTelegramLogin = async () => {
+    if (!email) { toast.error("Email kiriting"); return; }
+    setLoading(true);
+    try {
+      const res = await supabase.functions.invoke("telegram-auth", {
+        body: { action: "request_auth", email, type: "login" },
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      if (res.error) throw new Error(res.error.message);
+      setTelegramRequestId(res.data.request_id);
+      setTelegramPolling(true);
+      toast.success("Telegram botga xabar yuborildi. Tasdiqlang!");
+      // Start polling
+      const interval = setInterval(async () => {
+        const check = await supabase.functions.invoke("telegram-auth", {
+          body: { action: "check_auth", request_id: res.data.request_id },
+        });
+        if (check.data?.status === "approved" && check.data?.action_link) {
+          clearInterval(interval);
+          setTelegramPolling(false);
+          window.location.href = check.data.action_link;
+        } else if (check.data?.status === "rejected" || check.data?.status === "expired") {
+          clearInterval(interval);
+          setTelegramPolling(false);
+          setTelegramRequestId(null);
+          toast.error(check.data.status === "rejected" ? "So'rov rad etildi" : "So'rov muddati tugadi");
+        }
+      }, 2000);
+      // Auto-stop after 5 min
+      setTimeout(() => { clearInterval(interval); setTelegramPolling(false); }, 300000);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
