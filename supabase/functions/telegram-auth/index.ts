@@ -218,6 +218,63 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true });
       }
 
+      // Toggle 2FA (requires auth)
+      case "toggle_2fa": {
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) return jsonResponse({ error: "Unauthorized" }, 401);
+
+        const authClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const {
+          data: { user },
+        } = await authClient.auth.getUser();
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+        // Check telegram linked
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("telegram_chat_id, two_fa_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!prof?.telegram_chat_id) {
+          return jsonResponse({ error: "Avval Telegramni ulang" }, 400);
+        }
+
+        const newState = !prof.two_fa_enabled;
+        await supabase
+          .from("profiles")
+          .update({ two_fa_enabled: newState })
+          .eq("user_id", user.id);
+
+        return jsonResponse({ enabled: newState });
+      }
+
+      // Check if 2FA is required for email (no auth needed)
+      case "check_2fa": {
+        const { email } = params;
+        if (!email) return jsonResponse({ error: "Email kerak" }, 400);
+
+        const { data: userId } = await supabase.rpc("get_user_id_by_email", {
+          email_input: email,
+        });
+
+        if (!userId) return jsonResponse({ two_fa: false });
+
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("two_fa_enabled, telegram_chat_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        return jsonResponse({
+          two_fa: !!(prof?.two_fa_enabled && prof?.telegram_chat_id),
+        });
+      }
+
       default:
         return jsonResponse({ error: "Unknown action" }, 400);
     }

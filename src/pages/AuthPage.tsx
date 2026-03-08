@@ -62,6 +62,56 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (isLogin) {
+        // Check 2FA before signing in
+        const twoFaCheck = await supabase.functions.invoke("telegram-auth", {
+          body: { action: "check_2fa", email },
+        });
+
+        if (twoFaCheck.data?.two_fa) {
+          // 2FA enabled - verify password first by attempting sign in
+          const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInErr) throw signInErr;
+
+          // Password correct - sign out and request Telegram approval
+          await supabase.auth.signOut();
+
+          // Send Telegram auth request
+          const res = await supabase.functions.invoke("telegram-auth", {
+            body: { action: "request_auth", email, type: "2fa" },
+          });
+          if (res.data?.error) throw new Error(res.data.error);
+          if (res.error) throw new Error(res.error.message);
+
+          setTelegramRequestId(res.data.request_id);
+          setTelegramPolling(true);
+          toast.success("2FA: Telegram botdan tasdiqlang!");
+
+          // Poll for approval
+          const interval = setInterval(async () => {
+            const check = await supabase.functions.invoke("telegram-auth", {
+              body: { action: "check_auth", request_id: res.data.request_id },
+            });
+            if (check.data?.status === "approved") {
+              clearInterval(interval);
+              setTelegramPolling(false);
+              // Sign in again after approval
+              const { error: finalErr } = await supabase.auth.signInWithPassword({ email, password });
+              if (finalErr) { toast.error(finalErr.message); return; }
+              toast.success("Muvaffaqiyatli kirdingiz!");
+              navigate("/");
+            } else if (check.data?.status === "rejected" || check.data?.status === "expired") {
+              clearInterval(interval);
+              setTelegramPolling(false);
+              setTelegramRequestId(null);
+              toast.error(check.data.status === "rejected" ? "2FA rad etildi" : "So'rov muddati tugadi");
+            }
+          }, 2000);
+          setTimeout(() => { clearInterval(interval); setTelegramPolling(false); }, 300000);
+          setLoading(false);
+          return;
+        }
+
+        // No 2FA - normal login
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Muvaffaqiyatli kirdingiz!");

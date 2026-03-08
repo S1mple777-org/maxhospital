@@ -17,6 +17,7 @@ const TelegramLinkSection = () => {
     if (profile) {
       setIsLinked(!!(profile as any).telegram_chat_id);
       setNotificationsEnabled((profile as any).telegram_notifications_enabled ?? true);
+      setTwoFaEnabled((profile as any).two_fa_enabled ?? false);
     }
   }, [profile]);
 

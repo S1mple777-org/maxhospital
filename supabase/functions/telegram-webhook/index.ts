@@ -414,6 +414,26 @@ async function handleMessage(message: any) {
     return;
   }
 
+  // /2fa toggle
+  if (text === "/2fa") {
+    if (!profile) {
+      await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang.");
+      return;
+    }
+    const newState = !profile.two_fa_enabled;
+    await supabase
+      .from("profiles")
+      .update({ two_fa_enabled: newState })
+      .eq("id", profile.id);
+    await sendMessage(
+      chatId,
+      newState
+        ? "🔐 <b>2FA yoqildi!</b>\n\nEndi hisobingizga kirishda Telegram orqali tasdiqlash talab qilinadi."
+        : "🔓 <b>2FA o'chirildi!</b>\n\nEndi oddiy parol bilan kirishingiz mumkin."
+    );
+    return;
+  }
+
   // ⚙️ Admin panel
   if (text === "⚙️ Admin panel" || text === "/admin") {
     if (!profile) {
