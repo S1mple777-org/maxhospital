@@ -31,7 +31,7 @@ const cardVariants = {
   hidden: { opacity: 0, y: 40, scale: 0.9, rotateX: 15 },
   visible: {
     opacity: 1, y: 0, scale: 1, rotateX: 0,
-    transition: { type: "spring", stiffness: 150, damping: 18 },
+    transition: { type: "spring" as const, stiffness: 150, damping: 18 },
   },
 };
 
