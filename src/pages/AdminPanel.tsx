@@ -93,8 +93,18 @@ const AdminPanel = () => {
   const handleCreatePost = async () => {
     if (!newPost.title_uz || !newPost.content_uz) { toast.error("Sarlavha va matn kiritilishi shart"); return; }
     const { error } = await supabase.from("posts").insert({ ...newPost, author_id: user!.id });
-    if (error) toast.error(error.message);
-    else { toast.success("Post yaratildi"); setNewPost({ title_uz: "", title_ru: "", title_en: "", content_uz: "", content_ru: "", content_en: "" }); loadData(); }
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post yaratildi");
+    setNewPost({ title_uz: "", title_ru: "", title_en: "", content_uz: "", content_ru: "", content_en: "" });
+    loadData();
+    // Send Telegram notification to all linked users
+    try {
+      await supabase.functions.invoke("telegram-notify", {
+        body: { type: "new_post", data: { title: newPost.title_uz } },
+      });
+    } catch (e) {
+      console.error("Telegram notify error:", e);
+    }
   };
 
   const handleDeletePost = async (id: string) => {
