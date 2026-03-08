@@ -903,6 +903,38 @@ async function handleCallbackQuery(callbackQuery: any) {
 
   await answerCallbackQuery(callbackQuery.id);
 
+  if (data === "check_subscription") {
+    const { allJoined, notJoined } = await checkForcedSubscriptions(supabase, chatId);
+    if (allJoined) {
+      await fetch(`${TELEGRAM_API}/editMessageText`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: callbackQuery.message.message_id,
+          text: "✅ <b>Barcha kanallarga obuna bo'lgansiz!</b>\n\nBotdan foydalanishingiz mumkin.",
+          parse_mode: "HTML",
+        }),
+      });
+      // Send welcome
+      const profile = await getLinkedProfile(supabase, chatId);
+      const userIsAdmin = profile ? await isAdmin(supabase, profile.user_id) : false;
+      const keyboard = userIsAdmin ? getAdminKeyboard() : mainKeyboard;
+      await sendMessage(
+        chatId,
+        `🏥 <b>Max Hospital Bot</b>ga xush kelibsiz!\n\n` +
+          (profile
+            ? `✅ Siz <b>${profile.full_name}</b> sifatida ulangansiz.`
+            : `⚠️ Akkauntingiz ulanmagan. Profildan kodni oling va /link KODINGIZ buyrug'ini yuboring.`),
+        keyboard
+      );
+    } else {
+      await answerCallbackQuery(callbackQuery.id, "❌ Hali barcha kanallarga obuna bo'lmadingiz!");
+      await sendSubscriptionMessage(chatId, notJoined);
+    }
+    return;
+  }
+
   if (data.startsWith("approve_auth_")) {
     const requestId = data.replace("approve_auth_", "");
     const { data: request } = await supabase
