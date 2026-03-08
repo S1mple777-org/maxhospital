@@ -808,6 +808,15 @@ async function handleMessage(message: any) {
       helpText += "/stats - Tizim statistikasi\n";
       helpText += "/ban EMAIL - Bloklash\n";
       helpText += "/unban EMAIL - Blokdan chiqarish\n";
+
+      const roles2 = await getUserRoles(supabase, profile.user_id);
+      if (roles2.includes("owner")) {
+        helpText += "\n👑 <b>Owner buyruqlari:</b>\n";
+        helpText += "/setlimit EMAIL SUMMA - Admin limitini o'zgartirish\n";
+        helpText += "/addsub @username Nomi - Majburiy obuna qo'shish\n";
+        helpText += "/removesub @username - Majburiy obuna o'chirish\n";
+        helpText += "/subs - Majburiy obunalar ro'yxati\n";
+      }
     }
 
     await sendMessage(chatId, helpText);
