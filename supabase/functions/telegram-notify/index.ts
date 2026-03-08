@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
       doctor_message: `💬 <b>Shifokordan yangi xabar!</b>\n\n🔗 <a href="${SITE_URL}/consultation/${eventData?.consultation_id}">Xabarni ko'rish</a>`,
       patient_message: `💬 <b>Bemordan yangi xabar!</b>\n\n🔗 <a href="${SITE_URL}/consultation/${eventData?.consultation_id}">Xabarni ko'rish</a>`,
       account_login: `🔐 <b>Hisobingizga kirildi</b>\n\n⏰ ${new Date().toLocaleString("uz-UZ")}`,
+      prescription_created: `💊 <b>Shifokor sizga retsept yozdi!</b>\n\nDr. ${eventData?.doctor_name || ""}\n\n🔗 <a href="${SITE_URL}/prescription/${eventData?.prescription_id}">Retseptni ko'rish</a>\n📥 Retseptni PDF formatida yuklab olishingiz mumkin.`,
     };
 
     const msg = messages[type] || `🔔 ${eventData?.message || "Yangi bildirishnoma"}`;

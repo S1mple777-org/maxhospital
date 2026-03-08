@@ -259,6 +259,15 @@ const ProfilePage = () => {
             </div>
           </div>
 
+          {/* My Prescriptions Link */}
+          <button
+            onClick={() => navigate("/my-prescriptions")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition-colors mb-4"
+          >
+            <FileText className="w-4 h-4" />
+            Mening retseptlarim
+          </button>
+
           <button
             onClick={handleSignOut}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-destructive text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
