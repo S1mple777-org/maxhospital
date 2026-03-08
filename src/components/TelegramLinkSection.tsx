@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageCircle, Link2, Unlink, Bell, BellOff, Copy, RefreshCw, ExternalLink } from "lucide-react";
+import { MessageCircle, Link2, Unlink, Bell, BellOff, Copy, RefreshCw, ExternalLink, ShieldCheck, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
