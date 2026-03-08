@@ -235,8 +235,22 @@ const ConsultationPage = () => {
     setJoiningCall(true);
 
     let frame: any = null;
+    let mediaStream: MediaStream | null = null;
 
     try {
+      // CRITICAL: Request media permissions FIRST, directly in user gesture context
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (mediaErr: any) {
+        if (mediaErr.name === "NotAllowedError") {
+          toast.error("Kamera va mikrofonga ruxsat bering");
+        } else {
+          toast.error("Kamera/mikrofon topilmadi");
+        }
+        setJoiningCall(false);
+        return;
+      }
+
       if (frameRef.current) {
         await cleanupCallFrame(frameRef.current);
       }
@@ -244,13 +258,20 @@ const ConsultationPage = () => {
       const res = await supabase.functions.invoke("create-video-room", { body: { consultation_id: id } });
       if (res.error || !res.data?.url) {
         toast.error("Video qo'ng'iroqni boshlashda xatolik");
+        mediaStream?.getTracks().forEach(t => t.stop());
+        setJoiningCall(false);
         return;
       }
 
       const { url, token } = res.data;
 
+      // Stop the pre-acquired stream since Daily will create its own
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+
       if (!videoContainerRef.current) {
         toast.error("Video konteyner topilmadi");
+        setJoiningCall(false);
         return;
       }
 
@@ -288,6 +309,7 @@ const ConsultationPage = () => {
       setShowExtendPrompt(false);
       callStartRef.current = Date.now();
     } catch (err: any) {
+      mediaStream?.getTracks().forEach(t => t.stop());
       await cleanupCallFrame(frame);
       toast.error(err?.message || "Video xatolik");
     } finally {
