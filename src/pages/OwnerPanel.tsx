@@ -176,6 +176,31 @@ const OwnerPanel = () => {
 
   const getDeptName = (dept: any) => language === "ru" ? dept.name_ru : language === "en" ? dept.name_en : dept.name_uz;
 
+  const handleAddForcedSub = async () => {
+    if (!newSubUsername) { toast.error("Kanal username kiriting"); return; }
+    const username = newSubUsername.replace("@", "");
+    const { error } = await supabase.from("forced_subscriptions").insert({
+      channel_id: username,
+      channel_username: username,
+      channel_name: newSubName || username,
+      created_by: user!.id,
+    });
+    if (error) {
+      if (error.code === "23505") toast.error("Bu kanal allaqachon qo'shilgan");
+      else toast.error(error.message);
+      return;
+    }
+    toast.success("Majburiy obuna qo'shildi");
+    setNewSubUsername(""); setNewSubName("");
+    loadData();
+  };
+
+  const handleRemoveForcedSub = async (id: string) => {
+    const { error } = await supabase.from("forced_subscriptions").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Majburiy obuna o'chirildi"); loadData(); }
+  };
+
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-muted-foreground">Yuklanmoqda...</div></div>;
 
   const tabs = [
