@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import { toast } from "sonner";
 
