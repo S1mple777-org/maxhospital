@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN two_fa_enabled boolean NOT NULL DEFAULT false;
