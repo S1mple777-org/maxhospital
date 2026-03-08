@@ -53,6 +53,9 @@ const App = () => (
                 <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
                 <Route path="/start-consultation" element={<StartConsultation />} />
                 <Route path="/users" element={<UsersPage />} />
+                <Route path="/create-prescription/:consultationId" element={<CreatePrescription />} />
+                <Route path="/prescription/:id" element={<PrescriptionView />} />
+                <Route path="/my-prescriptions" element={<MyPrescriptions />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>
