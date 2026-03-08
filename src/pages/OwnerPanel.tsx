@@ -70,6 +70,9 @@ const OwnerPanel = () => {
 
     const { data: allUsers } = await supabase.from("profiles").select("*");
     if (allUsers) setUsers(allUsers);
+
+    const { data: subs } = await supabase.from("forced_subscriptions").select("*").order("created_at");
+    if (subs) setForcedSubs(subs);
   };
 
   const handleIconSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
