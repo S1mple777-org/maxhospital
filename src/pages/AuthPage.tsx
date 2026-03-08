@@ -343,6 +343,21 @@ const AuthPage = () => {
             </motion.button>
           </form>
 
+          {/* 2FA Polling Overlay */}
+          <AnimatePresence>
+            {telegramPolling && !telegramMode && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                className="mt-4 bg-accent/30 rounded-2xl p-6 text-center"
+              >
+                <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+                <p className="text-sm font-medium text-foreground mb-1">🔐 2FA Tasdiqlash</p>
+                <p className="text-xs text-muted-foreground mb-3">Telegram botdan so'rovni tasdiqlang...</p>
+                <a href="https://t.me/maxhospitalbot" target="_blank" className="text-xs text-primary hover:underline">@maxhospitalbot ga o'tish →</a>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <motion.p layout className="text-center text-sm text-muted-foreground mt-6">
             {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}{" "}
             <button
