@@ -81,14 +81,15 @@ Deno.serve(async (req) => {
 
         // Send Telegram message
         const typeText =
-          type === "login" ? "kirish" : "ro'yxatdan o'tish";
+          type === "2fa" ? "2FA tasdiqlash" : type === "login" ? "kirish" : "ro'yxatdan o'tish";
+        const emoji = type === "2fa" ? "🔐" : "🔑";
         await fetch(`${TELEGRAM_API}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: profile.telegram_chat_id,
             text:
-              `🔐 <b>${profile.full_name}</b> hisobidan <b>${typeText}</b> so'rovi yuborildi.\n\nQabul qilinsinmi?`,
+              `${emoji} <b>${profile.full_name}</b> hisobidan <b>${typeText}</b> so'rovi yuborildi.\n\nQabul qilinsinmi?`,
             parse_mode: "HTML",
             reply_markup: {
               inline_keyboard: [
