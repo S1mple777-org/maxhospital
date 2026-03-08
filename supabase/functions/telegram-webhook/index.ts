@@ -47,6 +47,45 @@ async function getLinkedProfile(supabase: any, chatId: number) {
   return data;
 }
 
+async function checkForcedSubscriptions(supabase: any, chatId: number): Promise<{ allJoined: boolean; notJoined: any[] }> {
+  const { data: subs } = await supabase.from("forced_subscriptions").select("*");
+  if (!subs || subs.length === 0) return { allJoined: true, notJoined: [] };
+
+  const notJoined: any[] = [];
+  for (const sub of subs) {
+    try {
+      const res = await fetch(`${TELEGRAM_API}/getChatMember`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: sub.channel_id, user_id: chatId }),
+      });
+      const data = await res.json();
+      const status = data?.result?.status;
+      if (!status || status === "left" || status === "kicked") {
+        notJoined.push(sub);
+      }
+    } catch {
+      notJoined.push(sub);
+    }
+  }
+  return { allJoined: notJoined.length === 0, notJoined };
+}
+
+async function sendSubscriptionMessage(chatId: number, notJoined: any[]) {
+  let text = "📢 <b>Majburiy obuna!</b>\n\nBotdan foydalanish uchun quyidagi kanallarga obuna bo'ling:\n\n";
+  const buttons: any[] = [];
+  for (const sub of notJoined) {
+    const name = sub.channel_name || sub.channel_username;
+    text += `❌ <b>${name}</b>\n`;
+    buttons.push([{ text: `📢 ${name}`, url: `https://t.me/${sub.channel_username.replace("@", "")}` }]);
+  }
+  buttons.push([{ text: "✅ Tekshirish", callback_data: "check_subscription" }]);
+  text += "\nObuna bo'lgandan so'ng \"✅ Tekshirish\" tugmasini bosing.";
+  await sendMessage(chatId, text, {
+    reply_markup: { inline_keyboard: buttons },
+  });
+}
+
 async function getUserRoles(supabase: any, userId: string) {
   const { data } = await supabase
     .from("user_roles")
