@@ -152,6 +152,33 @@ const TelegramLinkSection = () => {
               </button>
             </div>
 
+            {/* 2FA Toggle */}
+            <div className="bg-accent/30 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {twoFaEnabled ? (
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                ) : (
+                  <ShieldOff className="w-4 h-4 text-muted-foreground" />
+                )}
+                <div>
+                  <span className="text-sm font-medium text-foreground block">2FA himoya</span>
+                  <span className="text-xs text-muted-foreground">Kirish Telegram orqali tasdiqlanadi</span>
+                </div>
+              </div>
+              <button
+                onClick={toggle2FA}
+                disabled={loading}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  twoFaEnabled ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <motion.div
+                  animate={{ x: twoFaEnabled ? 20 : 2 }}
+                  className="absolute top-1 w-4 h-4 rounded-full bg-white shadow"
+                />
+              </button>
+            </div>
+
             <button
               onClick={unlinkTelegram}
               disabled={loading}
