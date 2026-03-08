@@ -22,6 +22,19 @@ const colorMap: Record<string, string> = {
   stethoscope: "from-indigo-400 to-blue-400",
 };
 
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 40, scale: 0.9, rotateX: 15 },
+  visible: {
+    opacity: 1, y: 0, scale: 1, rotateX: 0,
+    transition: { type: "spring" as const, stiffness: 150, damping: 18 },
+  },
+};
+
 const DepartmentsSection = () => {
   const { t, language } = useLanguage();
   const [departments, setDepartments] = useState<any[]>([]);
@@ -37,27 +50,61 @@ const DepartmentsSection = () => {
   return (
     <section id="departments" className="py-20 relative">
       <div className="absolute inset-0 bg-secondary/30" />
+      {/* Decorative floating shapes */}
+      <div className="absolute top-10 left-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl animate-float-slow" />
+      <div className="absolute bottom-10 right-10 w-40 h-40 bg-accent/10 rounded-full blur-2xl animate-float-reverse" />
+
       <div className="container mx-auto px-4 relative z-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">{t("departments.title")}</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <motion.h2
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, type: "spring" }}
+            className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3"
+          >
+            {t("departments.title")}
+          </motion.h2>
           <p className="text-muted-foreground max-w-md mx-auto">{t("departments.subtitle")}</p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {departments.map((dept, i) => {
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          {departments.map((dept) => {
             const Icon = iconMap[dept.icon] || Stethoscope;
             const color = colorMap[dept.icon] || "from-teal-400 to-emerald-400";
             return (
-              <motion.div key={dept.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }} className="group cursor-pointer">
-                <div className="bg-card rounded-xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 text-center">
+              <motion.div
+                key={dept.id}
+                variants={cardVariants}
+                whileHover={{ y: -8, scale: 1.03, transition: { type: "spring", stiffness: 300 } }}
+                className="group cursor-pointer"
+              >
+                <div className="bg-card rounded-xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 text-center relative overflow-hidden">
+                  {/* Shimmer on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-shimmer pointer-events-none" />
                   {dept.icon_url ? (
-                    <div className="w-14 h-14 rounded-xl mx-auto mb-4 overflow-hidden group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 rounded-xl mx-auto mb-4 overflow-hidden group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                       <img src={dept.icon_url} alt={getName(dept)} className="w-full h-full object-cover" />
                     </div>
                   ) : (
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                    <motion.div
+                      whileHover={{ rotate: [0, -10, 10, -5, 0], transition: { duration: 0.5 } }}
+                      className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 transition-transform duration-300`}
+                    >
                       <Icon className="w-7 h-7 text-white" />
-                    </div>
+                    </motion.div>
                   )}
                   <h3 className="font-display font-semibold text-sm text-foreground">{getName(dept)}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{Number(dept.price_uzs).toLocaleString()} UZS</p>
@@ -65,7 +112,7 @@ const DepartmentsSection = () => {
               </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
