@@ -136,6 +136,13 @@ async function handleMessage(message: any) {
 
   // /start
   if (text === "/start") {
+    // Check forced subscriptions
+    const { allJoined, notJoined } = await checkForcedSubscriptions(supabase, chatId);
+    if (!allJoined) {
+      await sendSubscriptionMessage(chatId, notJoined);
+      return;
+    }
+
     await sendMessage(
       chatId,
       `🏥 <b>Max Hospital Bot</b>ga xush kelibsiz!\n\n` +
