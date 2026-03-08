@@ -47,22 +47,52 @@ async function getLinkedProfile(supabase: any, chatId: number) {
   return data;
 }
 
+async function getUserRoles(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  return data?.map((r: any) => r.role) || [];
+}
+
+async function isAdmin(supabase: any, userId: string) {
+  const roles = await getUserRoles(supabase, userId);
+  return roles.includes("admin") || roles.includes("owner");
+}
+
+const mainKeyboard = {
+  reply_markup: {
+    keyboard: [
+      [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
+      [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
+      [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
+    ],
+    resize_keyboard: true,
+  },
+};
+
+function getAdminKeyboard() {
+  return {
+    reply_markup: {
+      keyboard: [
+        [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
+        [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
+        [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
+        [{ text: "⚙️ Admin panel" }],
+      ],
+      resize_keyboard: true,
+    },
+  };
+}
+
 async function handleMessage(message: any) {
   const chatId = message.chat.id;
   const text = (message.text || "").trim();
   const supabase = getSupabase();
   const profile = await getLinkedProfile(supabase, chatId);
 
-  const mainKeyboard = {
-    reply_markup: {
-      keyboard: [
-        [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
-        [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
-        [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
-      ],
-      resize_keyboard: true,
-    },
-  };
+  const userIsAdmin = profile ? await isAdmin(supabase, profile.user_id) : false;
+  const keyboard = userIsAdmin ? getAdminKeyboard() : mainKeyboard;
 
   // /start
   if (text === "/start") {
@@ -72,7 +102,7 @@ async function handleMessage(message: any) {
         (profile
           ? `✅ Siz <b>${profile.full_name}</b> sifatida ulangansiz.`
           : `⚠️ Akkauntingiz ulanmagan. Profildan kodni oling va /link KODINGIZ buyrug'ini yuboring.`),
-      mainKeyboard
+      keyboard
     );
     return;
   }
@@ -80,40 +110,41 @@ async function handleMessage(message: any) {
   // 📊 Status
   if (text === "📊 Status" || text === "/status") {
     if (!profile) {
-      await sendMessage(
-        chatId,
-        "⚠️ Avval akkauntingizni ulang. Profildan kodni oling va <code>/link KODINGIZ</code> yuboring."
-      );
+      await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang. <code>/link KODINGIZ</code>");
       return;
     }
 
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", profile.user_id);
-    const roleNames = roles?.map((r: any) => r.role).join(", ") || "user";
+    const roles = await getUserRoles(supabase, profile.user_id);
+    const roleNames = roles.join(", ") || "user";
 
     let statusText =
       `📊 <b>Sizning statusingiz:</b>\n\n` +
       `👤 <b>Ism:</b> ${profile.full_name}\n` +
+      `📱 <b>Telefon:</b> ${profile.phone || "Ko'rsatilmagan"}\n` +
       `💰 <b>Balans:</b> ${Number(profile.balance_uzs).toLocaleString()} UZS\n` +
       `🛡 <b>Rollar:</b> ${roleNames}\n` +
-      `🔔 <b>Bildirishnomalar:</b> ${profile.telegram_notifications_enabled ? "✅ Yoqilgan" : "❌ O'chirilgan"}\n`;
+      `🔔 <b>Bildirishnomalar:</b> ${profile.telegram_notifications_enabled ? "✅ Yoqilgan" : "❌ O'chirilgan"}\n` +
+      `📅 <b>Ro'yxatdan o'tgan:</b> ${new Date(profile.created_at).toLocaleDateString("uz-UZ")}\n`;
 
     // Doctor info
-    if (roles?.some((r: any) => r.role === "doctor")) {
+    if (roles.includes("doctor")) {
       const { data: doctor } = await supabase
         .from("doctors")
         .select("*")
         .eq("user_id", profile.user_id)
         .maybeSingle();
       if (doctor) {
+        const { data: dept } = doctor.department_id
+          ? await supabase.from("departments").select("name_uz").eq("id", doctor.department_id).maybeSingle()
+          : { data: null };
         statusText +=
           `\n👨‍⚕️ <b>Shifokor ma'lumotlari:</b>\n` +
           `📋 Lavozim: ${doctor.title || "-"}\n` +
+          `🏥 Bo'lim: ${dept?.name_uz || "-"}\n` +
           `⭐️ Reyting: ${doctor.rating}\n` +
           `👥 Bemorlar: ${doctor.patients_count}\n` +
-          `📍 Ish joyi: ${doctor.workplace || "-"}\n`;
+          `📍 Ish joyi: ${doctor.workplace || "-"}\n` +
+          `🕐 Tajriba: ${doctor.experience_years} yil\n`;
 
         const { data: activeConsults } = await supabase
           .from("consultations")
@@ -121,6 +152,27 @@ async function handleMessage(message: any) {
           .eq("doctor_id", doctor.id)
           .in("status", ["active", "pending"]);
         statusText += `🔄 Faol konsultatsiyalar: ${activeConsults?.length || 0}\n`;
+      }
+    }
+
+    // Admin info
+    if (roles.includes("admin")) {
+      const { data: adminSettings } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .eq("user_id", profile.user_id)
+        .maybeSingle();
+      if (adminSettings) {
+        const typeLabels: Record<string, string> = {
+          financial: "Moliyaviy admin",
+          dept_head: "Bo'lim boshlig'i",
+          journalist: "Jurnalist",
+        };
+        statusText += `\n⚙️ <b>Admin ma'lumotlari:</b>\n`;
+        statusText += `📌 Turi: ${typeLabels[adminSettings.admin_type] || adminSettings.admin_type}\n`;
+        if (adminSettings.admin_type === "financial") {
+          statusText += `💳 Oylik limit: ${Number(adminSettings.month_spent).toLocaleString()}/${Number(adminSettings.monthly_limit).toLocaleString()} UZS\n`;
+        }
       }
     }
 
@@ -158,7 +210,7 @@ async function handleMessage(message: any) {
     for (const post of posts) {
       const date = new Date(post.created_at).toLocaleDateString("uz-UZ");
       newsText += `📌 <b>${post.title_uz}</b>\n📅 ${date}\n`;
-      newsText += `${post.content_uz.substring(0, 100)}...\n`;
+      newsText += `${(post.content_uz || "").substring(0, 100)}...\n`;
       newsText += `🔗 <a href="${SITE_URL}/news/${post.id}">Batafsil</a>\n\n`;
     }
 
@@ -166,7 +218,7 @@ async function handleMessage(message: any) {
     return;
   }
 
-  // 👨‍⚕️ Adminlar
+  // 👨‍⚕️ Adminlar - enhanced with full info
   if (text === "👨‍⚕️ Adminlar" || text === "/admins") {
     const { data: adminRoles } = await supabase
       .from("user_roles")
@@ -181,22 +233,64 @@ async function handleMessage(message: any) {
     const adminIds = adminRoles.map((r: any) => r.user_id);
     const { data: adminProfiles } = await supabase
       .from("profiles")
-      .select("user_id, full_name, telegram_chat_id")
+      .select("user_id, full_name, phone, telegram_chat_id")
       .in("user_id", adminIds);
 
     const { data: adminDoctors } = await supabase
       .from("doctors")
-      .select("user_id, telegram_username")
+      .select("user_id, telegram_username, title")
       .in("user_id", adminIds);
 
-    let adminsText = "👨‍⚕️ <b>Admin kontaktlari:</b>\n\n";
+    const { data: adminSettings } = await supabase
+      .from("admin_settings")
+      .select("user_id, admin_type")
+      .in("user_id", adminIds);
+
+    const { data: ownerRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "owner");
+    const ownerIds = ownerRoles?.map((r: any) => r.user_id) || [];
+
+    const typeLabels: Record<string, string> = {
+      financial: "💰 Moliyaviy",
+      dept_head: "🏥 Bo'lim boshlig'i",
+      journalist: "📰 Jurnalist",
+    };
+
+    let adminsText = "👨‍⚕️ <b>Admin va boshqaruvchilar:</b>\n\n";
     for (const admin of adminProfiles || []) {
       const doc = adminDoctors?.find((d: any) => d.user_id === admin.user_id);
-      adminsText += `👤 ${admin.full_name}`;
-      if (doc?.telegram_username) {
-        adminsText += ` — @${doc.telegram_username.replace("@", "")}`;
+      const settings = adminSettings?.find((s: any) => s.user_id === admin.user_id);
+      const isOwnerUser = ownerIds.includes(admin.user_id);
+
+      adminsText += `👤 <b>${admin.full_name || "Noma'lum"}</b>`;
+      if (isOwnerUser) adminsText += " 👑";
+      adminsText += "\n";
+
+      // Role/title
+      if (isOwnerUser) {
+        adminsText += `   🛡 Owner\n`;
+      } else if (settings) {
+        adminsText += `   🛡 ${typeLabels[settings.admin_type] || settings.admin_type}\n`;
       }
-      if (admin.telegram_chat_id) adminsText += " ✅";
+
+      // Doctor title
+      if (doc?.title) {
+        adminsText += `   📋 Unvon: ${doc.title}\n`;
+      }
+
+      // Phone
+      if (admin.phone) {
+        adminsText += `   📱 Tel: ${admin.phone}\n`;
+      }
+
+      // Telegram
+      if (doc?.telegram_username) {
+        adminsText += `   ✈️ Telegram: @${doc.telegram_username.replace("@", "")}\n`;
+      }
+
+      if (admin.telegram_chat_id) adminsText += "   ✅ Telegram ulangan\n";
       adminsText += "\n";
     }
 
@@ -209,8 +303,7 @@ async function handleMessage(message: any) {
     if (profile) {
       await sendMessage(
         chatId,
-        `✅ Sizning akkauntingiz allaqachon ulangan: <b>${profile.full_name}</b>\n\n` +
-          "Uzish uchun saytdagi profildan foydalaning."
+        `✅ Sizning akkauntingiz allaqachon ulangan: <b>${profile.full_name}</b>\n\nUzish uchun saytdagi profildan foydalaning.`
       );
       return;
     }
@@ -229,19 +322,12 @@ async function handleMessage(message: any) {
   if (text.startsWith("/link ")) {
     const code = text.replace("/link ", "").trim().toUpperCase();
     if (!code) {
-      await sendMessage(
-        chatId,
-        "⚠️ Kodni kiriting. Misol: <code>/link ABC123</code>"
-      );
+      await sendMessage(chatId, "⚠️ Kodni kiriting. Misol: <code>/link ABC123</code>");
       return;
     }
 
-    // Check if already linked
     if (profile) {
-      await sendMessage(
-        chatId,
-        `⚠️ Siz allaqachon <b>${profile.full_name}</b> akkauntiga ulangansiz.\nAvval saytdan uzib, keyin qayta ulang.`
-      );
+      await sendMessage(chatId, `⚠️ Siz allaqachon <b>${profile.full_name}</b> akkauntiga ulangansiz.`);
       return;
     }
 
@@ -252,18 +338,12 @@ async function handleMessage(message: any) {
       .maybeSingle();
 
     if (!targetProfile) {
-      await sendMessage(
-        chatId,
-        "❌ Noto'g'ri kod. Profilingizdan yangi kod oling."
-      );
+      await sendMessage(chatId, "❌ Noto'g'ri kod. Profilingizdan yangi kod oling.");
       return;
     }
 
     if (targetProfile.telegram_chat_id) {
-      await sendMessage(
-        chatId,
-        "⚠️ Bu akkaunt allaqachon boshqa Telegram hisobiga ulangan."
-      );
+      await sendMessage(chatId, "⚠️ Bu akkaunt allaqachon boshqa Telegram hisobiga ulangan.");
       return;
     }
 
@@ -276,12 +356,11 @@ async function handleMessage(message: any) {
       })
       .eq("id", targetProfile.id);
 
+    const newUserIsAdmin = await isAdmin(supabase, targetProfile.user_id);
     await sendMessage(
       chatId,
-      `✅ <b>Muvaffaqiyatli ulandi!</b>\n\n` +
-        `Akkaunt: <b>${targetProfile.full_name}</b>\n` +
-        `Endi barcha bildirishnomalarni Telegram orqali olasiz.`,
-      mainKeyboard
+      `✅ <b>Muvaffaqiyatli ulandi!</b>\n\nAkkaunt: <b>${targetProfile.full_name}</b>\nEndi barcha bildirishnomalarni Telegram orqali olasiz.`,
+      newUserIsAdmin ? getAdminKeyboard() : mainKeyboard
     );
     return;
   }
@@ -294,10 +373,7 @@ async function handleMessage(message: any) {
     }
     await sendMessage(
       chatId,
-      "🔑 <b>Parolni o'zgartirish</b>\n\n" +
-        "Yangi parolni quyidagi formatda yuboring:\n" +
-        "<code>/setpassword YANGI_PAROL</code>\n\n" +
-        "⚠️ Parol kamida 6 belgidan iborat bo'lishi kerak."
+      "🔑 <b>Parolni o'zgartirish</b>\n\nYangi parolni quyidagi formatda yuboring:\n<code>/setpassword YANGI_PAROL</code>\n\n⚠️ Parol kamida 6 belgidan iborat bo'lishi kerak."
     );
     return;
   }
@@ -310,17 +386,11 @@ async function handleMessage(message: any) {
     }
     const newPassword = text.replace("/setpassword ", "").trim();
     if (newPassword.length < 6) {
-      await sendMessage(
-        chatId,
-        "⚠️ Parol kamida 6 belgidan iborat bo'lishi kerak."
-      );
+      await sendMessage(chatId, "⚠️ Parol kamida 6 belgidan iborat bo'lishi kerak.");
       return;
     }
 
-    const { error } = await supabase.auth.admin.updateUserById(
-      profile.user_id,
-      { password: newPassword }
-    );
+    const { error } = await supabase.auth.admin.updateUserById(profile.user_id, { password: newPassword });
     if (error) {
       await sendMessage(chatId, `❌ Xatolik: ${error.message}`);
       return;
@@ -340,36 +410,345 @@ async function handleMessage(message: any) {
       .from("profiles")
       .update({ telegram_notifications_enabled: newState })
       .eq("id", profile.id);
-    await sendMessage(
-      chatId,
-      `🔔 Bildirishnomalar ${newState ? "✅ yoqildi" : "❌ o'chirildi"}.`
-    );
+    await sendMessage(chatId, `🔔 Bildirishnomalar ${newState ? "✅ yoqildi" : "❌ o'chirildi"}.`);
+    return;
+  }
+
+  // ⚙️ Admin panel
+  if (text === "⚙️ Admin panel" || text === "/admin") {
+    if (!profile) {
+      await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang.");
+      return;
+    }
+    if (!userIsAdmin) {
+      await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q.");
+      return;
+    }
+
+    const roles = await getUserRoles(supabase, profile.user_id);
+    const isOwnerUser = roles.includes("owner");
+
+    const { data: adminSettings } = await supabase
+      .from("admin_settings")
+      .select("*")
+      .eq("user_id", profile.user_id)
+      .maybeSingle();
+
+    let adminText = "⚙️ <b>Admin boshqaruv paneli</b>\n\n";
+    adminText += "Quyidagi buyruqlardan foydalanishingiz mumkin:\n\n";
+
+    // Balance top-up (for financial admins and owners)
+    if (isOwnerUser || adminSettings?.admin_type === "financial") {
+      adminText += "💰 <b>Balans qo'shish:</b>\n";
+      adminText += "<code>/topup EMAIL SUMMA</code>\n";
+      adminText += "Misol: <code>/topup user@mail.com 50000</code>\n";
+      if (adminSettings?.admin_type === "financial" && adminSettings.monthly_limit > 0) {
+        adminText += `📊 Oylik limit: ${Number(adminSettings.month_spent).toLocaleString()}/${Number(adminSettings.monthly_limit).toLocaleString()} UZS\n`;
+      }
+      adminText += "\n";
+    }
+
+    // Broadcast
+    adminText += "📢 <b>Ommaviy xabar:</b>\n";
+    adminText += "<code>/broadcast XABAR_MATNI</code>\n\n";
+
+    // User info
+    adminText += "🔍 <b>Foydalanuvchi qidirish:</b>\n";
+    adminText += "<code>/userinfo EMAIL</code>\n\n";
+
+    // Stats
+    adminText += "📈 <b>Tizim statistikasi:</b>\n";
+    adminText += "<code>/stats</code>\n\n";
+
+    // Ban/unban
+    adminText += "🚫 <b>Bloklash/ochish:</b>\n";
+    adminText += "<code>/ban EMAIL</code>\n";
+    adminText += "<code>/unban EMAIL</code>\n\n";
+
+    if (isOwnerUser) {
+      adminText += "👑 <b>Owner buyruqlari:</b>\n";
+      adminText += "<code>/setlimit EMAIL SUMMA</code> - Admin oylik limitini o'zgartirish\n";
+    }
+
+    await sendMessage(chatId, adminText);
+    return;
+  }
+
+  // /topup EMAIL AMOUNT - admin balance top-up
+  if (text.startsWith("/topup ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    if (!userIsAdmin) { await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q."); return; }
+
+    const parts = text.replace("/topup ", "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendMessage(chatId, "⚠️ Format: <code>/topup EMAIL SUMMA</code>");
+      return;
+    }
+
+    const email = parts[0];
+    const amount = Number(parts[1]);
+    if (!amount || amount <= 0) {
+      await sendMessage(chatId, "⚠️ Noto'g'ri summa.");
+      return;
+    }
+
+    // Check admin settings & limit
+    const roles = await getUserRoles(supabase, profile.user_id);
+    const isOwnerUser = roles.includes("owner");
+
+    if (!isOwnerUser) {
+      const { data: adminSettings } = await supabase
+        .from("admin_settings")
+        .select("*")
+        .eq("user_id", profile.user_id)
+        .maybeSingle();
+
+      if (!adminSettings || adminSettings.admin_type !== "financial") {
+        await sendMessage(chatId, "⛔️ Sizda balans qo'shish huquqi yo'q. Faqat moliyaviy adminlar qo'sha oladi.");
+        return;
+      }
+
+      // Check monthly limit
+      if (adminSettings.monthly_limit > 0) {
+        const remaining = adminSettings.monthly_limit - adminSettings.month_spent;
+        if (amount > remaining) {
+          await sendMessage(chatId, `⚠️ Oylik limitingiz yetarli emas.\n\n💳 Qolgan limit: ${remaining.toLocaleString()} UZS\n📊 Sarflangan: ${Number(adminSettings.month_spent).toLocaleString()}/${Number(adminSettings.monthly_limit).toLocaleString()} UZS`);
+          return;
+        }
+      }
+    }
+
+    // Find user
+    const { data: targetUserId } = await supabase.rpc("get_user_id_by_email", { email_input: email });
+    if (!targetUserId) {
+      await sendMessage(chatId, "❌ Foydalanuvchi topilmadi.");
+      return;
+    }
+
+    const { data: targetProfile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", targetUserId)
+      .maybeSingle();
+
+    if (!targetProfile) {
+      await sendMessage(chatId, "❌ Foydalanuvchi profili topilmadi.");
+      return;
+    }
+
+    // Update balance
+    const newBalance = Number(targetProfile.balance_uzs) + amount;
+    const { error: balanceError } = await supabase
+      .from("profiles")
+      .update({ balance_uzs: newBalance })
+      .eq("user_id", targetUserId);
+
+    if (balanceError) {
+      await sendMessage(chatId, `❌ Xatolik: ${balanceError.message}`);
+      return;
+    }
+
+    // Update admin monthly spent (if not owner)
+    if (!isOwnerUser) {
+      const { data: currentSettings } = await supabase
+        .from("admin_settings")
+        .select("month_spent")
+        .eq("user_id", profile.user_id)
+        .maybeSingle();
+      if (currentSettings) {
+        await supabase
+          .from("admin_settings")
+          .update({ month_spent: Number(currentSettings.month_spent) + amount })
+          .eq("user_id", profile.user_id);
+      }
+    }
+
+    // Notify user
+    if (targetProfile.telegram_chat_id && targetProfile.telegram_notifications_enabled) {
+      await sendMessage(
+        targetProfile.telegram_chat_id,
+        `💰 <b>Hisobingiz to'ldirildi!</b>\n\nMiqdor: ${amount.toLocaleString()} UZS\nYangi balans: ${newBalance.toLocaleString()} UZS\n\n👤 Admin: ${profile.full_name}`
+      );
+    }
+
+    await sendMessage(chatId, `✅ <b>Balans qo'shildi!</b>\n\n👤 ${targetProfile.full_name}\n💰 +${amount.toLocaleString()} UZS\n💳 Yangi balans: ${newBalance.toLocaleString()} UZS`);
+    return;
+  }
+
+  // /broadcast MESSAGE
+  if (text.startsWith("/broadcast ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    if (!userIsAdmin) { await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q."); return; }
+
+    const msg = text.replace("/broadcast ", "").trim();
+    if (!msg) { await sendMessage(chatId, "⚠️ Xabar matnini kiriting."); return; }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("telegram_chat_id")
+      .not("telegram_chat_id", "is", null)
+      .eq("telegram_notifications_enabled", true);
+
+    let sent = 0;
+    for (const p of profiles || []) {
+      if (p.telegram_chat_id) {
+        await sendMessage(p.telegram_chat_id, `📢 <b>Admin xabari (${profile.full_name}):</b>\n\n${msg}`);
+        sent++;
+      }
+    }
+    await sendMessage(chatId, `✅ Xabar ${sent} ta foydalanuvchiga yuborildi.`);
+    return;
+  }
+
+  // /userinfo EMAIL
+  if (text.startsWith("/userinfo ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    if (!userIsAdmin) { await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q."); return; }
+
+    const email = text.replace("/userinfo ", "").trim();
+    const { data: userId } = await supabase.rpc("get_user_id_by_email", { email_input: email });
+    if (!userId) { await sendMessage(chatId, "❌ Foydalanuvchi topilmadi."); return; }
+
+    const { data: userProfile } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+    if (!userProfile) { await sendMessage(chatId, "❌ Profil topilmadi."); return; }
+
+    const userRoles = await getUserRoles(supabase, userId);
+
+    let info = `🔍 <b>Foydalanuvchi ma'lumotlari:</b>\n\n`;
+    info += `👤 <b>Ism:</b> ${userProfile.full_name}\n`;
+    info += `📧 <b>Email:</b> ${email}\n`;
+    info += `📱 <b>Telefon:</b> ${userProfile.phone || "-"}\n`;
+    info += `💰 <b>Balans:</b> ${Number(userProfile.balance_uzs).toLocaleString()} UZS\n`;
+    info += `🛡 <b>Rollar:</b> ${userRoles.join(", ") || "user"}\n`;
+    info += `🚫 <b>Bloklangan:</b> ${userProfile.is_banned ? `Ha (${userProfile.ban_reason || ""})` : "Yo'q"}\n`;
+    info += `✈️ <b>Telegram:</b> ${userProfile.telegram_chat_id ? "✅ Ulangan" : "❌ Ulanmagan"}\n`;
+    info += `📅 <b>Ro'yxatdan:</b> ${new Date(userProfile.created_at).toLocaleDateString("uz-UZ")}\n`;
+
+    // Consultations
+    const { data: consults } = await supabase.from("consultations").select("id, status").eq("patient_id", userId);
+    if (consults && consults.length > 0) {
+      const active = consults.filter((c: any) => c.status === "active" || c.status === "pending").length;
+      info += `\n🏥 <b>Konsultatsiyalar:</b> Jami: ${consults.length}, Faol: ${active}`;
+    }
+
+    await sendMessage(chatId, info);
+    return;
+  }
+
+  // /stats
+  if (text === "/stats") {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    if (!userIsAdmin) { await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q."); return; }
+
+    const [usersRes, doctorsRes, consultsRes, postsRes] = await Promise.all([
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("doctors").select("id", { count: "exact", head: true }),
+      supabase.from("consultations").select("id, status"),
+      supabase.from("posts").select("id", { count: "exact", head: true }),
+    ]);
+
+    const activeConsults = consultsRes.data?.filter((c: any) => c.status === "active" || c.status === "pending").length || 0;
+    const telegramLinked = await supabase.from("profiles").select("id", { count: "exact", head: true }).not("telegram_chat_id", "is", null);
+
+    let statsText = `📈 <b>Tizim statistikasi:</b>\n\n`;
+    statsText += `👥 Foydalanuvchilar: ${usersRes.count || 0}\n`;
+    statsText += `👨‍⚕️ Shifokorlar: ${doctorsRes.count || 0}\n`;
+    statsText += `🏥 Konsultatsiyalar: ${consultsRes.data?.length || 0} (Faol: ${activeConsults})\n`;
+    statsText += `📰 Postlar: ${postsRes.count || 0}\n`;
+    statsText += `✈️ Telegram ulangan: ${telegramLinked.count || 0}\n`;
+
+    await sendMessage(chatId, statsText);
+    return;
+  }
+
+  // /ban EMAIL
+  if (text.startsWith("/ban ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    if (!userIsAdmin) { await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q."); return; }
+
+    const email = text.replace("/ban ", "").trim();
+    const { data: userId } = await supabase.rpc("get_user_id_by_email", { email_input: email });
+    if (!userId) { await sendMessage(chatId, "❌ Foydalanuvchi topilmadi."); return; }
+
+    await supabase.from("profiles").update({ is_banned: true, ban_reason: `Telegram orqali bloklangan (${profile.full_name})` }).eq("user_id", userId);
+    await sendMessage(chatId, `✅ Foydalanuvchi bloklandi.`);
+    return;
+  }
+
+  // /unban EMAIL
+  if (text.startsWith("/unban ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    if (!userIsAdmin) { await sendMessage(chatId, "⛔️ Sizda admin huquqlari yo'q."); return; }
+
+    const email = text.replace("/unban ", "").trim();
+    const { data: userId } = await supabase.rpc("get_user_id_by_email", { email_input: email });
+    if (!userId) { await sendMessage(chatId, "❌ Foydalanuvchi topilmadi."); return; }
+
+    await supabase.from("profiles").update({ is_banned: false, ban_reason: null }).eq("user_id", userId);
+    await sendMessage(chatId, `✅ Foydalanuvchi blokdan chiqarildi.`);
+    return;
+  }
+
+  // /setlimit EMAIL AMOUNT (owner only)
+  if (text.startsWith("/setlimit ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const parts = text.replace("/setlimit ", "").trim().split(/\s+/);
+    if (parts.length < 2) {
+      await sendMessage(chatId, "⚠️ Format: <code>/setlimit EMAIL SUMMA</code>");
+      return;
+    }
+
+    const email = parts[0];
+    const limit = Number(parts[1]);
+    if (!limit || limit < 0) { await sendMessage(chatId, "⚠️ Noto'g'ri summa."); return; }
+
+    const { data: userId } = await supabase.rpc("get_user_id_by_email", { email_input: email });
+    if (!userId) { await sendMessage(chatId, "❌ Foydalanuvchi topilmadi."); return; }
+
+    const { error } = await supabase
+      .from("admin_settings")
+      .update({ monthly_limit: limit })
+      .eq("user_id", userId);
+
+    if (error) { await sendMessage(chatId, `❌ Xatolik: ${error.message}`); return; }
+    await sendMessage(chatId, `✅ Admin oylik limiti ${limit.toLocaleString()} UZS ga o'zgartirildi.`);
     return;
   }
 
   // ❓ Yordam
   if (text === "❓ Yordam" || text === "/help") {
-    await sendMessage(
-      chatId,
-      "❓ <b>Buyruqlar ro'yxati:</b>\n\n" +
-        "/start - Bosh menu\n" +
-        "/link KOD - Akkauntni ulash\n" +
-        "/status - Shaxsiy status\n" +
-        "/news - Yangiliklar\n" +
-        "/admins - Admin kontaktlari\n" +
-        "/password - Parolni o'zgartirish\n" +
-        "/setpassword PAROL - Yangi parol o'rnatish\n" +
-        "/notifications - Bildirishnomalarni yoqish/o'chirish\n" +
-        "/help - Yordam"
-    );
+    let helpText = "❓ <b>Buyruqlar ro'yxati:</b>\n\n";
+    helpText += "📋 <b>Asosiy buyruqlar:</b>\n";
+    helpText += "/start - Bosh menu\n";
+    helpText += "/link KOD - Akkauntni ulash\n";
+    helpText += "/status - Shaxsiy status\n";
+    helpText += "/news - Yangiliklar\n";
+    helpText += "/admins - Admin kontaktlari\n";
+    helpText += "/password - Parolni o'zgartirish\n";
+    helpText += "/setpassword PAROL - Yangi parol o'rnatish\n";
+    helpText += "/notifications - Bildirishnomalarni yoqish/o'chirish\n";
+    helpText += "/help - Yordam\n";
+
+    if (userIsAdmin) {
+      helpText += "\n⚙️ <b>Admin buyruqlari:</b>\n";
+      helpText += "/admin - Admin panel\n";
+      helpText += "/topup EMAIL SUMMA - Balans qo'shish\n";
+      helpText += "/broadcast XABAR - Ommaviy xabar\n";
+      helpText += "/userinfo EMAIL - Foydalanuvchi ma'lumotlari\n";
+      helpText += "/stats - Tizim statistikasi\n";
+      helpText += "/ban EMAIL - Bloklash\n";
+      helpText += "/unban EMAIL - Blokdan chiqarish\n";
+    }
+
+    await sendMessage(chatId, helpText);
     return;
   }
 
   // Unknown
-  await sendMessage(
-    chatId,
-    "🤔 Tushunmadim. /help buyrug'ini yuboring."
-  );
+  await sendMessage(chatId, "🤔 Tushunmadim. /help buyrug'ini yuboring.");
 }
 
 async function handleCallbackQuery(callbackQuery: any) {
@@ -381,7 +760,6 @@ async function handleCallbackQuery(callbackQuery: any) {
 
   if (data.startsWith("approve_auth_")) {
     const requestId = data.replace("approve_auth_", "");
-
     const { data: request } = await supabase
       .from("telegram_auth_requests")
       .select("*")
@@ -394,17 +772,12 @@ async function handleCallbackQuery(callbackQuery: any) {
       return;
     }
 
-    // Check expiry
     if (new Date(request.expires_at) < new Date()) {
-      await supabase
-        .from("telegram_auth_requests")
-        .update({ status: "expired" })
-        .eq("id", requestId);
+      await supabase.from("telegram_auth_requests").update({ status: "expired" }).eq("id", requestId);
       await sendMessage(chatId, "⏰ Bu so'rovning muddati o'tgan.");
       return;
     }
 
-    // Generate magic link
     const { data: linkData, error } = await supabase.auth.admin.generateLink({
       type: "magiclink",
       email: request.email,
@@ -417,13 +790,9 @@ async function handleCallbackQuery(callbackQuery: any) {
 
     await supabase
       .from("telegram_auth_requests")
-      .update({
-        status: "approved",
-        action_link: linkData.properties?.action_link,
-      })
+      .update({ status: "approved", action_link: linkData.properties?.action_link })
       .eq("id", requestId);
 
-    // Edit original message
     await fetch(`${TELEGRAM_API}/editMessageText`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -439,11 +808,7 @@ async function handleCallbackQuery(callbackQuery: any) {
 
   if (data.startsWith("reject_auth_")) {
     const requestId = data.replace("reject_auth_", "");
-
-    await supabase
-      .from("telegram_auth_requests")
-      .update({ status: "rejected" })
-      .eq("id", requestId);
+    await supabase.from("telegram_auth_requests").update({ status: "rejected" }).eq("id", requestId);
 
     await fetch(`${TELEGRAM_API}/editMessageText`, {
       method: "POST",
@@ -466,7 +831,6 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
 
-    // Setup webhook endpoint
     if (url.searchParams.get("action") === "setup") {
       const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-webhook`;
       const res = await fetch(`${TELEGRAM_API}/setWebhook`, {
