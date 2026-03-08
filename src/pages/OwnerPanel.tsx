@@ -24,6 +24,9 @@ const OwnerPanel = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [forcedSubs, setForcedSubs] = useState<any[]>([]);
+  const [newSubUsername, setNewSubUsername] = useState("");
+  const [newSubName, setNewSubName] = useState("");
 
   // Add admin form
   const [searchEmail, setSearchEmail] = useState("");
