@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
-import { Send, ArrowLeft, PhoneOff, Star, Timer, Video, Mic, MicOff, VideoOff } from "lucide-react";
+import { Send, ArrowLeft, PhoneOff, Star, Timer, Video, Mic, MicOff, VideoOff, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import DailyIframe from "@daily-co/daily-js";
@@ -389,6 +389,15 @@ const ConsultationPage = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 disabled:opacity-50 transition-colors"
               >
                 <Video className="w-3.5 h-3.5" /> {joiningCall ? "..." : "Video"}
+              </motion.button>
+            )}
+            {isDoctor && isEnded && (
+              <motion.button
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={() => navigate(`/create-prescription/${id}`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" /> Retsept
               </motion.button>
             )}
             {!isEnded && (

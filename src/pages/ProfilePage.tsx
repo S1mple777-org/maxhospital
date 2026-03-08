@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import { toast } from "sonner";
 
@@ -258,6 +258,15 @@ const ProfilePage = () => {
               </span>
             </div>
           </div>
+
+          {/* My Prescriptions Link */}
+          <button
+            onClick={() => navigate("/my-prescriptions")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition-colors mb-4"
+          >
+            <FileText className="w-4 h-4" />
+            Mening retseptlarim
+          </button>
 
           <button
             onClick={handleSignOut}
