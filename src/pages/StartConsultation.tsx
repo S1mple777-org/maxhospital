@@ -22,15 +22,37 @@ const StartConsultation = () => {
   const getName = (item: any, prefix = "name") =>
     language === "ru" ? item[`${prefix}_ru`] : language === "en" ? item[`${prefix}_en`] : item[`${prefix}_uz`];
 
+  const loadMyConsultations = () => {
+    if (!user) return;
+    supabase.from("consultations").select("*").eq("patient_id", user.id).in("status", ["pending", "active"]).order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setMyConsultations(data);
+      else setMyConsultations([]);
+    });
+  };
+
   useEffect(() => {
     if (!user) { navigate("/auth"); return; }
     supabase.from("departments").select("*").eq("is_active", true).then(({ data }) => {
       if (data) setDepartments(data);
     });
-    // Load my active consultations
-    supabase.from("consultations").select("*").eq("patient_id", user.id).in("status", ["pending", "active"]).order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setMyConsultations(data);
-    });
+    loadMyConsultations();
+
+    // Realtime: remove ended consultations from list
+    const channel = supabase
+      .channel("my-consultations-live")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `patient_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.status === "ended") {
+            setMyConsultations(prev => prev.filter(c => c.id !== updated.id));
+          } else {
+            setMyConsultations(prev => prev.map(c => c.id === updated.id ? updated : c));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   useEffect(() => {
