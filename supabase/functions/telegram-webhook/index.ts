@@ -47,6 +47,45 @@ async function getLinkedProfile(supabase: any, chatId: number) {
   return data;
 }
 
+async function checkForcedSubscriptions(supabase: any, chatId: number): Promise<{ allJoined: boolean; notJoined: any[] }> {
+  const { data: subs } = await supabase.from("forced_subscriptions").select("*");
+  if (!subs || subs.length === 0) return { allJoined: true, notJoined: [] };
+
+  const notJoined: any[] = [];
+  for (const sub of subs) {
+    try {
+      const res = await fetch(`${TELEGRAM_API}/getChatMember`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: sub.channel_id, user_id: chatId }),
+      });
+      const data = await res.json();
+      const status = data?.result?.status;
+      if (!status || status === "left" || status === "kicked") {
+        notJoined.push(sub);
+      }
+    } catch {
+      notJoined.push(sub);
+    }
+  }
+  return { allJoined: notJoined.length === 0, notJoined };
+}
+
+async function sendSubscriptionMessage(chatId: number, notJoined: any[]) {
+  let text = "📢 <b>Majburiy obuna!</b>\n\nBotdan foydalanish uchun quyidagi kanallarga obuna bo'ling:\n\n";
+  const buttons: any[] = [];
+  for (const sub of notJoined) {
+    const name = sub.channel_name || sub.channel_username;
+    text += `❌ <b>${name}</b>\n`;
+    buttons.push([{ text: `📢 ${name}`, url: `https://t.me/${sub.channel_username.replace("@", "")}` }]);
+  }
+  buttons.push([{ text: "✅ Tekshirish", callback_data: "check_subscription" }]);
+  text += "\nObuna bo'lgandan so'ng \"✅ Tekshirish\" tugmasini bosing.";
+  await sendMessage(chatId, text, {
+    reply_markup: { inline_keyboard: buttons },
+  });
+}
+
 async function getUserRoles(supabase: any, userId: string) {
   const { data } = await supabase
     .from("user_roles")
@@ -97,6 +136,13 @@ async function handleMessage(message: any) {
 
   // /start
   if (text === "/start") {
+    // Check forced subscriptions
+    const { allJoined, notJoined } = await checkForcedSubscriptions(supabase, chatId);
+    if (!allJoined) {
+      await sendSubscriptionMessage(chatId, notJoined);
+      return;
+    }
+
     await sendMessage(
       chatId,
       `🏥 <b>Max Hospital Bot</b>ga xush kelibsiz!\n\n` +
@@ -762,9 +808,96 @@ async function handleMessage(message: any) {
       helpText += "/stats - Tizim statistikasi\n";
       helpText += "/ban EMAIL - Bloklash\n";
       helpText += "/unban EMAIL - Blokdan chiqarish\n";
+
+      const roles2 = await getUserRoles(supabase, profile.user_id);
+      if (roles2.includes("owner")) {
+        helpText += "\n👑 <b>Owner buyruqlari:</b>\n";
+        helpText += "/setlimit EMAIL SUMMA - Admin limitini o'zgartirish\n";
+        helpText += "/addsub @username Nomi - Majburiy obuna qo'shish\n";
+        helpText += "/removesub @username - Majburiy obuna o'chirish\n";
+        helpText += "/subs - Majburiy obunalar ro'yxati\n";
+      }
     }
 
     await sendMessage(chatId, helpText);
+    return;
+  }
+
+  // /addsub @channel_username Channel Name (owner only)
+  if (text.startsWith("/addsub ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const parts = text.replace("/addsub ", "").trim().split(/\s+/);
+    if (parts.length < 1) { await sendMessage(chatId, "⚠️ Format: <code>/addsub @username Kanal nomi</code>"); return; }
+
+    const channelUsername = parts[0].replace("@", "");
+    const channelName = parts.slice(1).join(" ") || channelUsername;
+
+    // Try to get channel info to get numeric ID
+    try {
+      const chatRes = await fetch(`${TELEGRAM_API}/getChat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: `@${channelUsername}` }),
+      });
+      const chatData = await chatRes.json();
+      if (!chatData.ok) {
+        await sendMessage(chatId, `❌ Kanal topilmadi. Bot kanalga admin sifatida qo'shilganligini tekshiring.\n\nXato: ${chatData.description || "Unknown"}`);
+        return;
+      }
+      const channelId = String(chatData.result.id);
+      const resolvedName = chatData.result.title || channelName;
+
+      const { error } = await supabase.from("forced_subscriptions").insert({
+        channel_id: channelId,
+        channel_username: channelUsername,
+        channel_name: resolvedName,
+        created_by: profile.user_id,
+      });
+      if (error) {
+        if (error.code === "23505") await sendMessage(chatId, "⚠️ Bu kanal allaqachon qo'shilgan.");
+        else await sendMessage(chatId, `❌ Xatolik: ${error.message}`);
+        return;
+      }
+      await sendMessage(chatId, `✅ Majburiy obuna qo'shildi:\n\n📢 <b>${resolvedName}</b>\n@${channelUsername}`);
+    } catch (e: any) {
+      await sendMessage(chatId, `❌ Xatolik: ${e.message}`);
+    }
+    return;
+  }
+
+  // /removesub @channel_username (owner only)
+  if (text.startsWith("/removesub ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const channelUsername = text.replace("/removesub ", "").trim().replace("@", "");
+    const { error } = await supabase.from("forced_subscriptions").delete().eq("channel_username", channelUsername);
+    if (error) { await sendMessage(chatId, `❌ Xatolik: ${error.message}`); return; }
+    await sendMessage(chatId, `✅ Majburiy obuna o'chirildi: @${channelUsername}`);
+    return;
+  }
+
+  // /subs - list forced subscriptions (owner only)
+  if (text === "/subs") {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const { data: subs } = await supabase.from("forced_subscriptions").select("*").order("created_at");
+    if (!subs || subs.length === 0) {
+      await sendMessage(chatId, "📢 Hozircha majburiy obunalar yo'q.\n\nQo'shish: <code>/addsub @username Kanal nomi</code>");
+      return;
+    }
+    let text2 = "📢 <b>Majburiy obunalar:</b>\n\n";
+    for (const sub of subs) {
+      text2 += `📌 <b>${sub.channel_name}</b> (@${sub.channel_username})\n`;
+    }
+    text2 += `\nO'chirish: <code>/removesub @username</code>`;
+    await sendMessage(chatId, text2);
     return;
   }
 
@@ -778,6 +911,38 @@ async function handleCallbackQuery(callbackQuery: any) {
   const supabase = getSupabase();
 
   await answerCallbackQuery(callbackQuery.id);
+
+  if (data === "check_subscription") {
+    const { allJoined, notJoined } = await checkForcedSubscriptions(supabase, chatId);
+    if (allJoined) {
+      await fetch(`${TELEGRAM_API}/editMessageText`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: callbackQuery.message.message_id,
+          text: "✅ <b>Barcha kanallarga obuna bo'lgansiz!</b>\n\nBotdan foydalanishingiz mumkin.",
+          parse_mode: "HTML",
+        }),
+      });
+      // Send welcome
+      const profile = await getLinkedProfile(supabase, chatId);
+      const userIsAdmin = profile ? await isAdmin(supabase, profile.user_id) : false;
+      const keyboard = userIsAdmin ? getAdminKeyboard() : mainKeyboard;
+      await sendMessage(
+        chatId,
+        `🏥 <b>Max Hospital Bot</b>ga xush kelibsiz!\n\n` +
+          (profile
+            ? `✅ Siz <b>${profile.full_name}</b> sifatida ulangansiz.`
+            : `⚠️ Akkauntingiz ulanmagan. Profildan kodni oling va /link KODINGIZ buyrug'ini yuboring.`),
+        keyboard
+      );
+    } else {
+      await answerCallbackQuery(callbackQuery.id, "❌ Hali barcha kanallarga obuna bo'lmadingiz!");
+      await sendSubscriptionMessage(chatId, notJoined);
+    }
+    return;
+  }
 
   if (data.startsWith("approve_auth_")) {
     const requestId = data.replace("approve_auth_", "");

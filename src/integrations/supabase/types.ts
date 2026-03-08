@@ -248,6 +248,33 @@ export type Database = {
           },
         ]
       }
+      forced_subscriptions: {
+        Row: {
+          channel_id: string
+          channel_name: string
+          channel_username: string
+          created_at: string
+          created_by: string
+          id: string
+        }
+        Insert: {
+          channel_id: string
+          channel_name?: string
+          channel_username: string
+          created_at?: string
+          created_by: string
+          id?: string
+        }
+        Update: {
+          channel_id?: string
+          channel_name?: string
+          channel_username?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           consultation_id: string

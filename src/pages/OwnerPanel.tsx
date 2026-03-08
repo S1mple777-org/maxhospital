@@ -5,7 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image
+  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone
 } from "lucide-react";
 
 type AdminType = "financial" | "dept_head" | "journalist";
@@ -24,6 +24,9 @@ const OwnerPanel = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [forcedSubs, setForcedSubs] = useState<any[]>([]);
+  const [newSubUsername, setNewSubUsername] = useState("");
+  const [newSubName, setNewSubName] = useState("");
 
   // Add admin form
   const [searchEmail, setSearchEmail] = useState("");
@@ -67,6 +70,9 @@ const OwnerPanel = () => {
 
     const { data: allUsers } = await supabase.from("profiles").select("*");
     if (allUsers) setUsers(allUsers);
+
+    const { data: subs } = await supabase.from("forced_subscriptions").select("*").order("created_at");
+    if (subs) setForcedSubs(subs);
   };
 
   const handleIconSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,12 +176,38 @@ const OwnerPanel = () => {
 
   const getDeptName = (dept: any) => language === "ru" ? dept.name_ru : language === "en" ? dept.name_en : dept.name_uz;
 
+  const handleAddForcedSub = async () => {
+    if (!newSubUsername) { toast.error("Kanal username kiriting"); return; }
+    const username = newSubUsername.replace("@", "");
+    const { error } = await supabase.from("forced_subscriptions").insert({
+      channel_id: username,
+      channel_username: username,
+      channel_name: newSubName || username,
+      created_by: user!.id,
+    });
+    if (error) {
+      if (error.code === "23505") toast.error("Bu kanal allaqachon qo'shilgan");
+      else toast.error(error.message);
+      return;
+    }
+    toast.success("Majburiy obuna qo'shildi");
+    setNewSubUsername(""); setNewSubName("");
+    loadData();
+  };
+
+  const handleRemoveForcedSub = async (id: string) => {
+    const { error } = await supabase.from("forced_subscriptions").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Majburiy obuna o'chirildi"); loadData(); }
+  };
+
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-muted-foreground">Yuklanmoqda...</div></div>;
 
   const tabs = [
     { id: "admins", label: "Adminlar", icon: Users },
     { id: "departments", label: "Bo'limlar", icon: Building2 },
     { id: "limits", label: "Limitlar", icon: Wallet },
+    { id: "subscriptions", label: "Majburiy obuna", icon: Megaphone },
   ];
 
   const IconUploader = () => (
@@ -371,6 +403,50 @@ const OwnerPanel = () => {
                       <Plus className="w-4 h-4 inline mr-1" /> Qo'shish
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Subscriptions Tab */}
+            {activeTab === "subscriptions" && (
+              <div className="space-y-4">
+                <div className="bg-card rounded-xl border border-border p-4">
+                  <h3 className="font-display font-semibold text-foreground mb-3">Majburiy obuna qo'shish</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Foydalanuvchilar botga /start bosganda ushbu kanallarga obuna bo'lishi talab qilinadi.
+                    Bot kanalga admin sifatida qo'shilgan bo'lishi kerak.
+                  </p>
+                  <div className="flex gap-3 mb-3">
+                    <input value={newSubUsername} onChange={(e) => setNewSubUsername(e.target.value)} placeholder="@username" className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <input value={newSubName} onChange={(e) => setNewSubName(e.target.value)} placeholder="Kanal nomi" className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <button onClick={handleAddForcedSub} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium whitespace-nowrap">
+                      <Plus className="w-4 h-4 inline mr-1" /> Qo'shish
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {forcedSubs.map((sub: any) => (
+                    <div key={sub.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                          <Megaphone className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">{sub.channel_name}</div>
+                          <div className="text-sm text-muted-foreground">@{sub.channel_username}</div>
+                        </div>
+                      </div>
+                      <button onClick={() => handleRemoveForcedSub(sub.id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {forcedSubs.length === 0 && (
+                    <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">
+                      Hali majburiy obunalar yo'q
+                    </div>
+                  )}
                 </div>
               </div>
             )}
