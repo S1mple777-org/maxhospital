@@ -434,14 +434,15 @@ const ConsultationPage = () => {
           </div>
         </motion.div>
 
-        {/* Video Call Area - container always in DOM for ref access, hidden when not in call */}
-        <AnimatePresence>
+        {/* Video container - always in DOM for Daily.co createFrame ref */}
+        <div
+          ref={videoContainerRef}
+          id="daily-video"
+          className={`${inCall || joiningCall ? "block" : "hidden"} bg-black relative overflow-hidden`}
+          style={{ height: inCall ? "50vh" : 0 }}
+        >
           {inCall && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }} animate={{ height: "50vh", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-black relative overflow-hidden"
-            >
+            <>
               {/* Timer display */}
               <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-mono z-20">
                 {Math.floor(callElapsed / 60).toString().padStart(2, "0")}:{(callElapsed % 60).toString().padStart(2, "0")} / 10:00
@@ -487,12 +488,9 @@ const ConsultationPage = () => {
                   <PhoneOff className="w-4 h-4" />
                 </button>
               </div>
-            </motion.div>
+            </>
           )}
-        </AnimatePresence>
-
-        {/* Video container (hidden when not in call, but needs to exist for createFrame) */}
-        {!inCall && <div ref={videoContainerRef} className="hidden" />}
+        </div>
 
         {/* Messages */}
         <div className={`flex-1 overflow-y-auto px-4 py-4 space-y-3 ${inCall ? "max-h-[25vh]" : ""}`}>
