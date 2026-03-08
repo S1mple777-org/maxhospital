@@ -78,8 +78,8 @@ function getAdminKeyboard() {
       keyboard: [
         [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
         [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
-        [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
-        [{ text: "⚙️ Admin panel" }],
+        [{ text: "🔑 Parol o'zgartirish" }, { text: "🔐 2FA" }],
+        [{ text: "❓ Yordam" }, { text: "⚙️ Admin panel" }],
       ],
       resize_keyboard: true,
     },
