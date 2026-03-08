@@ -207,6 +207,7 @@ const OwnerPanel = () => {
     { id: "admins", label: "Adminlar", icon: Users },
     { id: "departments", label: "Bo'limlar", icon: Building2 },
     { id: "limits", label: "Limitlar", icon: Wallet },
+    { id: "subscriptions", label: "Majburiy obuna", icon: Megaphone },
   ];
 
   const IconUploader = () => (
