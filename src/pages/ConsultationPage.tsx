@@ -434,7 +434,8 @@ const ConsultationPage = () => {
           </div>
         </motion.div>
 
-        {/* Video Call Area */}
+        {/* Video Call Area - container always rendered for ref access */}
+        <div ref={videoContainerRef} id="daily-video" className={inCall ? "" : "hidden"} style={{ width: "100%", height: 0 }} />
         <AnimatePresence>
           {inCall && (
             <motion.div
@@ -442,7 +443,6 @@ const ConsultationPage = () => {
               transition={{ duration: 0.3 }}
               className="bg-black relative overflow-hidden"
             >
-              <div ref={videoContainerRef} id="daily-video" className="w-full h-full" />
               {/* Timer display */}
               <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-mono z-20">
                 {Math.floor(callElapsed / 60).toString().padStart(2, "0")}:{(callElapsed % 60).toString().padStart(2, "0")} / 10:00
