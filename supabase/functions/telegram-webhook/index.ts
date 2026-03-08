@@ -416,7 +416,7 @@ async function handleMessage(message: any) {
   }
 
   // /2fa toggle
-  if (text === "/2fa") {
+  if (text === "/2fa" || text === "🔐 2FA") {
     if (!profile) {
       await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang.");
       return;
