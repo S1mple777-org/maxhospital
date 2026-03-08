@@ -434,8 +434,7 @@ const ConsultationPage = () => {
           </div>
         </motion.div>
 
-        {/* Video Call Area - container always rendered for ref access */}
-        <div ref={videoContainerRef} id="daily-video" className={inCall ? "" : "hidden"} style={{ width: "100%", height: 0 }} />
+        {/* Video Call Area - container always in DOM for ref access, hidden when not in call */}
         <AnimatePresence>
           {inCall && (
             <motion.div
