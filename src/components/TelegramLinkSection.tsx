@@ -11,6 +11,7 @@ const TelegramLinkSection = () => {
   const [loading, setLoading] = useState(false);
   const [isLinked, setIsLinked] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
 
   useEffect(() => {
     if (profile) {
