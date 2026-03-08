@@ -65,7 +65,8 @@ const mainKeyboard = {
     keyboard: [
       [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
       [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
-      [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
+      [{ text: "🔑 Parol o'zgartirish" }, { text: "🔐 2FA" }],
+      [{ text: "❓ Yordam" }],
     ],
     resize_keyboard: true,
   },
