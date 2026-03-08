@@ -21,6 +21,9 @@ import DoctorDashboard from "./pages/DoctorDashboard";
 import DoctorProfilePage from "./pages/DoctorProfilePage";
 import StartConsultation from "./pages/StartConsultation";
 import UsersPage from "./pages/UsersPage";
+import CreatePrescription from "./pages/CreatePrescription";
+import PrescriptionView from "./pages/PrescriptionView";
+import MyPrescriptions from "./pages/MyPrescriptions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
