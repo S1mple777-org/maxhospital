@@ -76,6 +76,23 @@ const TelegramLinkSection = () => {
     }
   };
 
+  const toggle2FA = async () => {
+    setLoading(true);
+    try {
+      const res = await supabase.functions.invoke("telegram-auth", {
+        body: { action: "toggle_2fa" },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      setTwoFaEnabled(res.data.enabled);
+      toast.success(res.data.enabled ? "2FA yoqildi" : "2FA o'chirildi");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyCode = () => {
     if (linkCode) {
       navigator.clipboard.writeText(linkCode);
