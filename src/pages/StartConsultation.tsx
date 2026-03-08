@@ -106,7 +106,7 @@ const StartConsultation = () => {
             <div className="mb-8">
               <h3 className="font-display font-semibold text-foreground mb-3 text-sm">Faol konsultatsiyalaringiz</h3>
               <div className="space-y-2">
-                {myConsultations.map(c => (
+                {myConsultations.filter(c => c.status === "pending" || c.status === "active").map(c => (
                   <div key={c.id} onClick={() => navigate(`/consultation/${c.id}`)} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between cursor-pointer hover:bg-secondary/50">
                     <div>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === "active" ? "bg-green-100 text-green-700" : "bg-warning/10 text-warning"}`}>
