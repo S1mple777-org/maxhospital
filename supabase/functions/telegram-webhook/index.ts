@@ -814,6 +814,84 @@ async function handleMessage(message: any) {
     return;
   }
 
+  // /addsub @channel_username Channel Name (owner only)
+  if (text.startsWith("/addsub ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const parts = text.replace("/addsub ", "").trim().split(/\s+/);
+    if (parts.length < 1) { await sendMessage(chatId, "⚠️ Format: <code>/addsub @username Kanal nomi</code>"); return; }
+
+    const channelUsername = parts[0].replace("@", "");
+    const channelName = parts.slice(1).join(" ") || channelUsername;
+
+    // Try to get channel info to get numeric ID
+    try {
+      const chatRes = await fetch(`${TELEGRAM_API}/getChat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: `@${channelUsername}` }),
+      });
+      const chatData = await chatRes.json();
+      if (!chatData.ok) {
+        await sendMessage(chatId, `❌ Kanal topilmadi. Bot kanalga admin sifatida qo'shilganligini tekshiring.\n\nXato: ${chatData.description || "Unknown"}`);
+        return;
+      }
+      const channelId = String(chatData.result.id);
+      const resolvedName = chatData.result.title || channelName;
+
+      const { error } = await supabase.from("forced_subscriptions").insert({
+        channel_id: channelId,
+        channel_username: channelUsername,
+        channel_name: resolvedName,
+        created_by: profile.user_id,
+      });
+      if (error) {
+        if (error.code === "23505") await sendMessage(chatId, "⚠️ Bu kanal allaqachon qo'shilgan.");
+        else await sendMessage(chatId, `❌ Xatolik: ${error.message}`);
+        return;
+      }
+      await sendMessage(chatId, `✅ Majburiy obuna qo'shildi:\n\n📢 <b>${resolvedName}</b>\n@${channelUsername}`);
+    } catch (e: any) {
+      await sendMessage(chatId, `❌ Xatolik: ${e.message}`);
+    }
+    return;
+  }
+
+  // /removesub @channel_username (owner only)
+  if (text.startsWith("/removesub ")) {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const channelUsername = text.replace("/removesub ", "").trim().replace("@", "");
+    const { error } = await supabase.from("forced_subscriptions").delete().eq("channel_username", channelUsername);
+    if (error) { await sendMessage(chatId, `❌ Xatolik: ${error.message}`); return; }
+    await sendMessage(chatId, `✅ Majburiy obuna o'chirildi: @${channelUsername}`);
+    return;
+  }
+
+  // /subs - list forced subscriptions (owner only)
+  if (text === "/subs") {
+    if (!profile) { await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang."); return; }
+    const roles = await getUserRoles(supabase, profile.user_id);
+    if (!roles.includes("owner")) { await sendMessage(chatId, "⛔️ Bu buyruq faqat owner uchun."); return; }
+
+    const { data: subs } = await supabase.from("forced_subscriptions").select("*").order("created_at");
+    if (!subs || subs.length === 0) {
+      await sendMessage(chatId, "📢 Hozircha majburiy obunalar yo'q.\n\nQo'shish: <code>/addsub @username Kanal nomi</code>");
+      return;
+    }
+    let text2 = "📢 <b>Majburiy obunalar:</b>\n\n";
+    for (const sub of subs) {
+      text2 += `📌 <b>${sub.channel_name}</b> (@${sub.channel_username})\n`;
+    }
+    text2 += `\nO'chirish: <code>/removesub @username</code>`;
+    await sendMessage(chatId, text2);
+    return;
+  }
+
   // Unknown
   await sendMessage(chatId, "🤔 Tushunmadim. /help buyrug'ini yuboring.");
 }
