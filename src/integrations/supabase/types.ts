@@ -394,6 +394,7 @@ export type Database = {
           telegram_chat_id: number | null
           telegram_link_code: string | null
           telegram_notifications_enabled: boolean | null
+          two_fa_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -409,6 +410,7 @@ export type Database = {
           telegram_chat_id?: number | null
           telegram_link_code?: string | null
           telegram_notifications_enabled?: boolean | null
+          two_fa_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -424,6 +426,7 @@ export type Database = {
           telegram_chat_id?: number | null
           telegram_link_code?: string | null
           telegram_notifications_enabled?: boolean | null
+          two_fa_enabled?: boolean
           updated_at?: string
           user_id?: string
         }

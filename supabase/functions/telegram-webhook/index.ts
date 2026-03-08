@@ -65,7 +65,8 @@ const mainKeyboard = {
     keyboard: [
       [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
       [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
-      [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
+      [{ text: "🔑 Parol o'zgartirish" }, { text: "🔐 2FA" }],
+      [{ text: "❓ Yordam" }],
     ],
     resize_keyboard: true,
   },
@@ -77,8 +78,8 @@ function getAdminKeyboard() {
       keyboard: [
         [{ text: "📊 Status" }, { text: "📰 Yangiliklar" }],
         [{ text: "👨‍⚕️ Adminlar" }, { text: "🔗 Akkaunt ulash" }],
-        [{ text: "🔑 Parol o'zgartirish" }, { text: "❓ Yordam" }],
-        [{ text: "⚙️ Admin panel" }],
+        [{ text: "🔑 Parol o'zgartirish" }, { text: "🔐 2FA" }],
+        [{ text: "❓ Yordam" }, { text: "⚙️ Admin panel" }],
       ],
       resize_keyboard: true,
     },
@@ -411,6 +412,26 @@ async function handleMessage(message: any) {
       .update({ telegram_notifications_enabled: newState })
       .eq("id", profile.id);
     await sendMessage(chatId, `🔔 Bildirishnomalar ${newState ? "✅ yoqildi" : "❌ o'chirildi"}.`);
+    return;
+  }
+
+  // /2fa toggle
+  if (text === "/2fa" || text === "🔐 2FA") {
+    if (!profile) {
+      await sendMessage(chatId, "⚠️ Avval akkauntingizni ulang.");
+      return;
+    }
+    const newState = !profile.two_fa_enabled;
+    await supabase
+      .from("profiles")
+      .update({ two_fa_enabled: newState })
+      .eq("id", profile.id);
+    await sendMessage(
+      chatId,
+      newState
+        ? "🔐 <b>2FA yoqildi!</b>\n\nEndi hisobingizga kirishda Telegram orqali tasdiqlash talab qilinadi."
+        : "🔓 <b>2FA o'chirildi!</b>\n\nEndi oddiy parol bilan kirishingiz mumkin."
+    );
     return;
   }
 

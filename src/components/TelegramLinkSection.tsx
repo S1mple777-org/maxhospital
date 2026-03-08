@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageCircle, Link2, Unlink, Bell, BellOff, Copy, RefreshCw, ExternalLink } from "lucide-react";
+import { MessageCircle, Link2, Unlink, Bell, BellOff, Copy, RefreshCw, ExternalLink, ShieldCheck, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,11 +11,13 @@ const TelegramLinkSection = () => {
   const [loading, setLoading] = useState(false);
   const [isLinked, setIsLinked] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setIsLinked(!!(profile as any).telegram_chat_id);
       setNotificationsEnabled((profile as any).telegram_notifications_enabled ?? true);
+      setTwoFaEnabled((profile as any).two_fa_enabled ?? false);
     }
   }, [profile]);
 
@@ -67,6 +69,23 @@ const TelegramLinkSection = () => {
       if (res.error) throw new Error(res.error.message);
       setNotificationsEnabled(newState);
       toast.success(newState ? "Bildirishnomalar yoqildi" : "Bildirishnomalar o'chirildi");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggle2FA = async () => {
+    setLoading(true);
+    try {
+      const res = await supabase.functions.invoke("telegram-auth", {
+        body: { action: "toggle_2fa" },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      setTwoFaEnabled(res.data.enabled);
+      toast.success(res.data.enabled ? "2FA yoqildi" : "2FA o'chirildi");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -128,6 +147,33 @@ const TelegramLinkSection = () => {
               >
                 <motion.div
                   animate={{ x: notificationsEnabled ? 20 : 2 }}
+                  className="absolute top-1 w-4 h-4 rounded-full bg-white shadow"
+                />
+              </button>
+            </div>
+
+            {/* 2FA Toggle */}
+            <div className="bg-accent/30 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {twoFaEnabled ? (
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                ) : (
+                  <ShieldOff className="w-4 h-4 text-muted-foreground" />
+                )}
+                <div>
+                  <span className="text-sm font-medium text-foreground block">2FA himoya</span>
+                  <span className="text-xs text-muted-foreground">Kirish Telegram orqali tasdiqlanadi</span>
+                </div>
+              </div>
+              <button
+                onClick={toggle2FA}
+                disabled={loading}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  twoFaEnabled ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <motion.div
+                  animate={{ x: twoFaEnabled ? 20 : 2 }}
                   className="absolute top-1 w-4 h-4 rounded-full bg-white shadow"
                 />
               </button>
