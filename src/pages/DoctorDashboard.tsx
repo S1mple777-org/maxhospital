@@ -206,18 +206,20 @@ const DoctorDashboard = () => {
 
           {ended.length > 0 && (
             <div>
-              <h2 className="font-display font-semibold text-foreground mb-3">Tugagan konsultatsiyalar</h2>
-              <div className="space-y-2">
-                {ended.slice(0, 10).map(c => (
-                  <div key={c.id} className="bg-card rounded-xl border border-border p-3 flex items-center justify-between opacity-60">
-                    <div>
-                      <p className="font-medium text-foreground text-sm">{c.patient_name}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Tugagan</span>
-                  </div>
-                ))}
-              </div>
+               <h2 className="font-display font-semibold text-foreground mb-3">Retsept kutilayotgan tugagan konsultatsiyalar</h2>
+               <div className="space-y-2">
+                 {ended.slice(0, 10).map(c => (
+                   <div key={c.id} className="bg-card rounded-xl border border-border p-3 flex items-center justify-between">
+                     <div className="cursor-pointer" onClick={() => navigate(`/consultation/${c.id}`)}>
+                       <p className="font-medium text-foreground text-sm">{c.patient_name}</p>
+                       <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</p>
+                     </div>
+                     <button onClick={() => navigate(`/create-prescription/${c.id}`)} className="text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90">
+                       Retsept yozish
+                     </button>
+                   </div>
+                 ))}
+               </div>
             </div>
           )}
 
