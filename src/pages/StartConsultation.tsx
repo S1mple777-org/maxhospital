@@ -43,7 +43,7 @@ const StartConsultation = () => {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `patient_id=eq.${user.id}` },
         (payload) => {
           const updated = payload.new as any;
-          if (updated.status === "ended") {
+          if (updated.status === "completed" || updated.status === "cancelled") {
             setMyConsultations(prev => prev.filter(c => c.id !== updated.id));
           } else {
             setMyConsultations(prev => prev.map(c => c.id === updated.id ? updated : c));

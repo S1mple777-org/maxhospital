@@ -68,7 +68,7 @@ const DoctorDashboard = () => {
 
     setPending(withProfiles.filter(c => c.status === "pending"));
     setActive(withProfiles.filter(c => c.status === "active"));
-    setEnded(withProfiles.filter(c => c.status === "ended" && !c.has_prescription));
+    setEnded(withProfiles.filter(c => c.status === "completed" && !c.has_prescription));
   };
 
   const handleToggleOnline = async () => {
@@ -101,7 +101,7 @@ const DoctorDashboard = () => {
         await supabase.from("profiles").update({ balance_uzs: Number(pp.balance_uzs) + Number(cons.price_uzs) }).eq("user_id", cons.patient_id);
       }
     }
-    const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("consultations").update({ status: "cancelled", ended_at: new Date().toISOString() }).eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Rad etildi, pul qaytarildi");
   };

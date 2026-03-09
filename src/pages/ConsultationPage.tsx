@@ -79,7 +79,7 @@ const ConsultationPage = () => {
       const { data: cons } = await supabase.from("consultations").select("*").eq("id", id).maybeSingle();
       if (!cons) { navigate("/"); return; }
       setConsultation(cons);
-      if (cons.status === "ended") setLocalEnded(true);
+      if (cons.status === "completed" || cons.status === "cancelled") setLocalEnded(true);
       const { data: existingRating } = await supabase.from("consultation_ratings").select("id").eq("consultation_id", id).maybeSingle();
       if (existingRating) setHasRated(true);
       const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
@@ -108,7 +108,7 @@ const ConsultationPage = () => {
         (payload) => {
           const updated = payload.new as any;
           setConsultation(updated);
-          if (updated.status === "ended") {
+          if (updated.status === "completed" || updated.status === "cancelled") {
             setLocalEnded(true);
             if (!isDoctor) setShowRating(true);
             // Auto-leave video call if active
@@ -200,7 +200,7 @@ const ConsultationPage = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || !id || sending) return;
-    if (localEnded || consultation?.status === "ended") { toast.error("Konsultatsiya tugagan"); return; }
+    if (localEnded || consultation?.status === "completed" || consultation?.status === "cancelled") { toast.error("Konsultatsiya tugagan"); return; }
     setSending(true);
     const { error } = await supabase.from("messages").insert({
       consultation_id: id, sender_id: user.id, content: newMessage.trim(), message_type: "text",
@@ -215,7 +215,7 @@ const ConsultationPage = () => {
     try {
       setLocalEnded(true);
       await cleanupCallFrame();
-      const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.from("consultations").update({ status: "completed", ended_at: new Date().toISOString() }).eq("id", id);
       if (error) {
         toast.error(error.message);
         setLocalEnded(false);
@@ -361,7 +361,7 @@ const ConsultationPage = () => {
     navigate("/");
   };
 
-  const isEnded = localEnded || consultation?.status === "ended";
+  const isEnded = localEnded || consultation?.status === "completed" || consultation?.status === "cancelled";
 
   const getTimeLeft = () => {
     if (!consultation?.max_end_time) return null;
