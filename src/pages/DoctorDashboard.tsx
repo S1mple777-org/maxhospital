@@ -53,13 +53,22 @@ const DoctorDashboard = () => {
       .eq("doctor_id", docId)
       .order("created_at", { ascending: false });
     if (!data) return;
+
+    const consultationIds = data.map((c: any) => c.id);
+    const { data: rxData } = consultationIds.length
+      ? await supabase.from("prescriptions").select("consultation_id").in("consultation_id", consultationIds)
+      : { data: [] as any[] };
+
+    const prescribedIds = new Set((rxData || []).map((r: any) => r.consultation_id));
+
     const withProfiles = await Promise.all(data.map(async (c: any) => {
       const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", c.patient_id).maybeSingle();
-      return { ...c, patient_name: p?.full_name || "Bemor" };
+      return { ...c, patient_name: p?.full_name || "Bemor", has_prescription: prescribedIds.has(c.id) };
     }));
+
     setPending(withProfiles.filter(c => c.status === "pending"));
     setActive(withProfiles.filter(c => c.status === "active"));
-    setEnded(withProfiles.filter(c => c.status === "ended"));
+    setEnded(withProfiles.filter(c => c.status === "ended" && !c.has_prescription));
   };
 
   const handleToggleOnline = async () => {
