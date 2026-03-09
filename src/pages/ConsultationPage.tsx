@@ -564,6 +564,11 @@ const ConsultationPage = () => {
             {!hasRated && !isDoctor && (
               <button onClick={() => setShowRating(true)} className="mt-2 text-sm text-primary font-medium hover:underline">Shifokorni baholash</button>
             )}
+            {isDoctor && (
+              <button onClick={() => navigate(`/create-prescription/${id}`)} className="mt-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
+                <FileText className="w-4 h-4 inline mr-1" /> Retsept yozish
+              </button>
+            )}
           </motion.div>
         )}
       </div>
