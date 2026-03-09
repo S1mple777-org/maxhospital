@@ -221,7 +221,11 @@ const ConsultationPage = () => {
         setLocalEnded(false);
       } else {
         toast.success("Konsultatsiya tugadi");
-        if (!isDoctor) setShowRating(true);
+        if (!isDoctor) {
+          // Patient: show rating then redirect home
+          setShowRating(true);
+        }
+        // Doctor stays on page to write prescription
       }
     } catch (err: any) {
       console.error("Error ending consultation:", err);
@@ -353,6 +357,8 @@ const ConsultationPage = () => {
       const avg = ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length;
       await supabase.from("doctors").update({ rating: Math.round(avg * 100) / 100 }).eq("id", consultation.doctor_id);
     }
+    // Redirect patient home after rating
+    navigate("/");
   };
 
   const isEnded = localEnded || consultation?.status === "ended";
@@ -533,8 +539,11 @@ const ConsultationPage = () => {
               <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)} placeholder="Izoh qoldiring (ixtiyoriy)"
                 className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm mb-3 resize-none h-20 focus:ring-2 focus:ring-primary outline-none" />
               <button onClick={handleSubmitRating} disabled={submittingRating}
-                className="w-full py-2.5 rounded-xl bg-hero-gradient text-primary-foreground font-medium text-sm hover:opacity-90 disabled:opacity-50">
+                className="w-full py-2.5 rounded-xl bg-hero-gradient text-primary-foreground font-medium text-sm hover:opacity-90 disabled:opacity-50 mb-2">
                 {submittingRating ? "Yuborilmoqda..." : "Baholash"}
+              </button>
+              <button onClick={() => navigate("/")} className="w-full py-2 text-sm text-muted-foreground hover:text-foreground">
+                O'tkazib yuborish
               </button>
             </motion.div>
           )}
@@ -557,6 +566,16 @@ const ConsultationPage = () => {
             <p className="text-sm text-muted-foreground">Bu konsultatsiya tugagan</p>
             {!hasRated && !isDoctor && (
               <button onClick={() => setShowRating(true)} className="mt-2 text-sm text-primary font-medium hover:underline">Shifokorni baholash</button>
+            )}
+            {hasRated && !isDoctor && (
+              <button onClick={() => navigate("/")} className="mt-2 px-3 py-1.5 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80">
+                Bosh sahifa
+              </button>
+            )}
+            {isDoctor && (
+              <button onClick={() => navigate(`/create-prescription/${id}`)} className="mt-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
+                <FileText className="w-4 h-4 inline mr-1" /> Retsept yozish
+              </button>
             )}
           </motion.div>
         )}
