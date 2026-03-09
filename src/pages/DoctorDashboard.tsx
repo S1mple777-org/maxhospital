@@ -39,6 +39,9 @@ const DoctorDashboard = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "consultations", filter: `doctor_id=eq.${doctorId}` },
         () => loadConsultations(doctorId)
       )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "prescriptions" },
+        () => loadConsultations(doctorId)
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [doctorId]);
