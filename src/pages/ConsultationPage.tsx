@@ -79,7 +79,7 @@ const ConsultationPage = () => {
       const { data: cons } = await supabase.from("consultations").select("*").eq("id", id).maybeSingle();
       if (!cons) { navigate("/"); return; }
       setConsultation(cons);
-      if (cons.status === "completed" || cons.status === "cancellpleted" || cons.status === "cancelled") setLocalEnded(true);
+      if (cons.status === "completed" || cons.status === "cancellpleted" || cons.status === "cancellpleted" || cons.status === "cancelled") setLocalEnded(true);
       const { data: existingRating } = await supabase.from("consultation_ratings").select("id").eq("consultation_id", id).maybeSingle();
       if (existingRating) setHasRated(true);
       const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
@@ -107,7 +107,7 @@ const ConsultationPage = () => {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },
         (payload) => {
           const updated = payload.new as any;
-          setConsultation(updated);completed" || updated.status === "cancell        if (updated.status === "ended") {
+completed" || updated.status === "cancell       setConsultation(updated);completed" || updated.status === "cancell        if (updated.status === "ended") {
             setLocalEnded(true);
             if (!isDoctor) setShowRating(true);
             // Auto-leave video call if active
@@ -198,7 +198,7 @@ const ConsultationPage = () => {
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !user || !id || sending) return;
+    if (!newMessage.trim() || !user ||completed" || consultation?.status === "cancelld || sending) return;
     if (localEnded || consultation?.status === "ended") { toast.error("Konsultatsiya tugagan"); return; }
     setSending(true);
     const { error } = await supabase.from("messages").insert({
