@@ -206,7 +206,7 @@ const ConsultationPage = () => {
     });
     setSending(false);
     if (error) toast.error(error.message);
-    else setNewcompletsage("");
+    else setNewMessage("");
   };
 
   const handleEndConsultation = async () => {
