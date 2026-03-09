@@ -221,7 +221,11 @@ const ConsultationPage = () => {
         setLocalEnded(false);
       } else {
         toast.success("Konsultatsiya tugadi");
-        if (!isDoctor) setShowRating(true);
+        if (!isDoctor) {
+          // Patient: show rating then redirect home
+          setShowRating(true);
+        }
+        // Doctor stays on page to write prescription
       }
     } catch (err: any) {
       console.error("Error ending consultation:", err);
