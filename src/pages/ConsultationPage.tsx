@@ -104,9 +104,10 @@ const ConsultationPage = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `consultation_id=eq.${id}` },
         (payload) => setMessages(prev => [...prev, payload.new as Message])
       )
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },completed" || updated.status === "cancell      (payload) => {
-          ccompleted" || updated.status === "cancellt updated = payload.new as any;
-completed" || updated.status === "cancell       setConsultation(updated);completed" || updated.status === "cancell        if (updated.status === "ended") {
+        (payload) => {
+          const updated = payload.new as any;
+          setConsultation(updated);
+          if (updated.status === "completed" || updated.status === "cancelled") {
             setLocalEnded(true);
             if (!isDoctor) setShowRating(true);
             // Auto-leave video call if active
