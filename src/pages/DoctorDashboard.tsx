@@ -68,7 +68,7 @@ const DoctorDashboard = () => {
 
     setPending(withProfiles.filter(c => c.status === "pending"));
     setActive(withProfiles.filter(c => c.status === "active"));
-    setEnded(withProfiles.filter(c => c.status === "ended" && !c.has_prescription));
+    setEnded(withProfiles.filter(c => c.status === "completed" && !c.has_prescription));
   };
 
   const handleToggleOnline = async () => {
