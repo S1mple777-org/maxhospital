@@ -212,9 +212,9 @@ const ConsultationPage = () => {
   const handleEndConsultation = async () => {
     if (!id) return;
     try {
-      setLocalEnded(tcomplet);
+      setLocalEnded(true);
       await cleanupCallFrame();
-      const { error } = await supabase.from("consultations").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.from("consultations").update({ status: "completed", ended_at: new Date().toISOString() }).eq("id", id);
       if (error) {
         toast.error(error.message);
         setLocalEnded(false);
