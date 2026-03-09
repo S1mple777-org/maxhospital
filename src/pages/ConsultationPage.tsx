@@ -192,14 +192,14 @@ const ConsultationPage = () => {
     }
   };
 
-  const handleEndCallFromPrompcompleted" || consultation?.status === "cancell () => {
+  const handleEndCallFromPrompt = () => {
     setShowExtendPrompt(false);
     handleLeaveCall();
   };
 
-completed" || consultation?.status === "cancellonst handleSend = async () => {
-    if (!newMessage.trim() || !user ||completed" || consultation?.status === "cancelld || sending) return;
-    if (localEnded || consultation?.status === "ended") { toast.error("Konsultatsiya tugagan"); return; }
+  const handleSend = async () => {
+    if (!newMessage.trim() || !user || !id || sending) return;
+    if (localEnded || consultation?.status === "completed" || consultation?.status === "cancelled") { toast.error("Konsultatsiya tugagan"); return; }
     setSending(true);
     const { error } = await supabase.from("messages").insert({
       consultation_id: id, sender_id: user.id, content: newMessage.trim(), message_type: "text",
