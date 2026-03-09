@@ -79,7 +79,7 @@ const ConsultationPage = () => {
       const { data: cons } = await supabase.from("consultations").select("*").eq("id", id).maybeSingle();
       if (!cons) { navigate("/"); return; }
       setConsultation(cons);
-      if (cons.status === "completed" || cons.status === "cancelled") setLocalEnded(true);
+      if (cons.status === "completed" || cons.status === "cancellpleted" || cons.status === "cancelled") setLocalEnded(true);
       const { data: existingRating } = await supabase.from("consultation_ratings").select("id").eq("consultation_id", id).maybeSingle();
       if (existingRating) setHasRated(true);
       const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
@@ -107,8 +107,7 @@ const ConsultationPage = () => {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },
         (payload) => {
           const updated = payload.new as any;
-          setConsultation(updated);
-          if (updated.status === "ended") {
+          setConsultation(updated);completed" || updated.status === "cancell        if (updated.status === "ended") {
             setLocalEnded(true);
             if (!isDoctor) setShowRating(true);
             // Auto-leave video call if active
