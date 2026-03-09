@@ -360,7 +360,7 @@ const ConsultationPage = () => {
     navigate("/");
   };
 
-  const isEnded = localEnded || consultation?.status === "ended";
+  const isEnded = localEnded || consultation?.status === "completed" || consultation?.status === "cancelled";
 
   const getTimeLeft = () => {
     if (!consultation?.max_end_time) return null;
