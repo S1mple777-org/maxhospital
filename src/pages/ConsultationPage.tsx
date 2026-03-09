@@ -104,6 +104,7 @@ const ConsultationPage = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `consultation_id=eq.${id}` },
         (payload) => setMessages(prev => [...prev, payload.new as Message])
       )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },
         (payload) => {
           const updated = payload.new as any;
           setConsultation(updated);
