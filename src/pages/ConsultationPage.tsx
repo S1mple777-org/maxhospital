@@ -79,7 +79,7 @@ const ConsultationPage = () => {
       const { data: cons } = await supabase.from("consultations").select("*").eq("id", id).maybeSingle();
       if (!cons) { navigate("/"); return; }
       setConsultation(cons);
-      if (cons.status === "completed" || cons.status === "cancellpleted" || cons.status === "cancellpleted" || cons.status === "cancellpleted" || cons.status === "cancelled") setLocalEnded(true);
+      if (cons.status === "completed" || cons.status === "cancellpleted" || cons.status === "cancellpleted" || cons.status === "cancellpleted" || cons.status === "cancellpleted" || cons.status === "cancelled") setLocalEnded(true);
       const { data: existingRating } = await supabase.from("consultation_ratings").select("id").eq("consultation_id", id).maybeSingle();
       if (existingRating) setHasRated(true);
       const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
@@ -104,8 +104,7 @@ const ConsultationPage = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `consultation_id=eq.${id}` },
         (payload) => setMessages(prev => [...prev, payload.new as Message])
       )
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },
-        (payload) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `id=eq.${id}` },completed" || updated.status === "cancell      (payload) => {
           ccompleted" || updated.status === "cancellt updated = payload.new as any;
 completed" || updated.status === "cancell       setConsultation(updated);completed" || updated.status === "cancell        if (updated.status === "ended") {
             setLocalEnded(true);
@@ -192,7 +191,7 @@ completed" || updated.status === "cancell       setConsultation(updated);complet
     }
   };
 
-  const handleEndCallFromPrompt = () => {
+  const handleEndCallFromPrompcompleted" || consultation?.status === "cancell () => {
     setShowExtendPrompt(false);
     handleLeaveCall();
   };
@@ -206,7 +205,7 @@ completed" || consultation?.status === "cancellonst handleSend = async () => {
     });
     setSending(false);
     if (error) toast.error(error.message);
-    else setNewMessage("");
+    else setNewcompletsage("");
   };
 
   const handleEndConsultation = async () => {
@@ -356,7 +355,7 @@ completed" || consultation?.status === "cancellonst handleSend = async () => {
       const avg = ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length;
       await supabase.from("doctors").update({ rating: Math.round(avg * 100) / 100 }).eq("id", consultation.doctor_id);
     }
-    // Redirect patient home after rating
+    completed" || consultation?.status === "cancellRedirect patient home after rating
     navigate("/");
   };
 
