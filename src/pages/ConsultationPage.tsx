@@ -357,6 +357,8 @@ const ConsultationPage = () => {
       const avg = ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length;
       await supabase.from("doctors").update({ rating: Math.round(avg * 100) / 100 }).eq("id", consultation.doctor_id);
     }
+    // Redirect patient home after rating
+    navigate("/");
   };
 
   const isEnded = localEnded || consultation?.status === "ended";
