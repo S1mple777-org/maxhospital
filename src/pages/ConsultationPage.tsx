@@ -539,8 +539,11 @@ const ConsultationPage = () => {
               <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)} placeholder="Izoh qoldiring (ixtiyoriy)"
                 className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm mb-3 resize-none h-20 focus:ring-2 focus:ring-primary outline-none" />
               <button onClick={handleSubmitRating} disabled={submittingRating}
-                className="w-full py-2.5 rounded-xl bg-hero-gradient text-primary-foreground font-medium text-sm hover:opacity-90 disabled:opacity-50">
+                className="w-full py-2.5 rounded-xl bg-hero-gradient text-primary-foreground font-medium text-sm hover:opacity-90 disabled:opacity-50 mb-2">
                 {submittingRating ? "Yuborilmoqda..." : "Baholash"}
+              </button>
+              <button onClick={() => navigate("/")} className="w-full py-2 text-sm text-muted-foreground hover:text-foreground">
+                O'tkazib yuborish
               </button>
             </motion.div>
           )}
