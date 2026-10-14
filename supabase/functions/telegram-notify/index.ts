@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const BOT_TOKEN = "8401647175:AAE_YnBPMy75ZKRx3Cb_wQd5OZYn-fWYeEc";
+// Never hard-code the token: set TELEGRAM_BOT_TOKEN in the project secrets.
+const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const SITE_URL = "https://maxhospital.lovable.app";
 
@@ -35,8 +36,29 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    const { type, user_id, data: eventData } = await req.json();
+    const { type, user_id, data: rawEventData } = await req.json();
     const supabase = getSupabase();
+
+    // Caller must be signed in.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const { data: { user: caller } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (!caller) return jsonRes({ error: "Unauthorized" }, 401);
+
+    const { data: callerRoles } = await supabase.from("user_roles").select("role").eq("user_id", caller.id);
+    const isStaff = (callerRoles || []).some((r: any) => r.role === "admin" || r.role === "owner");
+
+    // Mass messages and balance notices are staff-only.
+    if (["broadcast", "new_post", "balance_topped_up"].includes(type) && !isStaff) {
+      return jsonRes({ error: "Forbidden" }, 403);
+    }
+
+    // Escape user-supplied text before it goes into Telegram HTML.
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const eventData: any = {};
+    for (const [k, v] of Object.entries(rawEventData || {})) {
+      eventData[k] = typeof v === "number" ? v : esc(v);
+    }
 
     // For broadcast, send to all linked users
     if (type === "broadcast") {
@@ -109,7 +131,9 @@ Deno.serve(async (req) => {
       prescription_created: `💊 <b>Shifokor sizga retsept yozdi!</b>\n\nDr. ${eventData?.doctor_name || ""}\n\n🔗 <a href="${SITE_URL}/prescription/${eventData?.prescription_id}">Retseptni ko'rish</a>\n📥 Retseptni PDF formatida yuklab olishingiz mumkin.`,
     };
 
-    const msg = messages[type] || `🔔 ${eventData?.message || "Yangi bildirishnoma"}`;
+    // Only known notification types; no free-form text to arbitrary users.
+    const msg = messages[type];
+    if (!msg) return jsonRes({ error: "Unknown notification type" }, 400);
     await sendTelegramMessage(chatId, msg);
 
     return jsonRes({ sent: true });

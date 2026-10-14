@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const BOT_TOKEN = "8401647175:AAE_YnBPMy75ZKRx3Cb_wQd5OZYn-fWYeEc";
+// Never hard-code the token: set TELEGRAM_BOT_TOKEN in the project secrets.
+const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 const corsHeaders = {
@@ -137,6 +138,13 @@ Deno.serve(async (req) => {
           return jsonResponse({ status: "expired" });
         }
 
+        // Hand out an approved login link only once.
+        if (request.status === "approved" && request.action_link) {
+          await supabase
+            .from("telegram_auth_requests")
+            .update({ status: "used", action_link: null })
+            .eq("id", request_id);
+        }
         return jsonResponse({
           status: request.status,
           action_link:
@@ -146,6 +154,7 @@ Deno.serve(async (req) => {
 
       // Generate link code (requires auth)
       case "generate_code": {
+        // (code is stored in a column that browsers can no longer read)
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) return jsonResponse({ error: "Unauthorized" }, 401);
 
@@ -159,7 +168,8 @@ Deno.serve(async (req) => {
         } = await authClient.auth.getUser();
         if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
 
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const bytes = crypto.getRandomValues(new Uint8Array(6));
+        const code = Array.from(bytes, (b) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("");
         await supabase
           .from("profiles")
           .update({ telegram_link_code: code })

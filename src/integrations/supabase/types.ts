@@ -515,6 +515,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_balance: {
+        Args: { _amount: number; _user_id: string }
+        Returns: number
+      }
+      charge_extra_video_minute: {
+        Args: { _consultation_id: string }
+        Returns: number
+      }
+      create_consultation: { Args: { _doctor_id: string }; Returns: string }
+      end_consultation: { Args: { _consultation_id: string }; Returns: undefined }
+      get_my_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["profiles"]["Row"][]
+      }
+      get_public_phone: { Args: { _user_id: string }; Returns: string }
       get_user_id_by_email: { Args: { email_input: string }; Returns: string }
       has_role: {
         Args: {
@@ -522,6 +537,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reject_consultation: {
+        Args: { _consultation_id: string }
+        Returns: undefined
+      }
+      staff_list_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["profiles"]["Row"][]
       }
     }
     Enums: {

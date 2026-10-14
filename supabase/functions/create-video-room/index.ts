@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,36 @@ Deno.serve(async (req) => {
     const { consultation_id } = await req.json();
     if (!consultation_id) {
       return new Response(JSON.stringify({ error: "consultation_id required" }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only the patient or the assigned doctor of an active consultation may join.
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: consultation } = await supabase
+      .from("consultations")
+      .select("patient_id, status, doctors(user_id)")
+      .eq("id", consultation_id)
+      .maybeSingle();
+    const doctorUserId = (consultation as any)?.doctors?.user_id;
+    const isParticipant = !!consultation && (consultation.patient_id === user.id || doctorUserId === user.id);
+    if (!isParticipant) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (consultation.status !== "active") {
+      return new Response(JSON.stringify({ error: "Konsultatsiya faol emas" }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -52,6 +83,7 @@ Deno.serve(async (req) => {
             enable_chat: false,
             enable_knocking: false,
             max_participants: 2,
+            privacy: "private", // a meeting token is required to join
           },
         }),
       });
@@ -77,7 +109,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         properties: {
           room_name: roomName,
-          exp: Math.floor(Date.now() / 1000) + 3600 * 48,
+          user_id: user.id,
+          exp: Math.floor(Date.now() / 1000) + 3600 * 2,
         },
       }),
     });

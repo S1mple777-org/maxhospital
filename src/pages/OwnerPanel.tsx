@@ -53,10 +53,13 @@ const OwnerPanel = () => {
 
   const loadData = async () => {
     // Load admins with their settings
+    const { data: allUsers } = await supabase.rpc("staff_list_profiles");
+    if (allUsers) setUsers(allUsers);
+
     const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     if (adminRoles && adminRoles.length > 0) {
       const adminIds = adminRoles.map((r: any) => r.user_id);
-      const { data: adminProfiles } = await supabase.from("profiles").select("*").in("user_id", adminIds);
+      const adminProfiles = (allUsers || []).filter((p: any) => adminIds.includes(p.user_id));
       const { data: adminSettings } = await supabase.from("admin_settings").select("*").in("user_id", adminIds);
       const settingsMap: Record<string, any> = {};
       adminSettings?.forEach((s: any) => { settingsMap[s.user_id] = s; });
@@ -67,9 +70,6 @@ const OwnerPanel = () => {
 
     const { data: depts } = await supabase.from("departments").select("*").order("created_at");
     if (depts) setDepartments(depts);
-
-    const { data: allUsers } = await supabase.from("profiles").select("*");
-    if (allUsers) setUsers(allUsers);
 
     const { data: subs } = await supabase.from("forced_subscriptions").select("*").order("created_at");
     if (subs) setForcedSubs(subs);
@@ -165,10 +165,11 @@ const OwnerPanel = () => {
     try {
       const res = await supabase.functions.invoke("find-user-by-email", { body: { email: limitEmail } });
       if (res.error || !res.data?.user_id) { toast.error("Foydalanuvchi topilmadi"); return; }
-      const foundUser = users.find(u => u.user_id === res.data.user_id);
-      if (!foundUser) { toast.error("Foydalanuvchi topilmadi"); return; }
-      const newBalance = Number(foundUser.balance_uzs) + Number(limitAmount);
-      const { error } = await supabase.from("profiles").update({ balance_uzs: newBalance }).eq("user_id", foundUser.user_id);
+      // Added on the server in one step, so two top-ups at once cannot overwrite each other.
+      const { error } = await supabase.rpc("admin_add_balance", {
+        _user_id: res.data.user_id,
+        _amount: Number(limitAmount),
+      });
       if (error) toast.error(error.message);
       else { toast.success(`${Number(limitAmount).toLocaleString()} UZS qo'shildi`); setLimitEmail(""); setLimitAmount(""); loadData(); }
     } catch { toast.error("Xatolik yuz berdi"); }

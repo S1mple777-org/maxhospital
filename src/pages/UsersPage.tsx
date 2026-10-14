@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Search, ArrowUpDown, Users, Shield, Crown, Stethoscope, User } from "lucide-react";
@@ -27,9 +28,14 @@ const UsersPage = () => {
   const [sortAsc, setSortAsc] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const { isAdmin, isOwner, loading: authLoading } = useAuth();
+
   useEffect(() => {
+    if (authLoading) return;
+    // This page lists every user's phone and balance: staff only.
+    if (!isAdmin && !isOwner) { navigate("/"); return; }
     const loadUsers = async () => {
-      const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data: profiles } = await supabase.rpc("staff_list_profiles");
       if (!profiles) { setLoading(false); return; }
       const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
       const rolesMap: Record<string, string[]> = {};
@@ -41,7 +47,7 @@ const UsersPage = () => {
       setLoading(false);
     };
     loadUsers();
-  }, []);
+  }, [authLoading, isAdmin, isOwner]);
 
   const filtered = users
     .filter(u => {

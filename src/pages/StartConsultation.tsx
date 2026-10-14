@@ -9,7 +9,7 @@ import { Stethoscope, ArrowRight, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const StartConsultation = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [departments, setDepartments] = useState<any[]>([]);
@@ -31,6 +31,7 @@ const StartConsultation = () => {
   };
 
   useEffect(() => {
+    if (loading) return; // wait for the session before deciding
     if (!user) { navigate("/auth"); return; }
     supabase.from("departments").select("*").eq("is_active", true).then(({ data }) => {
       if (data) setDepartments(data);
@@ -53,7 +54,7 @@ const StartConsultation = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, loading]);
 
   useEffect(() => {
     if (!selectedDept) { setDoctors([]); return; }
@@ -79,18 +80,15 @@ const StartConsultation = () => {
       return;
     }
     setCreating(true);
-    const { data, error } = await supabase.from("consultations").insert({
-      patient_id: user.id,
-      doctor_id: selectedDoctor.id,
-      department_id: selectedDept.id,
-      price_uzs: price,
-    }).select().single();
+    // Price check, payment and creation happen together on the server.
+    const { data: consultationId, error } = await supabase.rpc("create_consultation", {
+      _doctor_id: selectedDoctor.id,
+    });
     setCreating(false);
-    if (error) { toast.error(error.message); return; }
-    // Deduct balance
-    await supabase.from("profiles").update({ balance_uzs: Number(profile!.balance_uzs) - price }).eq("user_id", user.id);
+    if (error || !consultationId) { toast.error(error?.message || "Xatolik yuz berdi"); return; }
+    await refreshProfile();
     toast.success("So'rov yuborildi! Shifokor javobini kuting.");
-    navigate(`/consultation/${data.id}`);
+    navigate(`/consultation/${consultationId}`);
   };
 
   return (

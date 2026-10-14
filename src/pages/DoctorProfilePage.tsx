@@ -26,12 +26,13 @@ const DoctorProfilePage = () => {
       const { data: doc } = await supabase.from("doctors").select("*").eq("id", id).maybeSingle();
       if (!doc) { setLoading(false); return; }
 
-      const [profileRes, deptRes] = await Promise.all([
-        supabase.from("profiles").select("full_name, avatar_url, phone").eq("user_id", doc.user_id).maybeSingle(),
+      const [profileRes, phoneRes, deptRes] = await Promise.all([
+        supabase.from("profiles").select("full_name, avatar_url").eq("user_id", doc.user_id).maybeSingle(),
+        supabase.rpc("get_public_phone", { _user_id: doc.user_id }),
         doc.department_id ? supabase.from("departments").select("name_uz, name_ru, name_en").eq("id", doc.department_id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
 
-      setDoctor({ ...doc, profileData: profileRes.data, deptData: deptRes.data });
+      setDoctor({ ...doc, profileData: profileRes.data ? { ...profileRes.data, phone: phoneRes.data } : null, deptData: deptRes.data });
       setLoading(false);
     };
     load();
