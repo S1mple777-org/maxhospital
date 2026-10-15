@@ -46,8 +46,11 @@ const DepartmentDetailPage = () => {
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (!adminRoles || adminRoles.length === 0) return;
       const profiles = await Promise.all(adminRoles.map(async (r: any) => {
-        const { data: p } = await supabase.from("profiles").select("*").eq("user_id", r.user_id).maybeSingle();
-        return p;
+        const [{ data: p }, { data: phone }] = await Promise.all([
+          supabase.from("profiles").select("id, user_id, full_name, avatar_url").eq("user_id", r.user_id).maybeSingle(),
+          supabase.rpc("get_public_phone", { _user_id: r.user_id }),
+        ]);
+        return p ? { ...p, phone } : null;
       }));
       setAdmins(profiles.filter(Boolean));
     };

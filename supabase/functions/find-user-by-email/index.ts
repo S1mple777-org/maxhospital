@@ -39,11 +39,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Email required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Search auth.users by email
-    const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
+    // Look the user up directly (listUsers() only returns the first 50 users).
+    const { data: userId, error } = await supabaseAdmin.rpc("get_user_id_by_email", {
+      email_input: String(email).trim().toLowerCase(),
+    });
     if (error) throw error;
-
-    const foundUser = users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { data: { user: foundUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
     if (!foundUser) {
       return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

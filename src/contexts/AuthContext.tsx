@@ -38,16 +38,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-    
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    // Private profile columns are only readable through get_my_profile().
+    const [{ data: profileRows }, { data: rolesData }] = await Promise.all([
+      supabase.rpc("get_my_profile"),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+    ]);
+    const profileData = (profileRows as any[] | null)?.[0];
 
     if (profileData) setProfile(profileData as Profile);
     if (rolesData) setRoles((rolesData as any[]).map((r) => r.role as AppRole));
@@ -58,25 +54,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // `loading` stays true until the profile and roles are loaded. Before this
+    // fix, role-protected pages (admin, owner, doctor) saw no roles on a page
+    // refresh and redirected the user to the home page.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (session?.user) {
           setUser(session.user);
-          // Use setTimeout to avoid race condition with trigger
-          setTimeout(() => fetchProfile(session.user.id), 500);
+          if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+            // Defer DB calls out of the auth callback (supabase-js recommendation);
+            // the short delay also lets the new-user trigger create the profile.
+            setTimeout(() => { fetchProfile(session.user.id).finally(() => setLoading(false)); }, 300);
+          }
         } else {
           setUser(null);
           setProfile(null);
           setRoles([]);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
       }
       setLoading(false);
     });

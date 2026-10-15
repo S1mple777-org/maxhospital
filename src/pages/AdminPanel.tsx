@@ -40,7 +40,7 @@ const AdminPanel = () => {
     }
 
     const [profilesRes, doctorsRes, deptsRes, postsRes, consultationsRes] = await Promise.all([
-      supabase.from("profiles").select("*"),
+      supabase.rpc("staff_list_profiles"),
       supabase.from("doctors").select("*"),
       supabase.from("departments").select("*"),
       supabase.from("posts").select("*").order("created_at", { ascending: false }),

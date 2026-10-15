@@ -18,7 +18,7 @@ interface Message {
 
 const ConsultationPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -31,7 +31,9 @@ const ConsultationPage = () => {
   const [hasRated, setHasRated] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isDoctor = hasRole("doctor");
+  // "Doctor" means: I am the doctor of *this* consultation. A doctor can also
+  // book a consultation as a patient.
+  const isDoctor = hasRole("doctor") && consultation?.patient_id !== user?.id;
 
   // Video call state
   const [inCall, setInCall] = useState(false);
@@ -82,8 +84,9 @@ const ConsultationPage = () => {
       if (cons.status === "completed" || cons.status === "cancelled") setLocalEnded(true);
       const { data: existingRating } = await supabase.from("consultation_ratings").select("id").eq("consultation_id", id).maybeSingle();
       if (existingRating) setHasRated(true);
-      const otherId = isDoctor ? cons.patient_id : cons.doctor_id;
-      if (isDoctor) {
+      const iAmDoctor = cons.patient_id !== user.id;
+      const otherId = iAmDoctor ? cons.patient_id : cons.doctor_id;
+      if (iAmDoctor) {
         const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", otherId).maybeSingle();
         setOtherName(p?.full_name || "Bemor");
       } else {
@@ -160,7 +163,7 @@ const ConsultationPage = () => {
       callTimerRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - (callStartRef.current || Date.now())) / 1000);
         setCallElapsed(elapsed);
-          if (elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
+          if (!isDoctor && elapsed >= VIDEO_FREE_SECONDS && !showExtendPrompt && !callPaused) {
             setShowExtendPrompt(true);
             if (frameRef.current) {
               frameRef.current.setLocalAudio(false);
@@ -171,17 +174,18 @@ const ConsultationPage = () => {
       }, 1000);
       return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
     }
-  }, [inCall, callPaused, showExtendPrompt]);
+  }, [inCall, callPaused, showExtendPrompt, isDoctor]);
 
   const handleExtendCall = async () => {
-    if (!user) return;
-    const { data: prof } = await supabase.from("profiles").select("balance_uzs").eq("user_id", user.id).maybeSingle();
-    if (!prof || prof.balance_uzs < VIDEO_EXTRA_COST_PER_MIN) {
+    if (!user || !id) return;
+    // Charged on the server (the price is fixed there too).
+    const { error } = await supabase.rpc("charge_extra_video_minute", { _consultation_id: id });
+    if (error) {
       toast.error("Balans yetarli emas! Video qo'ng'iroq tugatiladi.");
       handleLeaveCall();
       return;
     }
-    await supabase.from("profiles").update({ balance_uzs: prof.balance_uzs - VIDEO_EXTRA_COST_PER_MIN }).eq("user_id", user.id);
+    void refreshProfile();
     toast.success(`${VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS yechildi. +1 daqiqa`);
     callStartRef.current = Date.now();
     setCallElapsed(0);
@@ -215,7 +219,7 @@ const ConsultationPage = () => {
     try {
       setLocalEnded(true);
       await cleanupCallFrame();
-      const { error } = await supabase.from("consultations").update({ status: "completed", ended_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.rpc("end_consultation", { _consultation_id: id });
       if (error) {
         toast.error(error.message);
         setLocalEnded(false);
@@ -352,11 +356,7 @@ const ConsultationPage = () => {
     toast.success("Baholandi!");
     setShowRating(false);
     setHasRated(true);
-    const { data: ratings } = await supabase.from("consultation_ratings").select("rating").eq("doctor_id", consultation.doctor_id);
-    if (ratings && ratings.length > 0) {
-      const avg = ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length;
-      await supabase.from("doctors").update({ rating: Math.round(avg * 100) / 100 }).eq("id", consultation.doctor_id);
-    }
+    // The doctor's average rating is now recalculated by the database.
     // Redirect patient home after rating
     navigate("/");
   };

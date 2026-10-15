@@ -94,16 +94,11 @@ const DoctorDashboard = () => {
   };
 
   const handleReject = async (id: string) => {
-    const { data: cons } = await supabase.from("consultations").select("patient_id, price_uzs").eq("id", id).maybeSingle();
-    if (cons) {
-      const { data: pp } = await supabase.from("profiles").select("balance_uzs").eq("user_id", cons.patient_id).maybeSingle();
-      if (pp) {
-        await supabase.from("profiles").update({ balance_uzs: Number(pp.balance_uzs) + Number(cons.price_uzs) }).eq("user_id", cons.patient_id);
-      }
-    }
-    const { error } = await supabase.from("consultations").update({ status: "cancelled", ended_at: new Date().toISOString() }).eq("id", id);
+    // Rejecting and refunding happen together on the server. Before, the
+    // refund was done from the doctor's browser and was silently blocked.
+    const { error } = await supabase.rpc("reject_consultation", { _consultation_id: id });
     if (error) toast.error(error.message);
-    else toast.success("Rad etildi, pul qaytarildi");
+    else { toast.success("Rad etildi, pul qaytarildi"); loadConsultations(doctorId!); }
   };
 
   const handleExtend = async (id: string) => {
