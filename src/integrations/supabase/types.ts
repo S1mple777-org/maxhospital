@@ -14,190 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_chat_logs: {
-        Row: {
-          created_at: string
-          department_id: string | null
-          emergency_rule: string | null
-          id: string
-          latency_ms: number | null
-          mode: string
-          source_count: number
-          triage: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          department_id?: string | null
-          emergency_rule?: string | null
-          id?: string
-          latency_ms?: number | null
-          mode?: string
-          source_count?: number
-          triage: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          department_id?: string | null
-          emergency_rule?: string | null
-          id?: string
-          latency_ms?: number | null
-          mode?: string
-          source_count?: number
-          triage?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      book_chunks: {
-        Row: {
-          book_id: string
-          chunk_index: number
-          content: string
-          embedding: string
-          id: number
-          page_number: number
-        }
-        Insert: {
-          book_id: string
-          chunk_index: number
-          content: string
-          embedding: string
-          id?: never
-          page_number: number
-        }
-        Update: {
-          book_id?: string
-          chunk_index?: number
-          content?: string
-          embedding?: string
-          id?: never
-          page_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "book_chunks_book_id_fkey"
-            columns: ["book_id"]
-            isOneToOne: false
-            referencedRelation: "medical_books"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      health_measurements: {
-        Row: {
-          consultation_id: string | null
-          created_at: string
-          created_by: string | null
-          doctor_id: string | null
-          id: string
-          measured_at: string
-          metric: string
-          note: string | null
-          patient_id: string
-          unit: string
-          value: number
-        }
-        Insert: {
-          consultation_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          doctor_id?: string | null
-          id?: string
-          measured_at?: string
-          metric: string
-          note?: string | null
-          patient_id: string
-          unit: string
-          value: number
-        }
-        Update: {
-          consultation_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          doctor_id?: string | null
-          id?: string
-          measured_at?: string
-          metric?: string
-          note?: string | null
-          patient_id?: string
-          unit?: string
-          value?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "health_measurements_consultation_id_fkey"
-            columns: ["consultation_id"]
-            isOneToOne: false
-            referencedRelation: "consultations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "health_measurements_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: false
-            referencedRelation: "doctors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      medical_books: {
-        Row: {
-          author: string | null
-          chunk_count: number
-          created_at: string
-          department_id: string | null
-          error_message: string | null
-          id: string
-          language: string
-          page_count: number
-          status: string
-          storage_path: string
-          title: string
-          updated_at: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          author?: string | null
-          chunk_count?: number
-          created_at?: string
-          department_id?: string | null
-          error_message?: string | null
-          id?: string
-          language?: string
-          page_count?: number
-          status?: string
-          storage_path: string
-          title: string
-          updated_at?: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          author?: string | null
-          chunk_count?: number
-          created_at?: string
-          department_id?: string | null
-          error_message?: string | null
-          id?: string
-          language?: string
-          page_count?: number
-          status?: string
-          storage_path?: string
-          title?: string
-          updated_at?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "medical_books_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       admin_settings: {
         Row: {
           admin_type: Database["public"]["Enums"]["admin_type"]
@@ -699,18 +515,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      match_book_chunks: {
-        Args: { match_count?: number; min_similarity?: number; query_embedding: string }
-        Returns: {
-          book_author: string | null
-          book_id: string
-          book_title: string
-          content: string
-          id: number
-          page_number: number
-          similarity: number
-        }[]
-      }
       admin_add_balance: {
         Args: { _amount: number; _user_id: string }
         Returns: number
@@ -720,10 +524,34 @@ export type Database = {
         Returns: number
       }
       create_consultation: { Args: { _doctor_id: string }; Returns: string }
-      end_consultation: { Args: { _consultation_id: string }; Returns: undefined }
+      end_consultation: {
+        Args: { _consultation_id: string }
+        Returns: undefined
+      }
       get_my_profile: {
-        Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Tables"]["profiles"]["Row"][]
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          balance_uzs: number
+          ban_reason: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          phone: string | null
+          telegram_chat_id: number | null
+          telegram_link_code: string | null
+          telegram_notifications_enabled: boolean | null
+          two_fa_enabled: boolean
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_public_phone: { Args: { _user_id: string }; Returns: string }
       get_user_id_by_email: { Args: { email_input: string }; Returns: string }
@@ -739,8 +567,29 @@ export type Database = {
         Returns: undefined
       }
       staff_list_profiles: {
-        Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Tables"]["profiles"]["Row"][]
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          balance_uzs: number
+          ban_reason: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          phone: string | null
+          telegram_chat_id: number | null
+          telegram_link_code: string | null
+          telegram_notifications_enabled: boolean | null
+          two_fa_enabled: boolean
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
