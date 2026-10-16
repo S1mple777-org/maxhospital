@@ -24,6 +24,9 @@ import UsersPage from "./pages/UsersPage";
 import CreatePrescription from "./pages/CreatePrescription";
 import PrescriptionView from "./pages/PrescriptionView";
 import MyPrescriptions from "./pages/MyPrescriptions";
+import AiAssistantPage from "./pages/AiAssistantPage";
+import HealthPage from "./pages/HealthPage";
+import AiAssistantButton from "./components/ai/AiAssistantButton";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,8 +59,11 @@ const App = () => (
                 <Route path="/create-prescription/:consultationId" element={<CreatePrescription />} />
                 <Route path="/prescription/:id" element={<PrescriptionView />} />
                 <Route path="/my-prescriptions" element={<MyPrescriptions />} />
+                <Route path="/ai-assistant" element={<AiAssistantPage />} />
+                <Route path="/health" element={<HealthPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <AiAssistantButton />
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>

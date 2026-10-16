@@ -5,8 +5,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Users, UserPlus, FileText, BarChart3, ShieldBan, Search, Ban, CheckCircle, Plus, Trash2
+  Users, UserPlus, FileText, BarChart3, ShieldBan, Search, Ban, CheckCircle, Plus, Trash2, BookOpen
 } from "lucide-react";
+import BooksManager from "@/components/ai/BooksManager";
 
 const AdminPanel = () => {
   const { user, isAdmin, isOwner, loading } = useAuth();
@@ -83,6 +84,7 @@ const AdminPanel = () => {
   const canSeeDoctors = isOwner || adminType === "dept_head" || !adminType;
   const canSeePosts = isOwner || adminType === "journalist" || !adminType;
   const canSeeBanned = isOwner || adminType === "financial" || !adminType;
+  const canSeeBooks = isOwner || !adminType;
 
   const handleBanUser = async (userId: string, ban: boolean, reason?: string) => {
     const { error } = await supabase.from("profiles").update({ is_banned: ban, ban_reason: ban ? (reason || "Admin tomonidan bloklangan") : null }).eq("user_id", userId);
@@ -156,6 +158,7 @@ const AdminPanel = () => {
     { id: "doctors", label: "Shifokorlar", icon: UserPlus, visible: canSeeDoctors },
     { id: "posts", label: "Postlar", icon: FileText, visible: canSeePosts },
     { id: "banned", label: "Ban list", icon: ShieldBan, visible: canSeeBanned },
+    { id: "books", label: "AI kutubxona", icon: BookOpen, visible: canSeeBooks },
   ];
   const tabs = allTabs.filter(t => t.visible);
 
@@ -321,6 +324,8 @@ const AdminPanel = () => {
                 </div>
               </div>
             )}
+
+            {activeTab === "books" && canSeeBooks && <BooksManager departments={departments} />}
 
             {activeTab === "banned" && canSeeBanned && (
               <div className="space-y-2">

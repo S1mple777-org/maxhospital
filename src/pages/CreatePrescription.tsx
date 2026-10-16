@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import { ArrowLeft, Plus, Trash2, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
 import { generatePrescriptionPdf, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
+import MeasurementsInput, { type MeasurementValues } from "@/components/ai/MeasurementsInput";
+import { isPlausible, METRIC_BY_KEY, type MetricKey } from "@/lib/aiAssistant";
 
 const emptyMedicine = (): PrescriptionMedicine => ({ name: "", dose: "", frequency: "", duration: "" });
 
@@ -22,6 +24,7 @@ const CreatePrescription = () => {
   const [notes, setNotes] = useState("");
   const [doctorInfo, setDoctorInfo] = useState<{ name: string; title: string; department: string }>({ name: "", title: "", department: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [measurements, setMeasurements] = useState<MeasurementValues>({});
 
   useEffect(() => {
     if (!loading && !hasRole("doctor")) { navigate("/"); return; }
@@ -62,6 +65,12 @@ const CreatePrescription = () => {
     if (medicines.some(m => !m.name.trim())) { toast.error("Dori nomi kiritilishi shart"); return; }
     if (!consultation) return;
 
+    const filled = (Object.entries(measurements) as [MetricKey, string][])
+      .filter(([, v]) => v !== undefined && String(v).trim() !== "")
+      .map(([metric, v]) => ({ metric, value: Number(String(v).replace(",", ".")) }));
+    const invalid = filled.find((m) => !isPlausible(m.metric, m.value));
+    if (invalid) { toast.error(`${METRIC_BY_KEY[invalid.metric].label.uz}: qiymat noto'g'ri`); return; }
+
     setSubmitting(true);
     const { data, error } = await supabase.from("prescriptions").insert({
       consultation_id: consultationId!,
@@ -77,6 +86,20 @@ const CreatePrescription = () => {
     }).select().single();
 
     if (error) { toast.error(error.message); setSubmitting(false); return; }
+
+    if (filled.length > 0) {
+      const { error: mError } = await supabase.from("health_measurements").insert(
+        filled.map((m) => ({
+          patient_id: consultation.patient_id,
+          doctor_id: consultation.doctor_id,
+          consultation_id: consultationId!,
+          metric: m.metric,
+          value: m.value,
+          unit: METRIC_BY_KEY[m.metric].unit,
+        })),
+      );
+      if (mError) toast.error("Ko'rsatkichlarni saqlab bo'lmadi: " + mError.message);
+    }
 
     // Notify patient via Telegram
     supabase.functions.invoke("telegram-notify", {
@@ -187,6 +210,8 @@ const CreatePrescription = () => {
                 ))}
               </div>
             </div>
+
+            <MeasurementsInput patientId={consultation?.patient_id} values={measurements} onChange={setMeasurements} />
 
             {/* Notes */}
             <div className="mb-8">
