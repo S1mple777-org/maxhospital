@@ -14,6 +14,190 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chat_logs: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          emergency_rule: string | null
+          id: string
+          latency_ms: number | null
+          mode: string
+          source_count: number
+          triage: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          emergency_rule?: string | null
+          id?: string
+          latency_ms?: number | null
+          mode?: string
+          source_count?: number
+          triage: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          emergency_rule?: string | null
+          id?: string
+          latency_ms?: number | null
+          mode?: string
+          source_count?: number
+          triage?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      book_chunks: {
+        Row: {
+          book_id: string
+          chunk_index: number
+          content: string
+          embedding: string
+          id: number
+          page_number: number
+        }
+        Insert: {
+          book_id: string
+          chunk_index: number
+          content: string
+          embedding: string
+          id?: never
+          page_number: number
+        }
+        Update: {
+          book_id?: string
+          chunk_index?: number
+          content?: string
+          embedding?: string
+          id?: never
+          page_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_chunks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "medical_books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_measurements: {
+        Row: {
+          consultation_id: string | null
+          created_at: string
+          created_by: string | null
+          doctor_id: string | null
+          id: string
+          measured_at: string
+          metric: string
+          note: string | null
+          patient_id: string
+          unit: string
+          value: number
+        }
+        Insert: {
+          consultation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          doctor_id?: string | null
+          id?: string
+          measured_at?: string
+          metric: string
+          note?: string | null
+          patient_id: string
+          unit: string
+          value: number
+        }
+        Update: {
+          consultation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          doctor_id?: string | null
+          id?: string
+          measured_at?: string
+          metric?: string
+          note?: string | null
+          patient_id?: string
+          unit?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_measurements_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_measurements_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_books: {
+        Row: {
+          author: string | null
+          chunk_count: number
+          created_at: string
+          department_id: string | null
+          error_message: string | null
+          id: string
+          language: string
+          page_count: number
+          status: string
+          storage_path: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          author?: string | null
+          chunk_count?: number
+          created_at?: string
+          department_id?: string | null
+          error_message?: string | null
+          id?: string
+          language?: string
+          page_count?: number
+          status?: string
+          storage_path: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          author?: string | null
+          chunk_count?: number
+          created_at?: string
+          department_id?: string | null
+          error_message?: string | null
+          id?: string
+          language?: string
+          page_count?: number
+          status?: string
+          storage_path?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_books_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_settings: {
         Row: {
           admin_type: Database["public"]["Enums"]["admin_type"]
@@ -515,6 +699,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      match_book_chunks: {
+        Args: { match_count?: number; min_similarity?: number; query_embedding: string }
+        Returns: {
+          book_author: string | null
+          book_id: string
+          book_title: string
+          content: string
+          id: number
+          page_number: number
+          similarity: number
+        }[]
+      }
       admin_add_balance: {
         Args: { _amount: number; _user_id: string }
         Returns: number

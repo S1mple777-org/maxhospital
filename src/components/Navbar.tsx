@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -35,6 +35,7 @@ const Navbar = () => {
     { label: t("nav.departments"), href: "/departments" },
     { label: t("nav.doctors"), href: "/doctors" },
     { label: t("nav.news"), href: "/news" },
+    { label: t("nav.ai"), href: "/ai-assistant" },
   ];
 
   const handleSignOut = async () => {
@@ -122,6 +123,12 @@ const Navbar = () => {
                     <Link to="/start-consultation" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Stethoscope className="w-4 h-4" /> Konsultatsiya
                     </Link>
+                    <Link to="/health" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Activity className="w-4 h-4" /> {t("nav.health")}
+                    </Link>
+                    <Link to="/ai-assistant" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Sparkles className="w-4 h-4" /> {t("nav.ai")}
+                    </Link>
                     <Link to="/users" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Users className="w-4 h-4" /> Foydalanuvchilar
                     </Link>
@@ -166,6 +173,7 @@ const Navbar = () => {
                 <>
                   <Link to="/profile" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.profile")}</Link>
                   <Link to="/start-consultation" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Konsultatsiya</Link>
+                  <Link to="/health" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.health")}</Link>
                   {isDoctor && <Link to="/doctor-dashboard" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Shifokor kabineti</Link>}
                   {(isAdmin || isOwner) && <Link to="/admin" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Admin Panel</Link>}
                   {isOwner && <Link to="/owner" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Owner Panel</Link>}

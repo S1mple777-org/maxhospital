@@ -11,6 +11,8 @@ export const translations = {
       register: "Ro'yxatdan o'tish",
       profile: "Profil",
       admin: "Admin panel",
+      ai: "AI-yordamchi",
+      health: "Salomatligim",
     },
     hero: {
       title: "Online tibbiy maslahat",
@@ -83,6 +85,8 @@ export const translations = {
       register: "Регистрация",
       profile: "Профиль",
       admin: "Админ панель",
+      ai: "AI-помощник",
+      health: "Моё здоровье",
     },
     hero: {
       title: "Онлайн медицинская консультация",
@@ -155,6 +159,8 @@ export const translations = {
       register: "Register",
       profile: "Profile",
       admin: "Admin Panel",
+      ai: "AI assistant",
+      health: "My health",
     },
     hero: {
       title: "Online Medical Consultation",
