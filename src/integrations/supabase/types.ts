@@ -515,6 +515,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_balance: {
+        Args: { _amount: number; _user_id: string }
+        Returns: number
+      }
+      charge_extra_video_minute: {
+        Args: { _consultation_id: string }
+        Returns: number
+      }
+      create_consultation: { Args: { _doctor_id: string }; Returns: string }
+      end_consultation: {
+        Args: { _consultation_id: string }
+        Returns: undefined
+      }
+      get_my_profile: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          balance_uzs: number
+          ban_reason: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          phone: string | null
+          telegram_chat_id: number | null
+          telegram_link_code: string | null
+          telegram_notifications_enabled: boolean | null
+          two_fa_enabled: boolean
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_phone: { Args: { _user_id: string }; Returns: string }
       get_user_id_by_email: { Args: { email_input: string }; Returns: string }
       has_role: {
         Args: {
@@ -522,6 +561,35 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reject_consultation: {
+        Args: { _consultation_id: string }
+        Returns: undefined
+      }
+      staff_list_profiles: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          balance_uzs: number
+          ban_reason: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          phone: string | null
+          telegram_chat_id: number | null
+          telegram_link_code: string | null
+          telegram_notifications_enabled: boolean | null
+          two_fa_enabled: boolean
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
