@@ -19,6 +19,7 @@ import {
   type Triage,
 } from "../_shared/medical-ai.ts";
 import { embedTexts, generateJson, toPgVector, type ChatTurn } from "../_shared/gemini.ts";
+import { retrieveBookSources, type BookSource } from "../_shared/book-retrieval.ts";
 
 const MAX_MESSAGE = 2000;
 const MAX_HISTORY = 8;
@@ -141,16 +142,24 @@ Deno.serve(async (req) => {
       ? flagged.map((x) => `${METRIC_BY_KEY[x.metric].label[lang]} ${x.status}`).join("; ") || "normal health indicators"
       : [...history.filter((h) => h.role === "user").slice(-2).map((h) => h.text), message].join("\n");
 
-    const [queryVector] = await embedTexts([retrievalQuery], "RETRIEVAL_QUERY");
-    const { data: matches, error: matchError } = await db.rpc("match_book_chunks", {
-      query_embedding: toPgVector(queryVector),
-      match_count: 6,
-      min_similarity: 0.5,
+    const sources = await retrieveBookSources({
+      hasReadyBooks: async () => {
+        const { count, error } = await db.from("medical_books")
+          .select("id", { count: "exact", head: true }).eq("status", "ready");
+        if (error) throw error;
+        return (count ?? 0) > 0;
+      },
+      search: async () => {
+        const [queryVector] = await embedTexts([retrievalQuery], "RETRIEVAL_QUERY");
+        if (!queryVector) throw new Error("Missing query embedding");
+        const { data: matches, error } = await db.rpc("match_book_chunks", {
+          query_embedding: toPgVector(queryVector), match_count: 6, min_similarity: 0.5,
+        });
+        if (error) throw error;
+        return (matches ?? []) as BookSource[];
+      },
+      onError: (error) => console.warn("Book retrieval unavailable", error),
     });
-    if (matchError) throw new Error(matchError.message);
-    const sources = (matches ?? []) as {
-      book_title: string; book_author: string | null; page_number: number; content: string; similarity: number;
-    }[];
 
     // ---- 4. Departments and doctors of the site -----------------------------
     const [{ data: depts }, { data: docs }] = await Promise.all([

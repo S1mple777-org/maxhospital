@@ -23,10 +23,14 @@ CREATE TABLE public.medical_books (
   error_message text,
   page_count int NOT NULL DEFAULT 0,
   chunk_count int NOT NULL DEFAULT 0,
-  uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL DEFAULT auth.uid(),
+  uploaded_by uuid DEFAULT auth.uid(),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+GRANT SELECT ON public.medical_books TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.medical_books TO authenticated;
+GRANT ALL ON public.medical_books TO service_role;
 
 ALTER TABLE public.medical_books ENABLE ROW LEVEL SECURITY;
 
@@ -86,6 +90,9 @@ CREATE TABLE public.book_chunks (
   embedding extensions.vector(768) NOT NULL
 );
 
+GRANT ALL ON public.book_chunks TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.book_chunks_id_seq TO service_role;
+
 ALTER TABLE public.book_chunks ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX book_chunks_book_id_idx ON public.book_chunks (book_id);
@@ -126,7 +133,7 @@ GRANT EXECUTE ON FUNCTION public.match_book_chunks(extensions.vector, int, float
 -- ---------------------------------------------------------------------
 CREATE TABLE public.health_measurements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  patient_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  patient_id uuid NOT NULL,
   doctor_id uuid REFERENCES public.doctors(id) ON DELETE SET NULL,
   consultation_id uuid REFERENCES public.consultations(id) ON DELETE SET NULL,
   metric text NOT NULL CHECK (metric IN (
@@ -140,6 +147,9 @@ CREATE TABLE public.health_measurements (
   created_by uuid DEFAULT auth.uid(),
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+GRANT SELECT, INSERT, DELETE ON public.health_measurements TO authenticated;
+GRANT ALL ON public.health_measurements TO service_role;
 
 ALTER TABLE public.health_measurements ENABLE ROW LEVEL SECURITY;
 
@@ -184,7 +194,7 @@ CREATE POLICY "Doctors delete own measurements" ON public.health_measurements
 -- ---------------------------------------------------------------------
 CREATE TABLE public.ai_chat_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid,
   mode text NOT NULL DEFAULT 'chat' CHECK (mode IN ('chat', 'trends')),
   triage text NOT NULL CHECK (triage IN ('emergency', 'doctor', 'self_care')),
   emergency_rule text,
@@ -193,6 +203,9 @@ CREATE TABLE public.ai_chat_logs (
   latency_ms int,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+GRANT SELECT ON public.ai_chat_logs TO authenticated;
+GRANT ALL ON public.ai_chat_logs TO service_role;
 
 ALTER TABLE public.ai_chat_logs ENABLE ROW LEVEL SECURITY;
 
@@ -207,9 +220,7 @@ CREATE POLICY "Staff view ai logs" ON public.ai_chat_logs
 -- ---------------------------------------------------------------------
 -- PDF saqlash joyi (yopiq)
 -- ---------------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('medical-books', 'medical-books', false, 52428800, ARRAY['application/pdf'])
-ON CONFLICT (id) DO NOTHING;
+-- The private medical-books bucket is provisioned using the storage tool.
 
 CREATE POLICY "Staff upload medical books" ON storage.objects
   FOR INSERT TO authenticated
