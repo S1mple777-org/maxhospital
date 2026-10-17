@@ -117,7 +117,7 @@ const Hero = () => {
             </div>
 
             {/* Stats with counter animation */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-4 sm:gap-4">
               {stats.map((stat, i) => (
                 <motion.div
                   key={i}
@@ -129,7 +129,7 @@ const Hero = () => {
                 >
                   <div className="text-xl mb-1">{stat.icon}</div>
                   <div className="font-display font-bold text-xl text-foreground">{stat.value}</div>
-                  <div className="text-xs text-muted-foreground">{stat.label}</div>
+                  <div className="text-xs text-muted-foreground leading-tight break-words">{stat.label}</div>
                 </motion.div>
               ))}
             </div>

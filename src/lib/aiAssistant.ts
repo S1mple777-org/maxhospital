@@ -26,6 +26,8 @@ export interface AiReply {
   doctors: AiDoctor[];
   sources: AiSource[];
   trends?: MetricTrend[];
+  /** questions left today on a limited plan; null/absent = unlimited */
+  quota?: { left: number; limit: number | null } | null;
 }
 
 export interface ChatHistoryItem {
@@ -33,14 +35,14 @@ export interface ChatHistoryItem {
   content: string;
 }
 
-async function errorMessage(error: any, fallback: string): Promise<string> {
+async function functionError(error: any, fallback: string): Promise<Error & { code?: string }> {
   try {
     const body = await error?.context?.json?.();
-    if (body?.error) return body.error;
+    if (body?.error) return Object.assign(new Error(body.error), { code: body.code as string | undefined });
   } catch {
     /* ignore */
   }
-  return fallback;
+  return new Error(fallback);
 }
 
 export async function askAssistant(params: {
@@ -52,7 +54,7 @@ export async function askAssistant(params: {
   const { data, error } = await supabase.functions.invoke("ai-assistant", {
     body: { mode: "chat", ...params },
   });
-  if (error) throw new Error(await errorMessage(error, "AI-yordamchi bilan bog'lanib bo'lmadi"));
+  if (error) throw await functionError(error, "AI-yordamchi bilan bog'lanib bo'lmadi");
   if (data?.error) throw new Error(data.error);
   return data as AiReply;
 }

@@ -164,24 +164,24 @@ const AdminPanel = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-card border-b border-border px-6 py-4">
-        <div className="container mx-auto flex items-center justify-between">
+      <div className="bg-card border-b border-border px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="container mx-auto px-0 flex items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">Admin Panel</h1>
             <p className="text-sm text-muted-foreground">
               {adminType === "financial" ? "Moliyaviy admin" : adminType === "dept_head" ? "Bo'lim boshlig'i" : adminType === "journalist" ? "Jurnalist" : "Tizimni boshqarish"}
             </p>
           </div>
-          <button onClick={() => navigate("/")} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← Bosh sahifa</button>
+          <button onClick={() => navigate("/")} className="shrink-0 px-3 sm:px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← <span className="hidden sm:inline">Bosh sahifa</span></button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          <div className="w-56 shrink-0">
-            <div className="bg-card rounded-xl border border-border p-2 space-y-1">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+          <div className="-mx-4 px-4 md:mx-0 md:px-0 md:w-56 md:shrink-0 overflow-x-auto md:overflow-visible">
+            <div role="tablist" className="flex md:flex-col gap-1 w-max md:w-auto bg-card rounded-xl border border-border p-1.5 md:p-2">
               {tabs.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
+                <button key={tab.id} data-panel-tab role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} className={`shrink-0 md:w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
                   <tab.icon className="w-4 h-4" />{tab.label}
                 </button>
               ))}
@@ -190,14 +190,14 @@ const AdminPanel = () => {
 
           <div className="flex-1 min-w-0">
             {activeTab === "stats" && canSeeStats && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 {[
                   { label: "Foydalanuvchilar", value: stats.users, icon: Users, color: "from-blue-400 to-cyan-400" },
                   { label: "Shifokorlar", value: stats.doctors, icon: UserPlus, color: "from-teal-400 to-emerald-400" },
                   { label: "Konsultatsiyalar", value: stats.consultations, icon: BarChart3, color: "from-purple-400 to-violet-400" },
                   { label: "Postlar", value: stats.posts, icon: FileText, color: "from-amber-400 to-orange-400" },
                 ].map((stat, i) => (
-                  <div key={i} className="bg-card rounded-xl p-5 border border-border">
+                  <div key={i} className="bg-card rounded-xl p-4 md:p-5 border border-border min-w-0">
                     <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3`}>
                       <stat.icon className="w-5 h-5 text-white" />
                     </div>
@@ -214,7 +214,28 @@ const AdminPanel = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Qidirish..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary outline-none" />
                 </div>
-                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                {/* Telefon: kartochkalar */}
+                <div className="md:hidden space-y-2">
+                  {filteredUsers.map((u: any) => (
+                    <div key={u.id} className="bg-card rounded-xl border border-border p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-foreground text-sm break-words">{u.full_name || "Noma'lum"}</div>
+                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <span>{Number(u.balance_uzs).toLocaleString()} UZS</span>
+                          {u.is_banned ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium"><Ban className="w-3 h-3" /> Bloklangan</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium"><CheckCircle className="w-3 h-3" /> Faol</span>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={() => handleBanUser(u.user_id, !u.is_banned)} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${u.is_banned ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}>
+                        {u.is_banned ? "Unban" : "Ban"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border bg-secondary/50">
                       <th className="text-left px-4 py-3 font-medium text-foreground">Ism</th>
@@ -264,7 +285,22 @@ const AdminPanel = () => {
                   </button>
                 </div>
 
-                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="md:hidden space-y-2">
+                  {doctors.map((d: any) => (
+                    <div key={d.id} className="bg-card rounded-xl border border-border p-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-foreground text-sm break-words">{d.profileData?.full_name || "Noma'lum"}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${d.is_online ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>{d.is_online ? "Online" : "Offline"}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 break-words">{d.title}</div>
+                        <div className="text-xs text-muted-foreground break-words">{getDeptName(d.deptData)}</div>
+                      </div>
+                      <button onClick={() => handleRemoveDoctor(d)} className="shrink-0 p-1.5 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border bg-secondary/50">
                       <th className="text-left px-4 py-3 font-medium text-foreground">Ism</th>
@@ -299,12 +335,12 @@ const AdminPanel = () => {
               <div className="space-y-4">
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Yangi post</h3>
-                  <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                     <input value={newPost.title_uz} onChange={e => setNewPost(p => ({ ...p, title_uz: e.target.value }))} placeholder="Sarlavha (UZ)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <input value={newPost.title_ru} onChange={e => setNewPost(p => ({ ...p, title_ru: e.target.value }))} placeholder="Заголовок (RU)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <input value={newPost.title_en} onChange={e => setNewPost(p => ({ ...p, title_en: e.target.value }))} placeholder="Title (EN)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                   </div>
-                  <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                     <textarea value={newPost.content_uz} onChange={e => setNewPost(p => ({ ...p, content_uz: e.target.value }))} placeholder="Matn (UZ)" rows={3} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none" />
                     <textarea value={newPost.content_ru} onChange={e => setNewPost(p => ({ ...p, content_ru: e.target.value }))} placeholder="Текст (RU)" rows={3} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none" />
                     <textarea value={newPost.content_en} onChange={e => setNewPost(p => ({ ...p, content_en: e.target.value }))} placeholder="Content (EN)" rows={3} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none" />
@@ -313,12 +349,12 @@ const AdminPanel = () => {
                 </div>
                 <div className="space-y-3">
                   {posts.map((p: any) => (
-                    <div key={p.id} className="bg-card rounded-xl border border-border p-4 flex items-start justify-between">
-                      <div>
+                    <div key={p.id} className="bg-card rounded-xl border border-border p-4 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <h4 className="font-medium text-foreground text-sm">{language === "ru" ? p.title_ru : language === "en" ? p.title_en : p.title_uz}</h4>
                         <p className="text-xs text-muted-foreground mt-1">{new Date(p.created_at).toLocaleDateString()}</p>
                       </div>
-                      <button onClick={() => handleDeletePost(p.id)} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeletePost(p.id)} className="shrink-0 p-1.5 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>
@@ -333,12 +369,12 @@ const AdminPanel = () => {
                   <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">Bloklangan foydalanuvchilar yo'q</div>
                 ) : (
                   bannedUsers.map((u: any) => (
-                    <div key={u.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-foreground">{u.full_name || "Noma'lum"}</div>
+                    <div key={u.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-foreground break-words">{u.full_name || "Noma'lum"}</div>
                         {u.ban_reason && <p className="text-xs text-destructive mt-1">Sabab: {u.ban_reason}</p>}
                       </div>
-                      <button onClick={() => handleBanUser(u.user_id, false)} className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200">Unban</button>
+                      <button onClick={() => handleBanUser(u.user_id, false)} className="shrink-0 px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200">Unban</button>
                     </div>
                   ))
                 )}

@@ -146,6 +146,16 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
+    /* Uzun so'zlar (email, ism) ekrandan chiqib ketmasin; gorizontal aylantirish bo'lmasin. */
+    overflow-wrap: break-word;
+    overflow-x: clip;
+  }
+
+  /* Telefonda pastki o'ng burchakdagi AI tugmasi sahifa oxiridagi matnni yopmasin. */
+  @media (max-width: 639px) {
+    body {
+      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {

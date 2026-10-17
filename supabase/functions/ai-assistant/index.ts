@@ -20,6 +20,7 @@ import {
 } from "../_shared/medical-ai.ts";
 import { embedTexts, generateJson, toPgVector, type ChatTurn } from "../_shared/gemini.ts";
 import { retrieveBookSources, type BookSource } from "../_shared/book-retrieval.ts";
+import { FALLBACK_STATUS, normalizeStatus, remaining, type PlanStatus } from "../_shared/plan.ts";
 
 const MAX_MESSAGE = 2000;
 const MAX_HISTORY = 8;
@@ -64,18 +65,24 @@ const TEXT: Record<Lang, Record<string, string>> = {
     trendsQuestion: "Oldingi shifokor ko'riklarimdagi ko'rsatkichlarni taqqoslab, qaysilari oshgan yoki pasayganini tushuntirib bering.",
     noMeasurements: "Sizda hali shifokor kiritgan ko'rik ko'rsatkichlari yo'q. Konsultatsiyadan so'ng shifokor bosim, puls, qand kabi ko'rsatkichlarni kiritadi va men ularni taqqoslab beraman.",
     limit: "Juda ko'p so'rov yuborildi. Bir soatdan keyin qayta urinib ko'ring.",
+    dailyLimit: "Bugungi bepul AI savollar limiti tugadi. Ertaga davom eting yoki Pro/Premium tarifiga o'ting. Shoshilinch belgilarga javob har doim ishlaydi.",
+    proRequired: "Ko'rsatkichlarni AI bilan tahlil qilish Pro va Premium tariflarida ishlaydi.",
     error: "AI-yordamchi hozir javob bera olmadi. Birozdan keyin qayta urinib ko'ring yoki shifokorga murojaat qiling.",
   },
   ru: {
     trendsQuestion: "Сравни мои показатели с прошлых осмотров у врача и объясни, какие выросли или снизились.",
     noMeasurements: "У вас пока нет показателей, внесённых врачом. После консультации врач внесёт давление, пульс, сахар и т.д., и я смогу их сравнить.",
     limit: "Слишком много запросов. Попробуйте через час.",
+    dailyLimit: "Дневной лимит бесплатных вопросов AI исчерпан. Продолжите завтра или перейдите на Pro/Premium. Экстренные признаки проверяются всегда.",
+    proRequired: "AI-анализ показателей доступен в тарифах Pro и Premium.",
     error: "AI-помощник сейчас не смог ответить. Попробуйте позже или обратитесь к врачу.",
   },
   en: {
     trendsQuestion: "Compare my measurements from earlier doctor visits and explain which ones went up or down.",
     noMeasurements: "You don't have any measurements entered by a doctor yet. After a consultation the doctor records blood pressure, pulse, glucose etc., and I can compare them.",
     limit: "Too many requests. Please try again in an hour.",
+    dailyLimit: "Today's free AI question limit is reached. Continue tomorrow or upgrade to Pro/Premium. Emergency symptoms are always checked.",
+    proRequired: "AI analysis of your measurements is part of the Pro and Premium plans.",
     error: "The AI assistant could not answer right now. Please try again later or contact a doctor.",
   },
 };
@@ -106,6 +113,28 @@ Deno.serve(async (req) => {
     await log({ triage: "emergency", emergency_rule: rule });
     return json({ triage: "emergency", answer: emergencyMessage(lang, rule), department: null, doctors: [], sources: [] });
   }
+
+  // ---- Plan limits (emergency answers above are never limited) ---------------
+  let plan: PlanStatus = FALLBACK_STATUS;
+  let planKnown = true;
+  {
+    const { data, error } = await db.rpc("plan_status", { _user_id: user.id });
+    if (error) {
+      // Limits table not migrated yet: do not block patients because of it.
+      console.warn("plan_status unavailable", error.message);
+      planKnown = false;
+    } else {
+      plan = normalizeStatus(data);
+    }
+  }
+  if (planKnown && mode === "trends" && !plan.limits.health_ai) {
+    return json({ error: t.proRequired, code: "pro_required", plan: plan.plan }, 403);
+  }
+  const left = planKnown && mode === "chat" ? remaining(plan.limits.ai_daily_questions, plan.usage.ai_today) : null;
+  if (left === 0) {
+    return json({ error: t.dailyLimit, code: "daily_limit", plan: plan.plan, limit: plan.limits.ai_daily_questions }, 429);
+  }
+  const quota = left === null ? null : { left: left - 1, limit: plan.limits.ai_daily_questions };
 
   // ---- Rate limit -----------------------------------------------------------
   const since = new Date(Date.now() - 3600_000).toISOString();
@@ -234,6 +263,7 @@ Deno.serve(async (req) => {
         };
       }),
       ...(mode === "trends" ? { trends } : {}),
+      quota,
     });
   } catch (e) {
     console.error("ai-assistant error", e);

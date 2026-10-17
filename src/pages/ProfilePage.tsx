@@ -121,14 +121,14 @@ const ProfilePage = () => {
         <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
           <Home className="w-4 h-4" /> Bosh sahifaga qaytish
         </button>
-        <div className="bg-card rounded-2xl border border-border p-8 card-shadow">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-8 card-shadow">
           {/* Avatar & Name */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-hero-gradient flex items-center justify-center text-2xl font-bold text-primary-foreground">
+          <div className="flex items-start sm:items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-full bg-hero-gradient flex items-center justify-center text-xl sm:text-2xl font-bold text-primary-foreground">
                 {profile.full_name?.[0]?.toUpperCase() || "U"}
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 {editing ? (
                   <div className="space-y-2">
                     <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="F.I.Sh." className={inputClass} />
@@ -139,14 +139,14 @@ const ProfilePage = () => {
                   </div>
                 ) : (
                   <>
-                    <h1 className="font-display text-xl font-bold text-foreground">{profile.full_name || "Foydalanuvchi"}</h1>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    <h1 className="font-display text-lg sm:text-xl font-bold text-foreground break-words">{profile.full_name || "Foydalanuvchi"}</h1>
+                    <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                   </>
                 )}
               </div>
             </div>
             {editing ? (
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button onClick={handleSave} disabled={saving} className="p-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                   <Save className="w-4 h-4" />
                 </button>
@@ -155,7 +155,7 @@ const ProfilePage = () => {
                 </button>
               </div>
             ) : (
-              <button onClick={startEditing} className="p-2 rounded-lg border border-border text-foreground hover:bg-secondary">
+              <button onClick={startEditing} className="shrink-0 p-2 rounded-lg border border-border text-foreground hover:bg-secondary">
                 <Edit className="w-4 h-4" />
               </button>
             )}
@@ -202,23 +202,23 @@ const ProfilePage = () => {
                 <Stethoscope className="w-4 h-4 text-primary" /> Shifokor ma'lumotlari
               </h3>
               <div className="grid sm:grid-cols-2 gap-2 text-sm">
-                {doctorData.title && <div className="flex justify-between"><span className="text-muted-foreground">Lavozim</span><span className="text-foreground font-medium">{doctorData.title}</span></div>}
-                {doctorData.experience_years > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Tajriba</span><span className="text-foreground font-medium">{doctorData.experience_years} yil</span></div>}
-                {doctorData.workplace && <div className="flex justify-between"><span className="text-muted-foreground">Ish joyi</span><span className="text-foreground font-medium">{doctorData.workplace}</span></div>}
-                {doctorData.address && <div className="flex justify-between"><span className="text-muted-foreground">Manzil</span><span className="text-foreground font-medium">{doctorData.address}</span></div>}
-                {doctorData.telegram_username && <div className="flex justify-between"><span className="text-muted-foreground">Telegram</span><span className="text-primary font-medium">@{doctorData.telegram_username.replace("@", "")}</span></div>}
+                {doctorData.title && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Lavozim</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.title}</span></div>}
+                {doctorData.experience_years > 0 && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Tajriba</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.experience_years} yil</span></div>}
+                {doctorData.workplace && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Ish joyi</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.workplace}</span></div>}
+                {doctorData.address && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Manzil</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.address}</span></div>}
+                {doctorData.telegram_username && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Telegram</span><span className="text-primary font-medium text-right break-all min-w-0">@{doctorData.telegram_username.replace("@", "")}</span></div>}
               </div>
             </div>
           )}
 
           {/* Info Cards */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-secondary/50 rounded-xl p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+            <div className="bg-secondary/50 rounded-xl p-4 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <Wallet className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">Balans</span>
               </div>
-              <div className="text-2xl font-display font-bold text-foreground">
+              <div className="text-xl sm:text-2xl font-display font-bold text-foreground break-all">
                 {Number(profile.balance_uzs).toLocaleString()}
                 <span className="text-sm font-normal text-muted-foreground ml-1">UZS</span>
               </div>

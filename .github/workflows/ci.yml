@@ -1,0 +1,43 @@
+name: CI
+
+# Har push va PR da: TypeScript tekshiruvi, testlar va sayt build.
+# Xatolar PR sahifasida fayl va qator raqami bilan ko'rinadi.
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript
+        run: npx tsc --noEmit -p tsconfig.app.json --pretty false
+
+      - name: Tests
+        if: ${{ !cancelled() }}
+        run: npx vitest run
+
+      - name: Build
+        if: ${{ !cancelled() }}
+        run: npm run build

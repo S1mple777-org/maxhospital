@@ -230,8 +230,8 @@ const OwnerPanel = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-card border-b border-border px-6 py-4">
-        <div className="container mx-auto flex items-center justify-between">
+      <div className="bg-card border-b border-border px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="container mx-auto px-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
               <Crown className="w-5 h-5 text-white" />
@@ -241,17 +241,17 @@ const OwnerPanel = () => {
               <p className="text-sm text-muted-foreground">Tizim egasi boshqaruvi</p>
             </div>
           </div>
-          <button onClick={() => navigate("/")} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← Bosh sahifa</button>
+          <button onClick={() => navigate("/")} className="shrink-0 px-3 sm:px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← <span className="hidden sm:inline">Bosh sahifa</span></button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          <div className="w-56 shrink-0">
-            <div className="bg-card rounded-xl border border-border p-2 space-y-1">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+          <div className="-mx-4 px-4 md:mx-0 md:px-0 md:w-56 md:shrink-0 overflow-x-auto md:overflow-visible">
+            <div role="tablist" className="flex md:flex-col gap-1 w-max md:w-auto bg-card rounded-xl border border-border p-1.5 md:p-2">
               {tabs.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
+                <button key={tab.id} data-panel-tab role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`shrink-0 md:w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
                   <tab.icon className="w-4 h-4" />{tab.label}
                 </button>
               ))}
@@ -292,10 +292,10 @@ const OwnerPanel = () => {
 
                 <div className="space-y-2">
                   {admins.map((admin: any) => (
-                    <div key={admin.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-foreground">{admin.full_name || "Noma'lum"}</div>
-                        <div className="flex items-center gap-2 mt-1">
+                    <div key={admin.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-foreground break-words">{admin.full_name || "Noma'lum"}</div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
                           {admin.settings ? (
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               admin.settings.admin_type === "financial" ? "bg-green-100 text-green-700" :
@@ -319,7 +319,7 @@ const OwnerPanel = () => {
                           )}
                         </div>
                       </div>
-                      <button onClick={() => handleRemoveAdmin(admin.user_id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10">
+                      <button onClick={() => handleRemoveAdmin(admin.user_id)} className="shrink-0 p-2 rounded-lg text-destructive hover:bg-destructive/10">
                         <UserMinus className="w-4 h-4" />
                       </button>
                     </div>
@@ -336,7 +336,7 @@ const OwnerPanel = () => {
               <div className="space-y-4">
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Yangi bo'lim qo'shish</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                     <input value={deptForm.name_uz} onChange={e => setDeptForm(p => ({ ...p, name_uz: e.target.value }))} placeholder="Nomi (UZ)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <input value={deptForm.name_ru} onChange={e => setDeptForm(p => ({ ...p, name_ru: e.target.value }))} placeholder="Название (RU)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <input value={deptForm.name_en} onChange={e => setDeptForm(p => ({ ...p, name_en: e.target.value }))} placeholder="Name (EN)" className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
@@ -353,7 +353,7 @@ const OwnerPanel = () => {
                     <div key={dept.id} className="bg-card rounded-xl border border-border p-4">
                       {editingDept === dept.id ? (
                         <div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                             <input value={deptForm.name_uz} onChange={e => setDeptForm(p => ({ ...p, name_uz: e.target.value }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                             <input value={deptForm.name_ru} onChange={e => setDeptForm(p => ({ ...p, name_ru: e.target.value }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                             <input value={deptForm.name_en} onChange={e => setDeptForm(p => ({ ...p, name_en: e.target.value }))} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
@@ -366,23 +366,23 @@ const OwnerPanel = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
                             {dept.icon_url ? (
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-border">
+                              <div className="w-10 h-10 shrink-0 rounded-lg overflow-hidden border border-border">
                                 <img src={dept.icon_url} alt="" className="w-full h-full object-cover" />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                              <div className="w-10 h-10 shrink-0 rounded-lg bg-secondary flex items-center justify-center">
                                 <Image className="w-5 h-5 text-muted-foreground" />
                               </div>
                             )}
-                            <div>
-                              <div className="font-medium text-foreground">{getDeptName(dept)}</div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-foreground break-words">{getDeptName(dept)}</div>
                               <div className="text-sm text-muted-foreground">{Number(dept.price_uzs).toLocaleString()} UZS</div>
                             </div>
                           </div>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 shrink-0">
                             <button onClick={() => { setEditingDept(dept.id); setDeptForm({ name_uz: dept.name_uz, name_ru: dept.name_ru, name_en: dept.name_en, icon: dept.icon, price_uzs: dept.price_uzs }); setIconPreview(dept.icon_url || null); setIconFile(null); }} className="p-2 rounded-lg text-foreground hover:bg-secondary"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => handleDeleteDept(dept.id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
                           </div>
@@ -399,9 +399,9 @@ const OwnerPanel = () => {
               <div className="space-y-4">
                 <div className="bg-card rounded-xl border border-border p-4">
                   <h3 className="font-display font-semibold text-foreground mb-3">Foydalanuvchiga limit qo'shish</h3>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <input type="email" value={limitEmail} onChange={(e) => setLimitEmail(e.target.value)} placeholder="Foydalanuvchi emaili" className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
-                    <input type="number" value={limitAmount} onChange={(e) => setLimitAmount(e.target.value)} placeholder="Summa (UZS)" className="w-40 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <input type="number" value={limitAmount} onChange={(e) => setLimitAmount(e.target.value)} placeholder="Summa (UZS)" className="w-full sm:w-40 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <button onClick={handleAddLimit} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium whitespace-nowrap">
                       <Plus className="w-4 h-4 inline mr-1" /> Qo'shish
                     </button>
@@ -421,9 +421,9 @@ const OwnerPanel = () => {
                     Foydalanuvchilar botga /start bosganda ushbu kanallarga obuna bo'lishi talab qilinadi.
                     Bot kanalga admin sifatida qo'shilgan bo'lishi kerak.
                   </p>
-                  <div className="flex gap-3 mb-3">
-                    <input value={newSubUsername} onChange={(e) => setNewSubUsername(e.target.value)} placeholder="@username" className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
-                    <input value={newSubName} onChange={(e) => setNewSubName(e.target.value)} placeholder="Kanal nomi" className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                  <div className="flex flex-col sm:flex-row gap-3 mb-3">
+                    <input value={newSubUsername} onChange={(e) => setNewSubUsername(e.target.value)} placeholder="@username" className="min-w-0 sm:flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
+                    <input value={newSubName} onChange={(e) => setNewSubName(e.target.value)} placeholder="Kanal nomi" className="min-w-0 sm:flex-1 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm" />
                     <button onClick={handleAddForcedSub} className="px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium whitespace-nowrap">
                       <Plus className="w-4 h-4 inline mr-1" /> Qo'shish
                     </button>
@@ -432,17 +432,17 @@ const OwnerPanel = () => {
 
                 <div className="space-y-2">
                   {forcedSubs.map((sub: any) => (
-                    <div key={sub.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                    <div key={sub.id} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 shrink-0 rounded-lg bg-secondary flex items-center justify-center">
                           <Megaphone className="w-5 h-5 text-muted-foreground" />
                         </div>
-                        <div>
-                          <div className="font-medium text-foreground">{sub.channel_name}</div>
-                          <div className="text-sm text-muted-foreground">@{sub.channel_username}</div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-foreground break-words">{sub.channel_name}</div>
+                          <div className="text-sm text-muted-foreground truncate">@{sub.channel_username}</div>
                         </div>
                       </div>
-                      <button onClick={() => handleRemoveForcedSub(sub.id)} className="p-2 rounded-lg text-destructive hover:bg-destructive/10">
+                      <button onClick={() => handleRemoveForcedSub(sub.id)} className="shrink-0 p-2 rounded-lg text-destructive hover:bg-destructive/10">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

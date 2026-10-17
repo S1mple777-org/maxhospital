@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Loader2, Phone, Send, Sparkles, TrendingUp } from "lucide-react";
+import { Bot, Crown, Loader2, Phone, Send, Sparkles, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AiAnswerCard from "@/components/ai/AiAnswerCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { askAssistant, EMERGENCY_PHONE, type AiReply, type ChatHistoryItem, type Lang } from "@/lib/aiAssistant";
+import { remaining, usePlanStatus } from "@/lib/planPerks";
+
+const QUOTA: Record<Lang, { left: (n: number, of: number) => string; upgrade: string }> = {
+  uz: { left: (n, of) => `Bugun qolgan bepul savollar: ${n} / ${of}`, upgrade: "Pro / Premium tariflari" },
+  ru: { left: (n, of) => `Осталось вопросов сегодня: ${n} / ${of}`, upgrade: "Тарифы Pro / Premium" },
+  en: { left: (n, of) => `Questions left today: ${n} / ${of}`, upgrade: "Pro / Premium plans" },
+};
 
 type Item =
   | { id: number; role: "user"; text: string }
   | { id: number; role: "assistant"; reply: AiReply }
-  | { id: number; role: "error"; text: string };
+  | { id: number; role: "error"; text: string; upsell?: boolean };
 
 const T: Record<Lang, Record<string, string | string[]>> = {
   uz: {
@@ -71,6 +78,14 @@ const AiAssistantPage = () => {
   const [busy, setBusy] = useState(false);
   const nextId = useRef(1);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { status } = usePlanStatus(!!user);
+  const [quota, setQuota] = useState<{ left: number; limit: number } | null>(null);
+  useEffect(() => {
+    if (!status) return;
+    const left = remaining(status.limits.ai_daily_questions, status.usage.ai_today);
+    setQuota(left === null ? null : { left, limit: status.limits.ai_daily_questions ?? 0 });
+  }, [status]);
+  const q = QUOTA[lang];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -93,8 +108,11 @@ const AiAssistantPage = () => {
     try {
       const reply = await askAssistant({ message, history: prior, language: lang, mode });
       setItems((prev) => [...prev, { id: nextId.current++, role: "assistant", reply }]);
+      if (reply.quota && reply.quota.limit !== null) setQuota({ left: Math.max(0, reply.quota.left), limit: reply.quota.limit });
     } catch (e: any) {
-      setItems((prev) => [...prev, { id: nextId.current++, role: "error", text: e?.message || "Xatolik" }]);
+      const upsell = e?.code === "daily_limit" || e?.code === "pro_required";
+      if (e?.code === "daily_limit") setQuota((prev) => (prev ? { ...prev, left: 0 } : prev));
+      setItems((prev) => [...prev, { id: nextId.current++, role: "error", text: e?.message || "Xatolik", upsell }]);
     } finally {
       setBusy(false);
     }
@@ -155,7 +173,14 @@ const AiAssistantPage = () => {
                       <div className="flex-1 min-w-0"><AiAnswerCard reply={it.reply} language={lang} /></div>
                     </div>
                   ) : (
-                    <div key={it.id} className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">{it.text}</div>
+                    <div key={it.id} className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                      {it.text}
+                      {it.upsell && (
+                        <Link to="/pro" className="mt-2 flex w-fit items-center gap-1.5 rounded-lg bg-hero-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+                          <Crown className="w-3.5 h-3.5" /> {q.upgrade}
+                        </Link>
+                      )}
+                    </div>
                   ),
                 )}
 
@@ -168,6 +193,12 @@ const AiAssistantPage = () => {
               </div>
 
               <div className="border-t border-border p-3 space-y-2">
+                {quota && (
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className={quota.left === 0 ? "text-destructive font-medium" : ""}>{q.left(quota.left, quota.limit)}</span>
+                    <Link to="/pro" className="flex items-center gap-1 text-primary hover:underline"><Crown className="w-3 h-3" /> {q.upgrade}</Link>
+                  </div>
+                )}
                 <button
                   onClick={() => send(t.trendsUser as string, "trends")}
                   disabled={busy}

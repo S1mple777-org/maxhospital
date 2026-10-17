@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Loader2, Sparkles } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Crown, FileDown, Loader2, Sparkles } from "lucide-react";
 import { Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { analyzeTrends, askAssistant, METRIC_BY_KEY, type AiReply, type Lang, type MetricTrend } from "@/lib/aiAssistant";
+import { usePlanStatus } from "@/lib/planPerks";
+import { generateHealthReportPdf } from "@/lib/healthReportPdf";
+import { savePdf } from "@/lib/native";
 
 const T: Record<Lang, Record<string, string>> = {
   uz: {
@@ -18,6 +21,9 @@ const T: Record<Lang, Record<string, string>> = {
     start: "Konsultatsiya boshlash",
     analyze: "AI bilan tahlil qilish",
     analyzing: "Tahlil qilinmoqda...",
+    pdf: "PDF hisobot",
+    proLock: "AI tahlil va PDF hisobot — Pro",
+    proHint: "Free tarifda grafiklar ko'rinadi. Pro va Premium'da AI ko'rsatkichlarni tushuntiradi va shifokorga olib boriladigan PDF hisobot tayyorlaydi.",
     latest: "Oxirgi",
     previous: "oldingi",
     normal: "Me'yor",
@@ -35,6 +41,9 @@ const T: Record<Lang, Record<string, string>> = {
     start: "Начать консультацию",
     analyze: "Анализ с помощью AI",
     analyzing: "Анализирую...",
+    pdf: "PDF-отчёт",
+    proLock: "AI-анализ и PDF-отчёт — Pro",
+    proHint: "В Free видны графики. В Pro и Premium AI объясняет показатели и готовит PDF-отчёт для врача.",
     latest: "Последнее",
     previous: "ранее",
     normal: "Норма",
@@ -52,6 +61,9 @@ const T: Record<Lang, Record<string, string>> = {
     start: "Start a consultation",
     analyze: "Analyse with AI",
     analyzing: "Analysing...",
+    pdf: "PDF report",
+    proLock: "AI analysis and PDF report — Pro",
+    proHint: "Free shows the charts. Pro and Premium add an AI explanation and a PDF report to take to your doctor.",
     latest: "Latest",
     previous: "previous",
     normal: "Normal",
@@ -121,11 +133,13 @@ const TrendCard = ({ trend, lang }: { trend: MetricTrend; lang: Lang }) => {
 };
 
 const HealthPage = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const { language } = useLanguage();
   const lang = language as Lang;
   const t = T[lang];
   const navigate = useNavigate();
+  const { status } = usePlanStatus(!!user);
+  const healthAi = status?.limits.health_ai ?? false;
   const [rows, setRows] = useState<any[] | null>(null);
   const [reply, setReply] = useState<AiReply | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -156,6 +170,16 @@ const HealthPage = () => {
     }
   };
 
+  const downloadPdf = async () => {
+    const pdf = generateHealthReportPdf({
+      patientName: profile?.full_name || "",
+      trends,
+      language: lang,
+      aiAnswer: reply?.answer ?? null,
+    });
+    await savePdf(pdf, `salomatlik-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -169,14 +193,26 @@ const HealthPage = () => {
                 <p className="text-sm text-muted-foreground">{t.subtitle}</p>
               </div>
             </div>
-            {trends.length > 0 && (
-              <button onClick={analyze} disabled={analyzing} className="flex items-center justify-center gap-2 rounded-xl bg-hero-gradient px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60">
-                {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {analyzing ? t.analyzing : t.analyze}
-              </button>
-            )}
+            {trends.length > 0 && status && (healthAi ? (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button onClick={analyze} disabled={analyzing} className="flex items-center justify-center gap-2 rounded-xl bg-hero-gradient px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60">
+                  {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {analyzing ? t.analyzing : t.analyze}
+                </button>
+                <button onClick={downloadPdf} className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">
+                  <FileDown className="w-4 h-4" /> {t.pdf}
+                </button>
+              </div>
+            ) : (
+              <Link to="/pro" className="flex items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary">
+                <Crown className="w-4 h-4" /> {t.proLock}
+              </Link>
+            ))}
           </div>
 
+          {status && !healthAi && trends.length > 0 && (
+            <div className="mb-4 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">{t.proHint}</div>
+          )}
           {error && <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">{error}</div>}
           {reply && <div className="mb-6"><AiAnswerCard reply={reply} language={lang} /></div>}
 

@@ -62,17 +62,17 @@ const PrescriptionView = () => {
       <Navbar />
       <div className="pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-3xl">
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground self-start">
               <ArrowLeft className="w-4 h-4" /> Orqaga
             </button>
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
               {rx && (rx as any).patient_id === user?.id && (
-                <button onClick={() => navigate(`/medications?prescription=${rx.id}`)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-foreground text-sm font-medium hover:bg-secondary transition-colors">
+                <button onClick={() => navigate(`/medications?prescription=${rx.id}`)} className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl border border-border text-foreground text-sm font-medium whitespace-nowrap hover:bg-secondary transition-colors">
                   <AlarmClock className="w-4 h-4" /> Eslatma qo'yish
                 </button>
               )}
-              <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+              <button onClick={handleDownload} className="only:col-span-2 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl whitespace-nowrap bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
                 <Download className="w-4 h-4" /> PDF yuklash
               </button>
             </div>

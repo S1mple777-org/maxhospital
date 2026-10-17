@@ -11,6 +11,8 @@ MaxHospital — bemorlar uydan chiqmasdan malakali shifokorlardan chat va video 
 | **AI-yordamchi** | Gemini asosida, saytdagi tibbiy kitoblarga tayangan holda ishlaydi (pastda batafsil) |
 | **Salomatligim** | Bemorning ko'rik ko'rsatkichlari grafigi va o'zgarish tahlili |
 | **Pro: dori eslatmalari** | AI retseptdan jadval tuzadi; Telegram, sayt, ilova (internetsiz) va SMS (Premium) orqali eslatadi. Batafsil: [MEDICATIONS.md](MEDICATIONS.md) |
+| **Tahlil natijalari (Pro)** | Bemor qon/siydik tahlili PDF yoki rasmini yuklaydi, AI qiymatlarni o'qiydi, me'yordan chiqqanlarini kitoblar asosida tushuntiradi |
+| **Hamyon va favqulodda kredit** | Balans yetmasa favqulodda konsultatsiya qarzga boshlanadi; qarz keyingi to'lovlardan oldin to'lanadi |
 | Telegram | Telegram orqali kirish va bildirishnomalar |
 | 3 til | O'zbek, rus, ingliz |
 | Rollar | Bemor, shifokor, admin (moliyaviy, bo'lim boshlig'i, jurnalist), owner |
@@ -24,6 +26,25 @@ MaxHospital — bemorlar uydan chiqmasdan malakali shifokorlardan chat va video 
 5. **Ko'riklar tahlili.** Shifokor retsept yozayotganda bosim, puls, harorat, SpO₂, qand, vazn, xolesterin, gemoglobinni kiritadi. O'sish/pasayish va me'yorga yaqinlashish kod orqali aniq hisoblanadi, AI esa bu raqamlarni bemorga tushuntiradi.
 
 Maxfiylik: AI so'rovlari statistikasida savol va javob matni saqlanmaydi, faqat triaj darajasi va bo'lim. Kitob bo'laklari va vektor qidiruv faqat server tomonida ochiq.
+
+## Free, Pro va Premium
+
+Limitlar `plan_limits` jadvalida saqlanadi va **Owner Panel → Pro tariflar** bo'limida o'zgartiriladi. Standart qiymatlar:
+
+| | Free | Pro | Premium |
+|---|---|---|---|
+| AI-yordamchi savollari | 5 / kun | 50 / kun | cheksiz |
+| Shoshilinch belgilar (103) tekshiruvi | ✓ | ✓ | ✓ |
+| Bepul video qo'ng'iroq | 10 daqiqa | 20 daqiqa | 30 daqiqa |
+| Ko'rsatkichlar AI tahlili va PDF hisobot | — | ✓ | ✓ |
+| Tahlil natijasini AI o'qishi | — | 5 / oy | 20 / oy |
+| Favqulodda kredit | 50 000 so'm | 100 000 so'm | 150 000 so'm |
+| Dori eslatmalari (Telegram, sayt, ilova) | — | ✓ | ✓ |
+| SMS eslatma | — | — | ✓ |
+
+**Favqulodda kredit.** Balans yetmasa bemor konsultatsiyani "favqulodda" qilib boshlaydi. Balansdagi pul ishlatiladi, yetmagan qismi (tarif limitigacha) qarzga yoziladi. Qarz to'lanmaguncha yangi konsultatsiya va obuna sotib olinmaydi. Qarz **Hamyon** sahifasida (`/wallet`) balansdan to'lanadi. Shifokor rad etsa, qarz bekor qilinadi va balansdan to'langan qism qaytariladi. Shoshilinch belgilarga AI javobi hech qachon limitlanmaydi.
+
+Sozlash: `drizzle/migrations/0003_plan_perks.sql` migratsiyasini qo'llang va `ai-assistant` hamda yangi `read-lab-result` funksiyasini deploy qiling.
 
 ## Texnologiyalar
 

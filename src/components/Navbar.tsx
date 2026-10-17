@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock, FlaskConical } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -95,10 +95,10 @@ const Navbar = () => {
 
             {/* Balance */}
             {user && profile && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-secondary text-foreground text-xs font-medium">
+              <Link to="/wallet" title={t("nav.wallet")} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-secondary text-foreground text-xs font-medium hover:bg-secondary/70">
                 <Wallet className="w-3.5 h-3.5 text-primary" />
                 {Number(profile.balance_uzs).toLocaleString()} UZS
-              </div>
+              </Link>
             )}
 
             {/* Auth */}
@@ -128,6 +128,12 @@ const Navbar = () => {
                     </Link>
                     <Link to="/medications" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <AlarmClock className="w-4 h-4" /> {t("nav.meds")}
+                    </Link>
+                    <Link to="/lab-results" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <FlaskConical className="w-4 h-4" /> {t("nav.lab")}
+                    </Link>
+                    <Link to="/wallet" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Wallet className="w-4 h-4" /> {t("nav.wallet")}
                     </Link>
                     <Link to="/pro" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Crown className="w-4 h-4 text-amber-500" /> {t("nav.pro")}
@@ -181,6 +187,8 @@ const Navbar = () => {
                   <Link to="/start-consultation" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Konsultatsiya</Link>
                   <Link to="/health" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.health")}</Link>
                   <Link to="/medications" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.meds")}</Link>
+                  <Link to="/lab-results" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.lab")}</Link>
+                  <Link to="/wallet" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.wallet")}</Link>
                   <Link to="/pro" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.pro")}</Link>
                   {isDoctor && <Link to="/doctor-dashboard" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Shifokor kabineti</Link>}
                   {(isAdmin || isOwner) && <Link to="/admin" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Admin Panel</Link>}
