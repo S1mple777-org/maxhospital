@@ -12,6 +12,8 @@ import { analyzeTrends, askAssistant, METRIC_BY_KEY, type AiReply, type Lang, ty
 import { usePlanStatus } from "@/lib/planPerks";
 import { generateHealthReportPdf } from "@/lib/healthReportPdf";
 import { savePdf } from "@/lib/native";
+import HomeDiaryCard from "@/components/care/HomeDiaryCard";
+import WeeklyReportCard from "@/components/care/WeeklyReportCard";
 
 const T: Record<Lang, Record<string, string>> = {
   uz: {
@@ -144,17 +146,18 @@ const HealthPage = () => {
   const [reply, setReply] = useState<AiReply | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) { navigate("/auth"); return; }
     if (!user) return;
     supabase
       .from("health_measurements")
-      .select("metric, value, measured_at")
+      .select("*")
       .eq("patient_id", user.id)
       .order("measured_at", { ascending: true })
       .then(({ data }) => setRows(data ?? []));
-  }, [user, loading]);
+  }, [user, loading, reloadKey]);
 
   const trends = useMemo(() => analyzeTrends(rows ?? []), [rows]);
 
@@ -215,6 +218,13 @@ const HealthPage = () => {
           )}
           {error && <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">{error}</div>}
           {reply && <div className="mb-6"><AiAnswerCard reply={reply} language={lang} /></div>}
+
+          {status && (
+            <div className="grid gap-4 md:grid-cols-2 mb-6">
+              <HomeDiaryCard enabled={status.limits.home_diary} language={lang} rows={(rows ?? []) as any[]} onSaved={() => setReloadKey((k) => k + 1)} />
+              <WeeklyReportCard enabled={status.limits.weekly_report} language={lang} refreshKey={reloadKey} />
+            </div>
+          )}
 
           {rows === null ? (
             <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>

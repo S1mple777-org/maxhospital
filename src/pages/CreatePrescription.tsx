@@ -39,6 +39,11 @@ const CreatePrescription = () => {
       // Patient name
       const { data: pp } = await supabase.from("profiles").select("full_name").eq("user_id", cons.patient_id).maybeSingle();
       setPatientName(pp?.full_name || "");
+      // Konsultatsiya oila a'zosi uchun bo'lsa, retseptda o'sha a'zoning ismi.
+      if ((cons as any).family_member_id) {
+        const { data: fm } = await supabase.from("family_members" as any).select("full_name").eq("id", (cons as any).family_member_id).maybeSingle();
+        if (fm) setPatientName((fm as any).full_name);
+      }
 
       // Doctor info
       const { data: doc } = await supabase.from("doctors").select("id, title, department_id, user_id").eq("user_id", user.id).maybeSingle();
@@ -212,7 +217,13 @@ const CreatePrescription = () => {
               </div>
             </div>
 
-            <MeasurementsInput patientId={consultation?.patient_id} values={measurements} onChange={setMeasurements} />
+            {consultation?.family_member_id ? (
+              <p className="rounded-xl bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+                Bu konsultatsiya oila a'zosi uchun: ko'rsatkichlar akkaunt egasining "Salomatligim" grafigiga aralashmasligi uchun saqlanmaydi.
+              </p>
+            ) : (
+              <MeasurementsInput patientId={consultation?.patient_id} values={measurements} onChange={setMeasurements} />
+            )}
 
             {/* Notes */}
             <div className="mb-8">

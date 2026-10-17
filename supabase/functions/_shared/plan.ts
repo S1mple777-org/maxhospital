@@ -10,6 +10,19 @@ export interface PlanLimits {
   health_ai: boolean;
   lab_reads_monthly: number;
   emergency_credit_uzs: number;
+  /** places a request moves up in the doctor's queue */
+  queue_boost: number;
+  /** free "first in queue" bookings per month */
+  queue_first_monthly: number;
+  /** price after the monthly limit; null = not available on this plan */
+  queue_first_price_uzs: number | null;
+  /** chat stays open this long after the consultation ends */
+  followup_hours: number;
+  second_opinions_monthly: number;
+  home_diary: boolean;
+  weekly_report: boolean;
+  emergency_card: boolean;
+  family_members: number;
 }
 
 export interface EmergencyCredit {
@@ -23,7 +36,7 @@ export interface EmergencyCredit {
 export interface PlanStatus {
   plan: PlanId;
   limits: PlanLimits;
-  usage: { ai_today: number; lab_month: number };
+  usage: { ai_today: number; lab_month: number; queue_first_month: number; second_opinions_month: number; family_members: number };
   debt_uzs: number;
   credit: EmergencyCredit | null;
 }
@@ -31,8 +44,12 @@ export interface PlanStatus {
 /** Used when the limits cannot be read (e.g. the migration is not applied yet). */
 export const FALLBACK_STATUS: PlanStatus = {
   plan: "free",
-  limits: { ai_daily_questions: 5, video_free_minutes: 10, health_ai: false, lab_reads_monthly: 0, emergency_credit_uzs: 0 },
-  usage: { ai_today: 0, lab_month: 0 },
+  limits: {
+    ai_daily_questions: 5, video_free_minutes: 10, health_ai: false, lab_reads_monthly: 0, emergency_credit_uzs: 0,
+    queue_boost: 0, queue_first_monthly: 0, queue_first_price_uzs: null, followup_hours: 0, second_opinions_monthly: 0,
+    home_diary: false, weekly_report: false, emergency_card: false, family_members: 0,
+  },
+  usage: { ai_today: 0, lab_month: 0, queue_first_month: 0, second_opinions_month: 0, family_members: 0 },
   debt_uzs: 0,
   credit: null,
 };
@@ -73,9 +90,30 @@ export function normalizeStatus(raw: any): PlanStatus {
       health_ai: !!l.health_ai,
       lab_reads_monthly: Number(l.lab_reads_monthly ?? 0),
       emergency_credit_uzs: Number(l.emergency_credit_uzs ?? 0),
+      queue_boost: Number(l.queue_boost ?? 0),
+      queue_first_monthly: Number(l.queue_first_monthly ?? 0),
+      queue_first_price_uzs: l.queue_first_price_uzs === null || l.queue_first_price_uzs === undefined ? null : Number(l.queue_first_price_uzs),
+      followup_hours: Number(l.followup_hours ?? 0),
+      second_opinions_monthly: Number(l.second_opinions_monthly ?? 0),
+      home_diary: !!l.home_diary,
+      weekly_report: !!l.weekly_report,
+      emergency_card: !!l.emergency_card,
+      family_members: Number(l.family_members ?? 0),
     },
-    usage: { ai_today: Number(raw.usage?.ai_today ?? 0), lab_month: Number(raw.usage?.lab_month ?? 0) },
+    usage: {
+      ai_today: Number(raw.usage?.ai_today ?? 0),
+      lab_month: Number(raw.usage?.lab_month ?? 0),
+      queue_first_month: Number(raw.usage?.queue_first_month ?? 0),
+      second_opinions_month: Number(raw.usage?.second_opinions_month ?? 0),
+      family_members: Number(raw.usage?.family_members ?? 0),
+    },
     debt_uzs: Number(raw.debt_uzs ?? 0),
     credit: raw.credit ?? null,
   };
+}
+
+/** What booking "first in queue" would cost right now: 0 while the monthly free uses last. null = not available. */
+export function queueFirstPrice(s: PlanStatus): number | null {
+  if (s.limits.queue_first_price_uzs === null) return null;
+  return s.usage.queue_first_month < s.limits.queue_first_monthly ? 0 : s.limits.queue_first_price_uzs;
 }

@@ -6,7 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 const AiAssistantButton = () => {
   const { pathname } = useLocation();
   const { t } = useLanguage();
-  if (pathname.startsWith("/ai-assistant") || pathname.startsWith("/consultation/") || pathname.startsWith("/admin") || pathname.startsWith("/owner")) {
+  if (pathname.startsWith("/ai-assistant") || pathname.startsWith("/consultation/") || pathname.startsWith("/admin") || pathname.startsWith("/owner") || pathname.startsWith("/e/")) {
     return null;
   }
   return (

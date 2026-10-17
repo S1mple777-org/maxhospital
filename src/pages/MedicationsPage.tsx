@@ -18,6 +18,7 @@ import {
   saveSchedules, spreadTimes, stopSchedule, todayInTashkent,
   type Channel, type MedicationReminder, type MedicationSchedule, type PlanId, type PlanItem, type Routine,
 } from "@/lib/medications";
+import { loadFamily, RELATIONS, type FamilyMember } from "@/lib/care";
 
 type Source = "prescription" | "upload" | "manual";
 
@@ -64,6 +65,10 @@ const MedicationsPage = () => {
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newTime, setNewTime] = useState<Record<number, string>>({});
+  const [family, setFamily] = useState<FamilyMember[]>([]);
+  const [forWhom, setForWhom] = useState("");
+  useEffect(() => { if (user) loadFamily().then(setFamily); }, [user]);
+  const memberName = (id?: string | null) => (id ? family.find((m) => m.id === id)?.full_name : null);
 
   const scheduleById = useMemo(() => new Map(schedules.map((s) => [s.id, s])), [schedules]);
 
@@ -191,13 +196,17 @@ const MedicationsPage = () => {
     }
     setSaving(true);
     try {
-      await saveSchedules({
+      const ids = await saveSchedules({
         items: draft.map(({ medicine_name, dose, instructions, times, days, start_date }) =>
           ({ medicine_name, dose, instructions, times, days, start_date: start_date || todayInTashkent() })),
         source: draftSource,
         prescriptionId: draftPrescriptionId,
         channels,
       });
+      if (forWhom && ids.length) {
+        const { error } = await supabase.rpc("assign_schedules_to_member" as any, { _schedule_ids: ids, _family_member_id: forWhom });
+        if (error) toast.error(error.message);
+      }
       toast.success("Eslatmalar saqlandi!");
       setDraft(null); setPdf(null); setNote("");
       await loadAll();
@@ -447,6 +456,17 @@ const MedicationsPage = () => {
                     <Plus className="w-4 h-4" /> Dori qo'shish
                   </button>
 
+                  {family.length > 0 && (
+                    <label className="block text-sm">
+                      <span className="font-medium text-foreground">Kim uchun?</span>
+                      <select value={forWhom} onChange={(e) => setForWhom(e.target.value)} className="mt-1 w-full sm:w-auto px-3 py-2 rounded-xl border border-input bg-background text-foreground text-sm">
+                        <option value="">O'zim uchun</option>
+                        {family.map((m) => <option key={m.id} value={m.id}>{m.full_name} ({RELATIONS[m.relation]})</option>)}
+                      </select>
+                      <span className="block text-xs text-muted-foreground mt-1">Eslatmada uning ismi ham chiqadi.</span>
+                    </label>
+                  )}
+
                   <div>
                     <div className="text-sm font-medium text-foreground mb-2">Qayerga eslatilsin</div>
                     <div className="flex flex-wrap gap-2">
@@ -496,6 +516,7 @@ const MedicationsPage = () => {
                     <div key={s.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 ${s.is_active ? "" : "opacity-60"}`}>
                       <div className="min-w-0">
                         <div className="font-medium text-foreground">{s.medicine_name}{s.dose ? <span className="text-muted-foreground font-normal"> — {s.dose}</span> : null}</div>
+                        {memberName((s as any).family_member_id) && <div className="text-xs text-primary">👤 {memberName((s as any).family_member_id)}</div>}
                         <div className="text-xs text-muted-foreground mt-0.5">
                           {s.times.join(", ")} · {new Date(`${s.start_date}T00:00:00+05:00`).toLocaleDateString()} – {end.toLocaleDateString()} · {s.channels.join(", ")}
                           {!s.is_active && " · to'xtatilgan"}

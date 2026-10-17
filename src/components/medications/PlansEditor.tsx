@@ -12,6 +12,7 @@ const PlansEditor = () => {
   const [stats, setStats] = useState({ active: 0, revenue30: 0 });
   const [limits, setLimits] = useState<PlanLimitsRow[]>([]);
   const [debtStats, setDebtStats] = useState({ open: 0, total: 0 });
+  const [feeTotal, setFeeTotal] = useState(0);
 
   const load = async () => {
     setPlans(await loadPlans());
@@ -19,6 +20,9 @@ const PlansEditor = () => {
     const { data: credits } = await supabase.from("emergency_credits" as any).select("amount_uzs, repaid_uzs").eq("status", "open").limit(10000);
     const open = ((credits ?? []) as any[]);
     setDebtStats({ open: open.length, total: open.reduce((s, c) => s + Number(c.amount_uzs) - Number(c.repaid_uzs), 0) });
+    const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const { data: fees } = await supabase.from("platform_fees" as any).select("amount_uzs").eq("status", "paid").gte("created_at", since30).limit(10000);
+    setFeeTotal(((fees ?? []) as any[]).reduce((s, f) => s + Number(f.amount_uzs), 0));
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
     const [{ count }, { data: payments }] = await Promise.all([
       supabase.from("subscriptions" as any).select("user_id", { count: "exact", head: true })
@@ -54,7 +58,8 @@ const PlansEditor = () => {
     setLimits((prev) => prev.map((l) => (l.plan_id === id ? { ...l, ...patch } : l)));
 
   const saveLimits = async (l: PlanLimitsRow) => {
-    const ints = [l.video_free_minutes, l.lab_reads_monthly, l.emergency_credit_uzs, l.ai_daily_questions ?? 0];
+    const ints = [l.video_free_minutes, l.lab_reads_monthly, l.emergency_credit_uzs, l.ai_daily_questions ?? 0,
+      l.queue_boost, l.queue_first_monthly, l.queue_first_price_uzs ?? 0, l.followup_hours, l.second_opinions_monthly, l.family_members];
     if (ints.some((n) => !Number.isInteger(n) || n < 0) || l.video_free_minutes > 240) {
       toast.error("Qiymatlar butun va musbat bo'lsin (video ≤ 240 daqiqa)");
       return;
@@ -67,6 +72,15 @@ const PlansEditor = () => {
         health_ai: l.health_ai,
         lab_reads_monthly: l.lab_reads_monthly,
         emergency_credit_uzs: l.emergency_credit_uzs,
+        queue_boost: l.queue_boost,
+        queue_first_monthly: l.queue_first_monthly,
+        queue_first_price_uzs: l.queue_first_price_uzs,
+        followup_hours: l.followup_hours,
+        second_opinions_monthly: l.second_opinions_monthly,
+        home_diary: l.home_diary,
+        weekly_report: l.weekly_report,
+        emergency_card: l.emergency_card,
+        family_members: l.family_members,
         updated_at: new Date().toISOString(),
       })
       .eq("plan_id", l.plan_id);
@@ -124,6 +138,10 @@ const PlansEditor = () => {
           <div className="text-2xl font-display font-bold text-foreground">{formatUzs(debtStats.total)}</div>
           <div className="text-sm text-muted-foreground">Qarzlar jami</div>
         </div>
+        <div className="col-span-2 bg-card rounded-xl border border-border p-4">
+          <div className="text-2xl font-display font-bold text-foreground">{formatUzs(feeTotal)}</div>
+          <div className="text-sm text-muted-foreground">Platforma daromadi: "birinchi navbat" to'lovlari (30 kun)</div>
+        </div>
       </div>
       {limits.map((l) => (
         <div key={l.plan_id} className="bg-card rounded-xl border border-border p-4">
@@ -152,10 +170,41 @@ const PlansEditor = () => {
                 onChange={(e) => updateLimit(l.plan_id, { emergency_credit_uzs: Number(e.target.value) })} className={`${inputClass} w-full mt-1`} />
             </label>
           </div>
-          <label className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <input type="checkbox" checked={l.health_ai} onChange={(e) => updateLimit(l.plan_id, { health_ai: e.target.checked })} />
-            Ko'rsatkichlar AI tahlili va PDF hisobot
-          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+            {([
+              ["queue_boost", "Navbatda oldinga (o'rin)"],
+              ["queue_first_monthly", "Birinchi navbat / oy (bepul)"],
+              ["followup_hours", "Bepul savol vaqti (soat)"],
+              ["second_opinions_monthly", "Ikkinchi fikr / oy"],
+              ["family_members", "Oila a'zolari soni"],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="text-xs text-muted-foreground">{label}
+                <input type="number" min={0} value={l[k]} onChange={(e) => updateLimit(l.plan_id, { [k]: Number(e.target.value) } as Partial<PlanLimitsRow>)} className={`${inputClass} w-full mt-1`} />
+              </label>
+            ))}
+            <div className="text-xs text-muted-foreground">Birinchi navbat narxi (limitdan keyin)
+              <div className="flex items-center gap-2 mt-1">
+                <input type="number" min={0} step={1000} disabled={l.queue_first_price_uzs === null} value={l.queue_first_price_uzs ?? ""}
+                  onChange={(e) => updateLimit(l.plan_id, { queue_first_price_uzs: Number(e.target.value) })} className={`${inputClass} w-full disabled:opacity-40`} />
+                <label className="flex items-center gap-1 whitespace-nowrap">
+                  <input type="checkbox" checked={l.queue_first_price_uzs === null}
+                    onChange={(e) => updateLimit(l.plan_id, { queue_first_price_uzs: e.target.checked ? null : 15000 })} /> yo'q
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+            {([
+              ["health_ai", "Ko'rsatkichlar AI tahlili va PDF"],
+              ["home_diary", "Uy o'lchovlari"],
+              ["weekly_report", "Haftalik AI hisobot"],
+              ["emergency_card", "Favqulodda QR karta"],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2">
+                <input type="checkbox" checked={l[k]} onChange={(e) => updateLimit(l.plan_id, { [k]: e.target.checked } as Partial<PlanLimitsRow>)} /> {label}
+              </label>
+            ))}
+          </div>
           <button onClick={() => saveLimits(l)} disabled={saving === `limits-${l.plan_id}`} className="mt-3 px-4 py-2 rounded-lg bg-hero-gradient text-primary-foreground text-sm font-medium inline-flex items-center gap-1.5 disabled:opacity-50">
             {saving === `limits-${l.plan_id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Saqlash
           </button>

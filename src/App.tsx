@@ -31,6 +31,10 @@ import ProPage from "./pages/ProPage";
 import MedicationsPage from "./pages/MedicationsPage";
 import WalletPage from "./pages/WalletPage";
 import LabResultsPage from "./pages/LabResultsPage";
+import FamilyPage from "./pages/FamilyPage";
+import EmergencyCardPage from "./pages/EmergencyCardPage";
+import PublicEmergencyCardPage from "./pages/PublicEmergencyCardPage";
+import SecondOpinionPage from "./pages/SecondOpinionPage";
 import ReminderListener from "./components/medications/ReminderListener";
 import NotFound from "./pages/NotFound";
 
@@ -70,6 +74,10 @@ const App = () => (
                 <Route path="/medications" element={<MedicationsPage />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/lab-results" element={<LabResultsPage />} />
+                <Route path="/family" element={<FamilyPage />} />
+                <Route path="/emergency-card" element={<EmergencyCardPage />} />
+                <Route path="/e/:token" element={<PublicEmergencyCardPage />} />
+                <Route path="/second-opinion" element={<SecondOpinionPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AiAssistantButton />
