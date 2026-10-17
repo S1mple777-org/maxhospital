@@ -92,8 +92,15 @@ async function handle(route) {
   const req = route.request();
   const url = new URL(req.url());
   const p = url.pathname;
-  const json = (body, headers = {}) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", ...headers }, body: JSON.stringify(body) });
-  if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+  // CORS: "Authorization" sarlavhasi "*" bilan ruxsat etilmaydi, shuning uchun so'ralganini qaytaramiz.
+  const cors = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": req.headers()["access-control-request-headers"] || "authorization, apikey, content-type, x-client-info, prefer, range, accept-profile, content-profile",
+    "access-control-allow-methods": "GET, POST, PATCH, PUT, DELETE, HEAD, OPTIONS",
+    "access-control-expose-headers": "content-range",
+  };
+  const json = (body, headers = {}) => route.fulfill({ status: 200, contentType: "application/json", headers: { ...cors, ...headers }, body: JSON.stringify(body) });
+  if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
   if (p.startsWith("/auth/v1/user")) return json(user);
   if (p.startsWith("/auth/v1/token")) return json(session);
   if (p.startsWith("/auth/v1/")) return json({});
@@ -112,8 +119,8 @@ async function handle(route) {
     const rows = Array.from({ length: n }, (_, i) => row(table, i));
     const single = (req.headers()["accept"] || "").includes("vnd.pgrst.object");
     const range = { "content-range": `0-${n - 1}/${n}` };
-    if (req.method() === "HEAD") return route.fulfill({ status: 200, headers: { ...range, "access-control-allow-origin": "*", "access-control-expose-headers": "content-range" } });
-    return json(single ? rows[0] : rows, { ...range, "access-control-expose-headers": "content-range" });
+    if (req.method() === "HEAD") return route.fulfill({ status: 200, headers: { ...cors, ...range } });
+    return json(single ? rows[0] : rows, range);
   }
   return route.continue();
 }
@@ -189,6 +196,7 @@ for (const r of ROUTES) {
   if (ONLY && !ONLY.includes(r)) continue;
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log(`    [pageerror] ${r}: ${e.message.slice(0, 160)}`));
+  page.on("requestfailed", (q) => { if (/supabase/.test(q.url())) console.log(`    [requestfailed] ${q.method()} ${q.url().slice(0, 100)} ${q.failure()?.errorText}`); });
   try {
     await page.goto(BASE + r, { waitUntil: "networkidle", timeout: 30000 }).catch(() => {});
     await check(page, r);
