@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { authRedirectUrl, signInWithMagicLink } from "@/lib/native";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { Stethoscope, Mail, Lock, User, Eye, EyeOff, ArrowRight, MessageCircle, Loader2 } from "lucide-react";
@@ -39,7 +40,14 @@ const AuthPage = () => {
         if (check.data?.status === "approved" && check.data?.action_link) {
           clearInterval(interval);
           setTelegramPolling(false);
-          window.location.href = check.data.action_link;
+          try {
+            const signedIn = await signInWithMagicLink(check.data.action_link, (token_hash, type) =>
+              supabase.auth.verifyOtp({ token_hash, type: type as any }),
+            );
+            if (signedIn) { toast.success("Muvaffaqiyatli kirdingiz!"); navigate("/"); }
+          } catch (err: any) {
+            toast.error(err.message);
+          }
         } else if (check.data?.status === "rejected" || check.data?.status === "expired") {
           clearInterval(interval);
           setTelegramPolling(false);
@@ -118,7 +126,7 @@ const AuthPage = () => {
       } else {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: fullName }, emailRedirectTo: authRedirectUrl() },
         });
         if (error) throw error;
         toast.success("Ro'yxatdan o'tdingiz!");
