@@ -83,6 +83,12 @@ export async function loadSubscription(userId: string): Promise<{ plan: PlanId; 
   return { plan: isActive(sub) ? sub!.plan_id : "free", subscription: sub };
 }
 
+/** Shown when the plans table is not available yet (migration not applied). Prices match the migration seed. */
+export const DEFAULT_PLANS: SubscriptionPlan[] = [
+  { id: "pro", name: "Pro", price_uzs: 19000, period_days: 30, sms_enabled: false, is_active: true, sort_order: 1 },
+  { id: "premium", name: "Premium", price_uzs: 39000, period_days: 30, sms_enabled: true, is_active: true, sort_order: 2 },
+];
+
 export async function loadPlans(): Promise<SubscriptionPlan[]> {
   const { data } = await supabase.from("subscription_plans" as any).select("*").order("sort_order");
   return (data as unknown as SubscriptionPlan[] | null) ?? [];

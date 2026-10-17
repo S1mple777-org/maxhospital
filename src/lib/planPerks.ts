@@ -42,6 +42,13 @@ export function usePlanStatus(enabled: boolean) {
   return { status, refresh };
 }
 
+/** Same values as the plan_limits seed in migration 0003; used until the table exists. */
+export const DEFAULT_PLAN_LIMITS: PlanLimitsRow[] = [
+  { plan_id: "free", ai_daily_questions: 5, video_free_minutes: 10, health_ai: false, lab_reads_monthly: 0, emergency_credit_uzs: 50000 },
+  { plan_id: "pro", ai_daily_questions: 50, video_free_minutes: 20, health_ai: true, lab_reads_monthly: 5, emergency_credit_uzs: 100000 },
+  { plan_id: "premium", ai_daily_questions: null, video_free_minutes: 30, health_ai: true, lab_reads_monthly: 20, emergency_credit_uzs: 150000 },
+];
+
 export async function loadPlanLimits(): Promise<PlanLimitsRow[]> {
   const { data } = await supabase.from("plan_limits" as any).select("*");
   const order: PlanId[] = ["free", "pro", "premium"];
