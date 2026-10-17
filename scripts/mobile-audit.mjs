@@ -8,7 +8,7 @@ import path from "node:path";
 const BASE = process.env.BASE_URL || "http://localhost:4173";
 const OUT = process.env.OUT_DIR || "mobile-audit";
 const WIDTH = Number(process.env.WIDTH || 360);
-const REF = (process.env.VITE_SUPABASE_URL || "").match(/https:\/\/([a-z0-9]+)\./)?.[1] || "mhyiqzeowliasmozvjdk";
+const REF = "mhyiqzeowliasmozvjdk";
 
 const ME = "11111111-1111-4111-8111-111111111111";
 const ID = "22222222-2222-4222-8222-222222222222";
@@ -175,7 +175,7 @@ const ctx = await browser.newContext({ viewport: { width: WIDTH, height: 780 }, 
 await ctx.addInitScript(({ key, s }) => {
   try { localStorage.setItem(key, JSON.stringify(s)); } catch { /* ignore */ }
 }, { key: `sb-${REF}-auth-token`, s: session });
-await ctx.route(/supabase\.co/, handle);
+await ctx.route(/\.(supabase\.co|lovable\.cloud)\//, handle);
 
 const report = [];
 async function check(page, name) {
@@ -196,7 +196,7 @@ for (const r of ROUTES) {
   if (ONLY && !ONLY.includes(r)) continue;
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log(`    [pageerror] ${r}: ${e.message.slice(0, 160)}`));
-  page.on("requestfailed", (q) => { if (/supabase/.test(q.url())) console.log(`    [requestfailed] ${q.method()} ${q.url().slice(0, 100)} ${q.failure()?.errorText}`); });
+  page.on("requestfailed", (q) => { if (/supabase\.co|lovable\.cloud/.test(q.url())) console.log(`    [requestfailed] ${q.method()} ${q.url().slice(0, 100)} ${q.failure()?.errorText}`); });
   try {
     await page.goto(BASE + r, { waitUntil: "networkidle", timeout: 30000 }).catch(() => {});
     await check(page, r);

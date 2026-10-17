@@ -230,8 +230,8 @@ const OwnerPanel = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-card border-b border-border px-6 py-4">
-        <div className="container mx-auto flex items-center justify-between">
+      <div className="bg-card border-b border-border px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="container mx-auto px-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
               <Crown className="w-5 h-5 text-white" />
@@ -241,17 +241,17 @@ const OwnerPanel = () => {
               <p className="text-sm text-muted-foreground">Tizim egasi boshqaruvi</p>
             </div>
           </div>
-          <button onClick={() => navigate("/")} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← Bosh sahifa</button>
+          <button onClick={() => navigate("/")} className="shrink-0 px-3 sm:px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-secondary">← <span className="hidden sm:inline">Bosh sahifa</span></button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          <div className="w-56 shrink-0">
-            <div className="bg-card rounded-xl border border-border p-2 space-y-1">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+          <div className="-mx-4 px-4 md:mx-0 md:px-0 md:w-56 md:shrink-0 overflow-x-auto md:overflow-visible">
+            <div role="tablist" className="flex md:flex-col gap-1 w-max md:w-auto bg-card rounded-xl border border-border p-1.5 md:p-2">
               {tabs.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
+                <button key={tab.id} data-panel-tab role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`shrink-0 md:w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}>
                   <tab.icon className="w-4 h-4" />{tab.label}
                 </button>
               ))}
