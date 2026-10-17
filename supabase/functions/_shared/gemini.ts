@@ -62,15 +62,30 @@ export interface ChatTurn {
   text: string;
 }
 
+/** A file passed to the model inline (e.g. a PDF prescription), base64-encoded. */
+export interface InlineFile {
+  mimeType: string;
+  data: string;
+}
+
 export async function generateJson<T>(opts: {
   system: string;
   turns: ChatTurn[];
   schema: Record<string, unknown>;
   temperature?: number;
+  /** attached to the last turn, before its text */
+  files?: InlineFile[];
 }): Promise<T> {
+  const last = opts.turns.length - 1;
   const json = await post(`models/${chatModel()}:generateContent`, {
     systemInstruction: { parts: [{ text: opts.system }] },
-    contents: opts.turns.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
+    contents: opts.turns.map((t, i) => ({
+      role: t.role,
+      parts: [
+        ...(i === last ? (opts.files ?? []).map((f) => ({ inlineData: { mimeType: f.mimeType, data: f.data } })) : []),
+        { text: t.text },
+      ],
+    })),
     generationConfig: {
       temperature: opts.temperature ?? 0.2,
       responseMimeType: "application/json",

@@ -14,6 +14,11 @@ const config: CapacitorConfig = {
     SystemBars: {
       insetsHandling: "native",
     },
+    // Dori eslatmalari (internetsiz ishlaydigan budilnik). Ikonka scripts/android-setup.mjs da yaratiladi.
+    LocalNotifications: {
+      smallIcon: "ic_stat_medication",
+      iconColor: "#0E7C74",
+    },
   },
 };
 

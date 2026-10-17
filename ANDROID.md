@@ -89,6 +89,7 @@ Keyin Android Studio'da yana **▶ Run** bosing. Ilova sayt kodini o'z ichida sa
 | Video qo'ng'iroq | Birinchi marta kamera va mikrofon ruxsatini so'raydi |
 | "Orqaga" tugmasi | Oldingi sahifaga qaytaradi, bosh sahifada ilovadan chiqadi |
 | 103 tugmasi, Telegram havolalari | Telefon qo'ng'iroq ilovasi yoki Telegram ochiladi |
+| Dori eslatmalari (Pro) | Telefonga oldindan yoziladi va **internetsiz** chalinadi. Birinchi marta bildirishnoma va "Budilnik va eslatmalar" ruxsatini so'raydi |
 
 Sayt boshqa domenga ko'chsa, `.env` faylga `VITE_PUBLIC_SITE_URL="https://yangi-domen.uz"` qo'shing.
 

@@ -15,6 +15,13 @@
       "when": 1792230244099,
       "tag": "0001_ai_assistant",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792233846366,
+      "tag": "0002_medication_reminders",
+      "breakpoints": true
     }
   ]
 }

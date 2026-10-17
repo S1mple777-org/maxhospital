@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ArrowLeft, FileText, Download, Pill } from "lucide-react";
+import { ArrowLeft, FileText, Download, Pill, AlarmClock } from "lucide-react";
 import { generatePrescriptionPdf, type PrescriptionData, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
 import { savePdf } from "@/lib/native";
 import { toast } from "sonner";
@@ -77,6 +77,9 @@ const MyPrescriptions = () => {
                       <p className="text-xs text-primary mt-0.5">{rx.medicines.length} ta dori</p>
                     </div>
                   </div>
+                  <button onClick={(e) => { e.stopPropagation(); navigate(`/medications?prescription=${rx.id}`); }} title="Dori eslatmasi qo'yish" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                    <AlarmClock className="w-4 h-4" />
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); handleDownload(rx); }} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                     <Download className="w-4 h-4" />
                   </button>
