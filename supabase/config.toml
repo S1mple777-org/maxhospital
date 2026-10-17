@@ -1,1 +1,5 @@
 project_id = "mhyiqzeowliasmozvjdk"
+
+# Cron chaqiradi (x-cron-secret bilan tekshiriladi), foydalanuvchi JWT si bo'lmaydi.
+[functions.dispatch-reminders]
+verify_jwt = false

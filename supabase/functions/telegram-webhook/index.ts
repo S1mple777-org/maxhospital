@@ -905,12 +905,54 @@ async function handleMessage(message: any) {
   await sendMessage(chatId, "🤔 Tushunmadim. /help buyrug'ini yuboring.");
 }
 
+// "✅ Ichdim" / "⏭ O'tkazib yubordim" tugmalari (dispatch-reminders yuborgan dori eslatmasi).
+async function handleMedicationCallback(supabase: any, callbackQuery: any) {
+  const chatId = callbackQuery.message.chat.id;
+  const match = /^med:(taken|skip):([0-9a-f-]{36})$/.exec(callbackQuery.data);
+  if (!match) return;
+  const status = match[1] === "taken" ? "taken" : "skipped";
+
+  const profile = await getLinkedProfile(supabase, chatId);
+  if (!profile) {
+    await sendMessage(chatId, "⚠️ Akkauntingiz ulanmagan.");
+    return;
+  }
+
+  const { data: updated } = await supabase
+    .from("medication_reminders")
+    .update({ status, responded_at: new Date().toISOString() })
+    .eq("id", match[2])
+    .eq("user_id", profile.user_id)
+    .in("status", ["pending", "sent", "missed"])
+    .select("id");
+
+  const original = callbackQuery.message.text ?? "";
+  const mark = !updated?.length
+    ? "ℹ️ Bu eslatma allaqachon belgilangan."
+    : status === "taken" ? "✅ Ichildi deb belgilandi." : "⏭ O'tkazib yuborildi deb belgilandi.";
+
+  await fetch(`${TELEGRAM_API}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: callbackQuery.message.message_id,
+      text: `${original}\n\n${mark}`,
+    }),
+  });
+}
+
 async function handleCallbackQuery(callbackQuery: any) {
   const chatId = callbackQuery.message.chat.id;
   const data = callbackQuery.data;
   const supabase = getSupabase();
 
   await answerCallbackQuery(callbackQuery.id);
+
+  if (typeof data === "string" && data.startsWith("med:")) {
+    await handleMedicationCallback(supabase, callbackQuery);
+    return;
+  }
 
   if (data === "check_subscription") {
     const { allJoined, notJoined } = await checkForcedSubscriptions(supabase, chatId);

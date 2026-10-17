@@ -5,8 +5,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone
+  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone, Pill
 } from "lucide-react";
+import PlansEditor from "@/components/medications/PlansEditor";
 
 type AdminType = "financial" | "dept_head" | "journalist";
 
@@ -209,6 +210,7 @@ const OwnerPanel = () => {
     { id: "departments", label: "Bo'limlar", icon: Building2 },
     { id: "limits", label: "Limitlar", icon: Wallet },
     { id: "subscriptions", label: "Majburiy obuna", icon: Megaphone },
+    { id: "pro-plans", label: "Pro tariflar", icon: Pill },
   ];
 
   const IconUploader = () => (
@@ -407,6 +409,8 @@ const OwnerPanel = () => {
                 </div>
               </div>
             )}
+
+            {activeTab === "pro-plans" && <PlansEditor />}
 
             {/* Subscriptions Tab */}
             {activeTab === "subscriptions" && (

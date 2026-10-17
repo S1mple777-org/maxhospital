@@ -27,6 +27,9 @@ import MyPrescriptions from "./pages/MyPrescriptions";
 import AiAssistantPage from "./pages/AiAssistantPage";
 import HealthPage from "./pages/HealthPage";
 import AiAssistantButton from "./components/ai/AiAssistantButton";
+import ProPage from "./pages/ProPage";
+import MedicationsPage from "./pages/MedicationsPage";
+import ReminderListener from "./components/medications/ReminderListener";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,9 +64,12 @@ const App = () => (
                 <Route path="/my-prescriptions" element={<MyPrescriptions />} />
                 <Route path="/ai-assistant" element={<AiAssistantPage />} />
                 <Route path="/health" element={<HealthPage />} />
+                <Route path="/pro" element={<ProPage />} />
+                <Route path="/medications" element={<MedicationsPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AiAssistantButton />
+              <ReminderListener />
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>

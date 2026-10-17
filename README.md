@@ -10,6 +10,7 @@ MaxHospital — bemorlar uydan chiqmasdan malakali shifokorlardan chat va video 
 | Elektron retsept | Shifokor retsept yozadi, bemor uni PDF ko'rinishida yuklab oladi |
 | **AI-yordamchi** | Gemini asosida, saytdagi tibbiy kitoblarga tayangan holda ishlaydi (pastda batafsil) |
 | **Salomatligim** | Bemorning ko'rik ko'rsatkichlari grafigi va o'zgarish tahlili |
+| **Pro: dori eslatmalari** | AI retseptdan jadval tuzadi; Telegram, sayt, ilova (internetsiz) va SMS (Premium) orqali eslatadi. Batafsil: [MEDICATIONS.md](MEDICATIONS.md) |
 | Telegram | Telegram orqali kirish va bildirishnomalar |
 | 3 til | O'zbek, rus, ingliz |
 | Rollar | Bemor, shifokor, admin (moliyaviy, bo'lim boshlig'i, jurnalist), owner |

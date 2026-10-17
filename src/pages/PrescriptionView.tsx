@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ArrowLeft, Download, FileText, Pill, Calendar, User, Stethoscope } from "lucide-react";
+import { ArrowLeft, Download, FileText, Pill, Calendar, User, Stethoscope, AlarmClock } from "lucide-react";
 import { generatePrescriptionPdf, type PrescriptionData, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
 import { savePdf } from "@/lib/native";
 import { toast } from "sonner";
@@ -66,9 +66,16 @@ const PrescriptionView = () => {
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" /> Orqaga
             </button>
-            <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-              <Download className="w-4 h-4" /> PDF yuklash
-            </button>
+            <div className="flex items-center gap-2">
+              {rx && (rx as any).patient_id === user?.id && (
+                <button onClick={() => navigate(`/medications?prescription=${rx.id}`)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-foreground text-sm font-medium hover:bg-secondary transition-colors">
+                  <AlarmClock className="w-4 h-4" /> Eslatma qo'yish
+                </button>
+              )}
+              <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                <Download className="w-4 h-4" /> PDF yuklash
+              </button>
+            </div>
           </div>
 
           {/* Prescription Card */}

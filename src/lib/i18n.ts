@@ -13,6 +13,8 @@ export const translations = {
       admin: "Admin panel",
       ai: "AI-yordamchi",
       health: "Salomatligim",
+      meds: "Dori eslatmalari",
+      pro: "Pro",
     },
     hero: {
       title: "Online tibbiy maslahat",
@@ -87,6 +89,8 @@ export const translations = {
       admin: "Админ панель",
       ai: "AI-помощник",
       health: "Моё здоровье",
+      meds: "Напоминания о лекарствах",
+      pro: "Pro",
     },
     hero: {
       title: "Онлайн медицинская консультация",
@@ -161,6 +165,8 @@ export const translations = {
       admin: "Admin Panel",
       ai: "AI assistant",
       health: "My health",
+      meds: "Medication reminders",
+      pro: "Pro",
     },
     hero: {
       title: "Online Medical Consultation",
