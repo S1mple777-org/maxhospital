@@ -5,10 +5,16 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Stethoscope, ArrowRight, MessageCircle, Siren, Wallet, Phone } from "lucide-react";
-import { emergencyQuote, isDebtError, startConsultationOnCredit, usePlanStatus } from "@/lib/planPerks";
+import { Stethoscope, ArrowRight, MessageCircle, Siren, Wallet, Phone, Zap, Crown, Users } from "lucide-react";
+import { emergencyQuote, isDebtError, queueFirstPrice, startConsultationOnCredit, usePlanStatus } from "@/lib/planPerks";
+import { loadFamily, RELATIONS, type FamilyMember } from "@/lib/care";
 import { formatUzs } from "@/lib/medications";
 import { toast } from "sonner";
+
+// Pending / active, or finished but still inside the free follow-up window.
+const isOpenForPatient = (c: any) =>
+  c.status === "pending" || c.status === "active"
+  || (c.status === "completed" && !!c.followup_until && new Date(c.followup_until).getTime() > Date.now());
 
 const StartConsultation = () => {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -21,15 +27,18 @@ const StartConsultation = () => {
   const [creating, setCreating] = useState(false);
   const [myConsultations, setMyConsultations] = useState<any[]>([]);
   const { status: planStatus, refresh: refreshPlan } = usePlanStatus(!!user);
+  const [family, setFamily] = useState<FamilyMember[]>([]);
+  const [forWhom, setForWhom] = useState<string>(""); // "" = o'zim
+  const [first, setFirst] = useState(false);
+  useEffect(() => { if (user) loadFamily().then(setFamily); }, [user]);
 
   const getName = (item: any, prefix = "name") =>
     language === "ru" ? item[`${prefix}_ru`] : language === "en" ? item[`${prefix}_en`] : item[`${prefix}_uz`];
 
   const loadMyConsultations = () => {
     if (!user) return;
-    supabase.from("consultations").select("*").eq("patient_id", user.id).in("status", ["pending", "active"]).order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setMyConsultations(data);
-      else setMyConsultations([]);
+    supabase.from("consultations").select("*").eq("patient_id", user.id).in("status", ["pending", "active", "completed"]).order("created_at", { ascending: false }).limit(30).then(({ data }) => {
+      setMyConsultations((data ?? []).filter(isOpenForPatient));
     });
   };
 
@@ -47,7 +56,7 @@ const StartConsultation = () => {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "consultations", filter: `patient_id=eq.${user.id}` },
         (payload) => {
           const updated = payload.new as any;
-          if (updated.status === "completed" || updated.status === "cancelled") {
+          if (!isOpenForPatient(updated)) {
             setMyConsultations(prev => prev.filter(c => c.id !== updated.id));
           } else {
             setMyConsultations(prev => prev.map(c => c.id === updated.id ? updated : c));
@@ -77,6 +86,9 @@ const StartConsultation = () => {
 
   const price = selectedDept ? Number(selectedDept.price_uzs) : 0;
   const balance = Number(profile?.balance_uzs || 0);
+  const firstPrice = planStatus ? queueFirstPrice(planStatus) : null;
+  const firstFee = first && firstPrice ? firstPrice : 0;
+  const total = price + firstFee;
   const quote = emergencyQuote({
     price,
     balance,
@@ -91,14 +103,16 @@ const StartConsultation = () => {
       navigate("/wallet");
       return;
     }
-    if (balance < price) {
+    if (balance < total) {
       toast.error("Balansingizda yetarli mablag' yo'q");
       return;
     }
     setCreating(true);
     // Price check, payment and creation happen together on the server.
-    const { data: consultationId, error } = await supabase.rpc("create_consultation", {
+    const { data: consultationId, error } = await supabase.rpc("create_consultation" as any, {
       _doctor_id: selectedDoctor.id,
+      _first: first,
+      _family_member_id: forWhom || null,
     });
     setCreating(false);
     if (error || !consultationId) {
@@ -106,8 +120,8 @@ const StartConsultation = () => {
       if (error && isDebtError(error.message)) navigate("/wallet");
       return;
     }
-    await refreshProfile();
-    toast.success("So'rov yuborildi! Shifokor javobini kuting.");
+    await Promise.all([refreshProfile(), refreshPlan()]);
+    toast.success(first ? "So'rov navbatning boshiga qo'yildi! Shifokor javobini kuting." : "So'rov yuborildi! Shifokor javobini kuting.");
     navigate(`/consultation/${consultationId}`);
   };
 
@@ -120,7 +134,7 @@ const StartConsultation = () => {
     if (!ok) return;
     setCreating(true);
     try {
-      const consultationId = await startConsultationOnCredit(selectedDoctor.id);
+      const consultationId = await startConsultationOnCredit(selectedDoctor.id, forWhom || null);
       await Promise.all([refreshProfile(), refreshPlan()]);
       toast.success("Favqulodda so'rov yuborildi! Shifokor javobini kuting.");
       navigate(`/consultation/${consultationId}`);
@@ -145,11 +159,11 @@ const StartConsultation = () => {
             <div className="mb-8">
               <h3 className="font-display font-semibold text-foreground mb-3 text-sm">Faol konsultatsiyalaringiz</h3>
               <div className="space-y-2">
-                {myConsultations.filter(c => c.status === "pending" || c.status === "active").map(c => (
+                {myConsultations.filter(isOpenForPatient).map(c => (
                   <div key={c.id} onClick={() => navigate(`/consultation/${c.id}`)} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between cursor-pointer hover:bg-secondary/50">
                     <div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === "active" ? "bg-green-100 text-green-700" : "bg-warning/10 text-warning"}`}>
-                        {c.status === "active" ? "Faol" : "Kutilmoqda"}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === "active" ? "bg-green-100 text-green-700" : c.status === "completed" ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
+                        {c.status === "active" ? "Faol" : c.status === "completed" ? "Bepul savol vaqti" : "Kutilmoqda"}
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">{new Date(c.created_at).toLocaleString()}</p>
                     </div>
@@ -232,8 +246,47 @@ const StartConsultation = () => {
                 <p>Bo'lim: <span className="text-foreground font-medium">{getName(selectedDept)}</span></p>
                 <p>Shifokor: <span className="text-foreground font-medium">{selectedDoctor.profile?.full_name}</span></p>
                 <p>Narx: <span className="text-foreground font-medium">{Number(selectedDept.price_uzs).toLocaleString()} UZS</span></p>
+                {firstFee > 0 && <p>Birinchi navbat: <span className="text-foreground font-medium">{formatUzs(firstFee)}</span></p>}
                 <p>Balansingiz: <span className="text-foreground font-medium">{Number(profile?.balance_uzs || 0).toLocaleString()} UZS</span></p>
               </div>
+
+              {family.length > 0 && (
+                <label className="block mb-4 text-sm">
+                  <span className="flex items-center gap-1.5 font-medium text-foreground mb-1.5"><Users className="w-4 h-4 text-primary" /> Kim uchun?</span>
+                  <select value={forWhom} onChange={(e) => setForWhom(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm">
+                    <option value="">O'zim uchun</option>
+                    {family.map((m) => <option key={m.id} value={m.id}>{m.full_name} ({RELATIONS[m.relation]})</option>)}
+                  </select>
+                </label>
+              )}
+
+              {planStatus && (planStatus.limits.queue_boost > 0 || firstPrice !== null) ? (
+                <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
+                  {planStatus.limits.queue_boost > 0 && (
+                    <p className="flex items-start gap-2 text-foreground">
+                      <Crown className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      Ustuvor navbat: so'rovingiz shifokor ro'yxatida {planStatus.limits.queue_boost} o'ringa oldinga o'tadi.
+                    </p>
+                  )}
+                  {firstPrice !== null && (
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" checked={first} onChange={(e) => setFirst(e.target.checked)} className="mt-1" />
+                      <span>
+                        <span className="flex items-center gap-1 font-medium text-foreground"><Zap className="w-4 h-4 text-amber-500" /> Birinchi navbatga yozilish</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {firstPrice === 0
+                            ? `Bu oy bepul: ${planStatus.limits.queue_first_monthly - planStatus.usage.queue_first_month} / ${planStatus.limits.queue_first_monthly} qoldi.`
+                            : `Oylik bepul limit tugadi — ${formatUzs(firstPrice)} (platforma xizmati).`}
+                        </span>
+                      </span>
+                    </label>
+                  )}
+                </div>
+              ) : planStatus?.plan === "free" ? (
+                <p className="mb-4 text-xs text-muted-foreground">
+                  <Link to="/pro" className="text-primary hover:underline">Pro va Premium</Link>da so'rovingiz navbatda oldinga o'tadi va kerak bo'lsa birinchi navbatga yozilasiz.
+                </p>
+              ) : null}
               {quote.status === "debt" ? (
                 <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">
                   <p className="text-destructive font-medium mb-2">
@@ -246,7 +299,7 @@ const StartConsultation = () => {
               ) : (
                 <button
                   onClick={handleCreate}
-                  disabled={creating || balance < price}
+                  disabled={creating || balance < total}
                   className="w-full py-3 rounded-xl bg-hero-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {creating ? "Yuborilmoqda..." : "Konsultatsiya boshlash"}

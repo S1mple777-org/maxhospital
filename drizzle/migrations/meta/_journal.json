@@ -29,6 +29,13 @@
       "when": 1792246552363,
       "tag": "0003_plan_perks",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792253430054,
+      "tag": "0004_premium_care",
+      "breakpoints": true
     }
   ]
 }

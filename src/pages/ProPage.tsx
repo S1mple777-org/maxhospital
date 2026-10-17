@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, Bot, Check, Crown, FlaskConical, Loader2, MessageSquare, Minus, Pill, Send, Siren, Sparkles, Video, Wallet } from "lucide-react";
+import { Activity, Bot, CalendarDays, Check, Crown, FlaskConical, HelpCircle, Home, IdCard, Loader2, MessageSquare, Minus, Pill, Scale, Send, Siren, Sparkles, Users, Video, Wallet, Zap } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -22,6 +22,14 @@ function featuresFor(id: "pro" | "premium", l: PlanLimitsRow | undefined): { ico
         ...(l.health_ai ? [{ icon: Activity, text: "Ko'rsatkichlar AI tahlili va PDF hisobot" }] : []),
         ...(l.lab_reads_monthly > 0 ? [{ icon: FlaskConical, text: `Tahlil natijasini AI o'qiydi — oyiga ${l.lab_reads_monthly} ta` }] : []),
         { icon: Siren, text: `Favqulodda kredit ${formatUzs(l.emergency_credit_uzs)} gacha` },
+        ...(l.queue_boost > 0 ? [{ icon: Crown, text: `Ustuvor navbat: so'rovingiz ${l.queue_boost} o'ringa oldinga o'tadi` }] : []),
+        ...(l.queue_first_price_uzs !== null ? [{ icon: Zap, text: `Birinchi navbat: oyiga ${l.queue_first_monthly} ta bepul, keyin ${formatUzs(l.queue_first_price_uzs)}` }] : []),
+        ...(l.followup_hours > 0 ? [{ icon: HelpCircle, text: `Konsultatsiyadan keyin ${Math.round(l.followup_hours / 24)} kun bepul savol` }] : []),
+        ...(l.second_opinions_monthly > 0 ? [{ icon: Scale, text: `Ikkinchi fikr: oyiga ${l.second_opinions_monthly} marta boshqa shifokor` }] : []),
+        ...(l.home_diary ? [{ icon: Home, text: "Uy o'lchovlari kundaligi va xavfli qiymat ogohlantirishi" }] : []),
+        ...(l.weekly_report ? [{ icon: CalendarDays, text: "Har yakshanba AI haftalik hisobot (Telegram)" }] : []),
+        ...(l.emergency_card ? [{ icon: IdCard, text: "QR kodli favqulodda tibbiy karta" }] : []),
+        ...(l.family_members > 0 ? [{ icon: Users, text: `Oila profili: ${l.family_members} tagacha a'zo` }] : []),
       ]
     : [];
   return id === "pro"
@@ -51,6 +59,14 @@ function compareRows(limits: PlanLimitsRow[]): { label: string; cells: Cell[] }[
     { label: "Ko'rsatkichlar AI tahlili + PDF", cells: ls.map((l) => l.health_ai) },
     { label: "Tahlil natijasini AI o'qishi", cells: ls.map((l) => (l.lab_reads_monthly > 0 ? `${l.lab_reads_monthly} / oy` : false)) },
     { label: "Favqulodda kredit (qarz)", cells: ls.map((l) => (l.emergency_credit_uzs > 0 ? formatUzs(l.emergency_credit_uzs) : false)) },
+    { label: "Ustuvor navbat", cells: ls.map((l) => (l.queue_boost > 0 ? `+${l.queue_boost} o'rin` : false)) },
+    { label: "Birinchi navbat (oyiga bepul)", cells: ls.map((l) => (l.queue_first_price_uzs === null ? false : `${l.queue_first_monthly} ta, keyin ${formatUzs(l.queue_first_price_uzs)}`)) },
+    { label: "Konsultatsiyadan keyin bepul savol", cells: ls.map((l) => (l.followup_hours > 0 ? `${l.followup_hours} soat` : false)) },
+    { label: "Ikkinchi fikr", cells: ls.map((l) => (l.second_opinions_monthly > 0 ? `${l.second_opinions_monthly} / oy` : false)) },
+    { label: "Uy o'lchovlari kundaligi", cells: ls.map((l) => l.home_diary) },
+    { label: "AI haftalik hisobot", cells: ls.map((l) => l.weekly_report) },
+    { label: "Favqulodda QR karta", cells: ls.map((l) => l.emergency_card) },
+    { label: "Oila profili", cells: ls.map((l) => (l.family_members > 0 ? `${l.family_members} a'zo` : false)) },
     { label: "Dori eslatmalari (Telegram, sayt, ilova)", cells: [false, true, true] },
     { label: "SMS eslatma", cells: [false, false, true] },
   ];

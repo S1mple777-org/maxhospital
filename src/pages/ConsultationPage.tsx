@@ -35,6 +35,9 @@ const ConsultationPage = () => {
   // "Doctor" means: I am the doctor of *this* consultation. A doctor can also
   // book a consultation as a patient.
   const isDoctor = hasRole("doctor") && consultation?.patient_id !== user?.id;
+  // Pro / Premium: konsultatsiya tugagach ham chat bir muddat ochiq (bepul savol vaqti).
+  const followupOpen = consultation?.status === "completed" && !!consultation?.followup_until
+    && new Date(consultation.followup_until).getTime() > Date.now();
 
   // Video call state
   const [inCall, setInCall] = useState(false);
@@ -92,7 +95,12 @@ const ConsultationPage = () => {
       const otherId = iAmDoctor ? cons.patient_id : cons.doctor_id;
       if (iAmDoctor) {
         const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", otherId).maybeSingle();
-        setOtherName(p?.full_name || "Bemor");
+        let name = p?.full_name || "Bemor";
+        if ((cons as any).family_member_id) {
+          const { data: m } = await supabase.from("family_members" as any).select("full_name").eq("id", (cons as any).family_member_id).maybeSingle();
+          if (m) name = `${(m as any).full_name} (${name} akkaunti)`;
+        }
+        setOtherName(name);
       } else {
         const { data: doc } = await supabase.from("doctors").select("user_id").eq("id", otherId).maybeSingle();
         if (doc) {
@@ -210,7 +218,7 @@ const ConsultationPage = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || !id || sending) return;
-    if (localEnded || consultation?.status === "completed" || consultation?.status === "cancelled") { toast.error("Konsultatsiya tugagan"); return; }
+    if (!followupOpen && (localEnded || consultation?.status === "completed" || consultation?.status === "cancelled")) { toast.error("Konsultatsiya tugagan"); return; }
     setSending(true);
     const { error } = await supabase.from("messages").insert({
       consultation_id: id, sender_id: user.id, content: newMessage.trim(), message_type: "text",
@@ -556,8 +564,13 @@ const ConsultationPage = () => {
         </AnimatePresence>
 
         {/* Message Input */}
-        {!isEnded ? (
+        {!isEnded || followupOpen ? (
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-card border-t border-border px-4 py-3">
+            {followupOpen && (
+              <p className="mb-2 rounded-lg bg-primary/10 px-3 py-1.5 text-xs text-primary">
+                Bepul savol vaqti: {new Date(consultation.followup_until).toLocaleString()} gacha {isDoctor ? "bemor savol bera oladi" : "qo'shimcha savol berishingiz mumkin"}.
+              </p>
+            )}
             <div className="flex gap-2">
               <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                 placeholder="Xabar yozing..." className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary outline-none transition-shadow" />

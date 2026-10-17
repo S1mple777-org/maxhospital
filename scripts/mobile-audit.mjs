@@ -77,16 +77,24 @@ function row(table, i) {
   if (table === "medication_reminders") return { ...base, status: ["pending", "taken", "sent", "missed"][i % 4] };
   if (table === "medication_schedules") return { ...base, status: undefined };
   if (table === "consultations") return { ...base, status: i === 0 ? "active" : base.status };
+  if (table === "family_members") return { ...base, full_name: ["Abdurahmonova Malika Karimovna", "Abdurahmonov Jasur"][i % 2], relation: ["parent", "child"][i % 2], birth_date: "1965-04-01", gender: "female", notes: "Qandli diabet 2-tur, insulin oladi" };
+  if (table === "emergency_cards") return { ...base, family_member_id: null, token: "0123456789abcdef0123456789abcdef", blood_type: "A+", allergies: "Penitsillin, yong'oq", conditions: "Qandli diabet 2-tur", medications: "Metformin 500 mg", contact_name: "Onasi — Malika", contact_phone: "+998 90 111 22 33", is_enabled: true };
+  if (table === "second_opinions") return { ...base, status: i === 0 ? "pending" : "answered", verdict: "partly", answer: TEXT.slice(0, 200), question: "Dori dozasi to'g'rimi?" };
+  if (table === "weekly_reports") return { ...base, period_start: "2026-10-12", period_end: "2026-10-18", content: "- Bosim: 7 ta o'lchov, o'rtacha 138/86\n- Dorilar: 18/21 o'z vaqtida ichildi (86%)\n\nBosim me'yordan biroz yuqori — shifokor bilan maslahatlashing.", sent_telegram: true };
   if (table === "emergency_credits") return { ...base, amount_uzs: 40000, repaid_uzs: 0, status: i === 0 ? "open" : "repaid" };
   return base;
 }
 
-const ROWS = { user_roles: 3, subscription_plans: 2, plan_limits: 3, health_measurements: 14, messages: 6 };
+const ROWS = { user_roles: 3, subscription_plans: 2, plan_limits: 3, health_measurements: 14, messages: 6, family_members: 2, emergency_cards: 1, weekly_reports: 1 };
 
 const planStatus = {
   plan: "free",
-  limits: { ai_daily_questions: 5, video_free_minutes: 10, health_ai: true, lab_reads_monthly: 5, emergency_credit_uzs: 50000 },
-  usage: { ai_today: 2, lab_month: 1 },
+  limits: {
+    ai_daily_questions: 5, video_free_minutes: 10, health_ai: true, lab_reads_monthly: 5, emergency_credit_uzs: 50000,
+    queue_boost: 6, queue_first_monthly: 3, queue_first_price_uzs: 10000, followup_hours: 72, second_opinions_monthly: 1,
+    home_diary: true, weekly_report: true, emergency_card: true, family_members: 4,
+  },
+  usage: { ai_today: 2, lab_month: 1, queue_first_month: 1, second_opinions_month: 0, family_members: 2 },
   debt_uzs: 40000,
   credit: { id: ID, consultation_id: ID, amount_uzs: 40000, repaid_uzs: 0, created_at: iso(now) },
 };
@@ -114,6 +122,8 @@ async function handle(route) {
     if (fn === "get_my_profile" || fn === "staff_list_profiles") return json(Array.from({ length: fn === "get_my_profile" ? 1 : 6 }, (_, i) => row("profiles", i)));
     if (fn === "my_plan_status") return json(planStatus);
     if (fn === "get_public_phone") return json("+998 90 123 45 67");
+    if (fn === "get_emergency_card") return json([{ full_name: "Abdurahmonova Nozimaxon Abdulazizovna", birth_year: 1990, blood_type: "A+", allergies: "Penitsillin, yong'oq", conditions: "Qandli diabet 2-tur, arterial gipertenziya", medications: "Metformin 500 mg kuniga 2 marta", contact_name: "Onasi — Malika", contact_phone: "+998 90 111 22 33", notes: null, updated_at: iso(now) }]);
+    if (fn === "list_second_opinion_requests") return json([0, 1].map((i) => ({ id: `${ID.slice(0, -1)}${i}`, status: i ? "answered" : "pending", created_at: iso(now), question: "Dori dozasi to'g'rimi? Qo'shimcha tekshiruv kerakmi?", department_name: LONG, original_doctor_title: "Kardiolog", diagnosis: "Arterial gipertenziya, II daraja", medicines: [{ name: "Amlodipin", dose: "5 mg", frequency: "kuniga 1 marta", duration: "30 kun" }], notes: "Tuzni kamaytirish", patient_birth_year: 1965, measurements: [{ metric: "bp_systolic", value: 150, unit: "mmHg", at: iso(now) }, { metric: "pulse", value: 82, unit: "1/min", at: iso(now) }], answer: i ? TEXT.slice(0, 160) : null, verdict: i ? "agree" : null, answered_at: i ? iso(now) : null })));
     return json(null);
   }
   if (p.startsWith("/rest/v1/")) {
@@ -133,7 +143,8 @@ async function handle(route) {
 const ROUTES = [
   "/", "/auth", "/profile", "/departments", `/departments/${ID}`, "/doctors", `/doctors/${ID}`, "/news", `/news/${ID}`,
   "/start-consultation", `/consultation/${ID}`, "/doctor-dashboard", "/users", `/create-prescription/${ID}`, `/prescription/${ID}`,
-  "/my-prescriptions", "/ai-assistant", "/health", "/pro", "/medications", "/wallet", "/lab-results", "/admin", "/owner",
+  "/my-prescriptions", "/ai-assistant", "/health", "/pro", "/medications", "/wallet", "/lab-results",
+  "/family", "/emergency-card", "/e/0123456789abcdef0123456789abcdef", "/second-opinion", "/admin", "/owner",
 ];
 const ONLY = process.env.ROUTES ? process.env.ROUTES.split(",") : null;
 

@@ -1,0 +1,30 @@
+name: Weekly health report (fallback cron)
+
+# Zaxira: bazada pg_cron ishlamasa, haftalik AI hisobotni har yakshanba 20:00 (Toshkent) da shu workflow yuboradi.
+# Kerakli repo secret'lari: WEEKLY_REPORT_FUNCTION_URL, REMINDERS_CRON_SECRET.
+on:
+  schedule:
+    - cron: "0 15 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Call weekly-report
+        env:
+          URL: ${{ secrets.WEEKLY_REPORT_FUNCTION_URL }}
+          SECRET: ${{ secrets.REMINDERS_CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "Secret'lar qo'shilmagan — o'tkazib yuborildi."
+            exit 0
+          fi
+          curl -sS --fail-with-body --max-time 600 -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: $SECRET" \
+            -d '{"mode":"cron"}'

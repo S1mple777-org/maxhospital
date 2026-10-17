@@ -42,9 +42,26 @@ Limitlar `plan_limits` jadvalida saqlanadi va **Owner Panel → Pro tariflar** b
 | Dori eslatmalari (Telegram, sayt, ilova) | — | ✓ | ✓ |
 | SMS eslatma | — | — | ✓ |
 
+| Ustuvor navbat | — | +4 o'rin | +6 o'rin |
+| Birinchi navbat | — | oyiga 1 bepul, keyin 15 000 so'm | oyiga 3 bepul, keyin 10 000 so'm |
+| Konsultatsiyadan keyin bepul savol | — | 72 soat | 72 soat |
+| Ikkinchi fikr (boshqa shifokor) | — | — | oyiga 1 |
+| Uy o'lchovlari + xavfli qiymat ogohlantirishi | — | ✓ | ✓ |
+| AI haftalik hisobot (Telegram) | — | ✓ | ✓ |
+| QR kodli favqulodda tibbiy karta | — | ✓ | ✓ |
+| Oila profili | — | — | 4 a'zo |
+
+**Ustuvor navbat.** Shifokor kabinetida kutilayotgan so'rovlar navbat tartibida chiqadi. Pro so'rovi 4 o'ringa, Premium 6 o'ringa oldinga o'tadi, ya'ni uzoq kutgan bemordan faqat bir necha kishi o'tadi. "Birinchi navbat" so'rovni eng tepaga qo'yadi. Oylik bepul limitdan keyin bu xizmat pullik bo'ladi va to'lov shifokorga emas, platformaga tushadi (`platform_fees`). Shifokor so'rovni rad etsa, bu to'lov ham qaytariladi.
+
+**Favqulodda tibbiy karta.** QR kod `/e/<token>` sahifasini ochadi, login kerak emas. Bu sahifada faqat kartadagi ma'lumot ko'rinadi. Token 122 bitli tasodifiy son. Bemor kartani o'chirib qo'yishi yoki yangi QR yaratishi mumkin. Obuna tugasa ham karta o'qiladi, chunki bu xavfsizlik uchun muhim.
+
+**Haftalik hisobot.** Barcha raqamlarni kod hisoblaydi (`_shared/weekly-report.ts`), AI ularni faqat so'z bilan tushuntiradi. Hisobot har yakshanba 20:00 da yuboriladi: pg_cron va Vault'dagi `weekly_report_function_url` orqali, ular ishlamasa zaxira `.github/workflows/weekly-report-cron.yml` orqali.
+
 **Favqulodda kredit.** Balans yetmasa bemor konsultatsiyani "favqulodda" qilib boshlaydi. Balansdagi pul ishlatiladi, yetmagan qismi (tarif limitigacha) qarzga yoziladi. Qarz to'lanmaguncha yangi konsultatsiya va obuna sotib olinmaydi. Qarz **Hamyon** sahifasida (`/wallet`) balansdan to'lanadi. Shifokor rad etsa, qarz bekor qilinadi va balansdan to'langan qism qaytariladi. Shoshilinch belgilarga AI javobi hech qachon limitlanmaydi.
 
-Sozlash: `drizzle/migrations/0003_plan_perks.sql` migratsiyasini qo'llang va `ai-assistant` hamda yangi `read-lab-result` funksiyasini deploy qiling.
+Sozlash:
+1. `0003_plan_perks.sql` va `0004_premium_care.sql` migratsiyalarini qo'llang.
+2. `ai-assistant`, `read-lab-result`, `home-measurement` va `weekly-report` funksiyalarini deploy qiling.
 
 ## Texnologiyalar
 

@@ -16,6 +16,9 @@ export const translations = {
       meds: "Dori eslatmalari",
       wallet: "Hamyon",
       lab: "Tahlil natijalari",
+      family: "Oila profili",
+      ecard: "Favqulodda karta",
+      opinion: "Ikkinchi fikr",
       pro: "Pro",
     },
     hero: {
@@ -94,6 +97,9 @@ export const translations = {
       meds: "Напоминания о лекарствах",
       wallet: "Кошелёк",
       lab: "Результаты анализов",
+      family: "Семейный профиль",
+      ecard: "Экстренная карта",
+      opinion: "Второе мнение",
       pro: "Pro",
     },
     hero: {
@@ -172,6 +178,9 @@ export const translations = {
       meds: "Medication reminders",
       wallet: "Wallet",
       lab: "Lab results",
+      family: "Family profile",
+      ecard: "Emergency card",
+      opinion: "Second opinion",
       pro: "Pro",
     },
     hero: {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock, FlaskConical } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock, FlaskConical, IdCard, Scale } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -111,7 +111,7 @@ const Navbar = () => {
                   <span className="font-medium max-w-24 truncate">{profile?.full_name || "User"}</span>
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-1 w-52 max-h-[75vh] overflow-y-auto rounded-lg border border-border bg-card shadow-lg py-1 z-50">
                     <Link to="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <User className="w-4 h-4" /> {t("nav.profile")}
                     </Link>
@@ -134,6 +134,15 @@ const Navbar = () => {
                     </Link>
                     <Link to="/wallet" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Wallet className="w-4 h-4" /> {t("nav.wallet")}
+                    </Link>
+                    <Link to="/family" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Users className="w-4 h-4" /> {t("nav.family")}
+                    </Link>
+                    <Link to="/emergency-card" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <IdCard className="w-4 h-4 text-red-500" /> {t("nav.ecard")}
+                    </Link>
+                    <Link to="/second-opinion" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Scale className="w-4 h-4" /> {t("nav.opinion")}
                     </Link>
                     <Link to="/pro" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Crown className="w-4 h-4 text-amber-500" /> {t("nav.pro")}
@@ -189,6 +198,9 @@ const Navbar = () => {
                   <Link to="/medications" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.meds")}</Link>
                   <Link to="/lab-results" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.lab")}</Link>
                   <Link to="/wallet" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.wallet")}</Link>
+                  <Link to="/family" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.family")}</Link>
+                  <Link to="/emergency-card" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.ecard")}</Link>
+                  <Link to="/second-opinion" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.opinion")}</Link>
                   <Link to="/pro" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.pro")}</Link>
                   {isDoctor && <Link to="/doctor-dashboard" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Shifokor kabineti</Link>}
                   {(isAdmin || isOwner) && <Link to="/admin" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Admin Panel</Link>}
