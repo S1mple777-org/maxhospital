@@ -79,13 +79,13 @@ const isActive = (s: Subscription | null) =>
 
 export async function loadSubscription(userId: string): Promise<{ plan: PlanId; subscription: Subscription | null }> {
   const { data } = await supabase.from("subscriptions" as any).select("*").eq("user_id", userId).maybeSingle();
-  const sub = (data as Subscription | null) ?? null;
+  const sub = (data as unknown as Subscription | null) ?? null;
   return { plan: isActive(sub) ? sub!.plan_id : "free", subscription: sub };
 }
 
 export async function loadPlans(): Promise<SubscriptionPlan[]> {
   const { data } = await supabase.from("subscription_plans" as any).select("*").order("sort_order");
-  return (data as SubscriptionPlan[] | null) ?? [];
+  return (data as unknown as SubscriptionPlan[] | null) ?? [];
 }
 
 export async function subscribe(planId: "pro" | "premium"): Promise<Subscription> {
@@ -146,7 +146,7 @@ export async function saveSchedules(params: {
 
 export async function loadSchedules(): Promise<MedicationSchedule[]> {
   const { data } = await supabase.from("medication_schedules" as any).select("*").order("created_at", { ascending: false });
-  return (data as MedicationSchedule[] | null) ?? [];
+  return (data as unknown as MedicationSchedule[] | null) ?? [];
 }
 
 export async function loadReminders(fromIso: string, toIso: string): Promise<MedicationReminder[]> {
@@ -155,7 +155,7 @@ export async function loadReminders(fromIso: string, toIso: string): Promise<Med
     .gte("scheduled_at", fromIso).lt("scheduled_at", toIso)
     .order("scheduled_at")
     .limit(1000);
-  return (data as MedicationReminder[] | null) ?? [];
+  return (data as unknown as MedicationReminder[] | null) ?? [];
 }
 
 export async function stopSchedule(id: string): Promise<void> {
