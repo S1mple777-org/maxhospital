@@ -6,10 +6,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  formatUzs, loadPlans, loadSubscription, setAutoRenew, subscribe,
+  DEFAULT_PLANS, formatUzs, loadPlans, loadSubscription, setAutoRenew, subscribe,
   type PlanId, type Subscription, type SubscriptionPlan,
 } from "@/lib/medications";
-import { loadPlanLimits, type PlanLimitsRow } from "@/lib/planPerks";
+import { DEFAULT_PLAN_LIMITS, loadPlanLimits, type PlanLimitsRow } from "@/lib/planPerks";
 
 const aiText = (n: number | null) => (n === null ? "Cheksiz AI savollar" : `Kuniga ${n} ta AI savol`);
 
@@ -57,18 +57,22 @@ function compareRows(limits: PlanLimitsRow[]): { label: string; cells: Cell[] }[
 }
 
 const ProPage = () => {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, refreshProfile, isOwner } = useAuth();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>(DEFAULT_PLANS);
   const [current, setCurrent] = useState<PlanId>("free");
   const [sub, setSub] = useState<Subscription | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [limits, setLimits] = useState<PlanLimitsRow[]>([]);
+  // Start with the default tariffs so the page is never empty while loading.
+  const [limits, setLimits] = useState<PlanLimitsRow[]>(DEFAULT_PLAN_LIMITS);
+  const [notReady, setNotReady] = useState(false);
 
   const load = async () => {
     const [p, l] = await Promise.all([loadPlans(), loadPlanLimits()]);
-    setPlans(p);
-    setLimits(l);
+    // Bazada tariflar jadvali hali yo'q bo'lsa ham tariflar ko'rinib tursin.
+    setNotReady(p.length === 0);
+    setPlans(p.length ? p : DEFAULT_PLANS);
+    setLimits(l.length === 3 ? l : DEFAULT_PLAN_LIMITS);
     if (user) {
       const s = await loadSubscription(user.id);
       setCurrent(s.plan);
@@ -80,6 +84,10 @@ const ProPage = () => {
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     if (!user) { navigate("/auth"); return; }
+    if (notReady) {
+      toast.info("Obuna tez orada ishga tushadi. Hozircha to'lov qabul qilinmayapti.");
+      return;
+    }
     const isChange = current !== "free" && current !== plan.id;
     const msg = isChange
       ? `${plan.name} tarifiga o'tish: balansdan ${formatUzs(plan.price_uzs)} yechiladi va yangi ${plan.period_days} kunlik davr hozirdan boshlanadi. Davom etasizmi?`
@@ -128,6 +136,13 @@ const ProPage = () => {
               favqulodda kredit va dori eslatmalari — Telegram, sayt, telefon ilovasi yoki SMS orqali.
             </p>
           </div>
+
+          {notReady && isOwner && (
+            <div className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-foreground">
+              <b>Owner uchun:</b> tariflar jadvali bazada hali yaratilmagan, shuning uchun standart narxlar ko'rsatilmoqda va obuna
+              ishlamaydi. Lovable'da <code>drizzle/migrations/0002_medication_reminders.sql</code> va <code>0003_plan_perks.sql</code> migratsiyalarini qo'llang.
+            </div>
+          )}
 
           {user && profile && (
             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
@@ -181,7 +196,7 @@ const ProPage = () => {
                     className={`w-full rounded-xl py-3 text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2 ${highlight ? "bg-hero-gradient text-primary-foreground" : "bg-primary text-primary-foreground"}`}
                   >
                     {busy === plan.id && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {!user ? "Kirish va obuna bo'lish" : mine ? "Yana bir davrga uzaytirish" : active ? `${plan.name} ga o'tish` : "Obuna bo'lish"}
+                    {notReady ? "Tez orada" : !user ? "Kirish va obuna bo'lish" : mine ? "Yana bir davrga uzaytirish" : active ? `${plan.name} ga o'tish` : "Obuna bo'lish"}
                   </button>
                 </div>
               );
