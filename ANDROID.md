@@ -50,6 +50,25 @@ Tayyor fayl shu yerda bo'ladi: `android/app/build/outputs/apk/debug/app-debug.ap
 
 Imzo kaliti (keystore) yaratiladi. **Kalit faylini va parolini yo'qotmang**, aks holda ilovani keyin yangilay olmaysiz. Google Play Developer akkaunti bir martalik $25 turadi, maxfiylik siyosati sahifasi ham talab qilinadi.
 
+## Kompyutersiz: GitHub Actions orqali APK
+
+`.github/workflows/build-apk.yml` APK ni GitHub serverida yig'adi. Bu ish telefondan ham bo'ladi.
+
+1. `main` ga har push qilinganda build avtomatik boshlanadi. Qo'lda ishga tushirish uchun: **Actions → Build MaxHospital APK → Run workflow**.
+2. Build 10–15 daqiqa davom etadi.
+3. Tayyor APK: repo sahifasidagi **Releases** bo'limida eng oxirgi versiya → `MaxHospital-1.0.N.apk`. Uni yuklab oling va oching.
+
+Kalit qo'shilmagan bo'lsa, debug APK yig'iladi. Har buildda imzo kaliti yangi bo'ladi, shuning uchun yangi versiyani o'rnatishdan oldin eskisini o'chirish kerak. Buni oldini olish uchun imzo kalitini bir marta yarating (kompyuterda):
+
+```sh
+keytool -genkeypair -v -keystore maxhospital.jks -alias maxhospital -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 maxhospital.jks > keystore.txt     # Windows: certutil -encode maxhospital.jks keystore.txt
+```
+
+Keyin **Settings → Secrets and variables → Actions** ga 4 ta secret qo'shing: `ANDROID_KEYSTORE_BASE64` (keystore.txt ichidagi matn), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (`maxhospital`), `ANDROID_KEY_PASSWORD`. Shundan keyin har bir build bir xil kalit bilan imzolanadi va ilova o'chirilmasdan yangilanadi. `.jks` faylni repoga **qo'shmang**.
+
+> Repo ochiq (public) bo'lgani uchun Releases'dagi APK ni hamma yuklab olishi mumkin.
+
 ## Kod o'zgargandan keyin
 
 Saytda biror narsa o'zgarsa (yoki `git pull` qilsangiz):
