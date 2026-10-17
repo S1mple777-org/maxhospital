@@ -1,0 +1,46 @@
+    [requestfailed] HEAD https://mhyiqzeowliasmozvjdk.lovable.cloud/rest/v1/doctors?select=id net::ERR_ABORTED
+    [requestfailed] HEAD https://mhyiqzeowliasmozvjdk.lovable.cloud/rest/v1/profiles?select=id net::ERR_ABORTED
+    [requestfailed] HEAD https://mhyiqzeowliasmozvjdk.lovable.cloud/rest/v1/consultations?select=id net::ERR_ABORTED
+✓ /  scrollWidth=360 (viewport 360)  offenders=0
+✓ /#mobile-menu  scrollWidth=360 (viewport 360)  offenders=0
+✓ /auth  scrollWidth=360 (viewport 360)  offenders=0
+✓ /profile  scrollWidth=360 (viewport 360)  offenders=0
+✓ /departments  scrollWidth=360 (viewport 360)  offenders=0
+✓ /departments/22222222-2222-4222-8222-222222222222  scrollWidth=360 (viewport 360)  offenders=0
+✓ /doctors  scrollWidth=360 (viewport 360)  offenders=0
+✓ /doctors/22222222-2222-4222-8222-222222222222  scrollWidth=360 (viewport 360)  offenders=0
+✓ /news  scrollWidth=360 (viewport 360)  offenders=0
+✓ /news/22222222-2222-4222-8222-222222222222  scrollWidth=360 (viewport 360)  offenders=0
+✓ /start-consultation  scrollWidth=360 (viewport 360)  offenders=0
+✓ /consultation/22222222-2222-4222-8222-222222222222  scrollWidth=360 (viewport 360)  offenders=0
+✓ /doctor-dashboard  scrollWidth=360 (viewport 360)  offenders=0
+✓ /users  scrollWidth=360 (viewport 360)  offenders=0
+✓ /create-prescription/22222222-2222-4222-8222-222222222222  scrollWidth=360 (viewport 360)  offenders=0
+✓ /prescription/22222222-2222-4222-8222-222222222222  scrollWidth=360 (viewport 360)  offenders=0
+✓ /my-prescriptions  scrollWidth=360 (viewport 360)  offenders=0
+✓ /ai-assistant  scrollWidth=360 (viewport 360)  offenders=0
+✓ /health  scrollWidth=360 (viewport 360)  offenders=0
+✓ /pro  scrollWidth=360 (viewport 360)  offenders=0
+✓ /medications  scrollWidth=360 (viewport 360)  offenders=0
+✓ /wallet  scrollWidth=360 (viewport 360)  offenders=0
+✓ /lab-results  scrollWidth=360 (viewport 360)  offenders=0
+✓ /family  scrollWidth=360 (viewport 360)  offenders=0
+✓ /emergency-card  scrollWidth=360 (viewport 360)  offenders=0
+✓ /e/0123456789abcdef0123456789abcdef  scrollWidth=360 (viewport 360)  offenders=0
+✓ /second-opinion  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin#Statistika  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin#Foydalanuvchilar  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin#Shifokorlar  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin#Postlar  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin#Ban list  scrollWidth=360 (viewport 360)  offenders=0
+✓ /admin#AI kutubxona  scrollWidth=360 (viewport 360)  offenders=0
+✓ /owner  scrollWidth=360 (viewport 360)  offenders=0
+✓ /owner#Adminlar  scrollWidth=360 (viewport 360)  offenders=0
+✓ /owner#Bo'limlar  scrollWidth=360 (viewport 360)  offenders=0
+✓ /owner#Limitlar  scrollWidth=360 (viewport 360)  offenders=0
+✓ /owner#Majburiy obuna  scrollWidth=360 (viewport 360)  offenders=0
+    [requestfailed] HEAD https://mhyiqzeowliasmozvjdk.lovable.cloud/rest/v1/subscriptions?select=user_id&status=eq.active&cur net::ERR_ABORTED
+✓ /owner#Pro tariflar  scrollWidth=360 (viewport 360)  offenders=0
+
+40/40 pages fit at 360px

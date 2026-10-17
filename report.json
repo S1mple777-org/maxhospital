@@ -1,0 +1,282 @@
+[
+  {
+    "name": "/",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/home.jpg"
+  },
+  {
+    "name": "/#mobile-menu",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/mobile_menu.jpg"
+  },
+  {
+    "name": "/auth",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/auth.jpg"
+  },
+  {
+    "name": "/profile",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/profile.jpg"
+  },
+  {
+    "name": "/departments",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/departments.jpg"
+  },
+  {
+    "name": "/departments/22222222-2222-4222-8222-222222222222",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/departments_22222222_2222_4222_8222_222222222222.jpg"
+  },
+  {
+    "name": "/doctors",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/doctors.jpg"
+  },
+  {
+    "name": "/doctors/22222222-2222-4222-8222-222222222222",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/doctors_22222222_2222_4222_8222_222222222222.jpg"
+  },
+  {
+    "name": "/news",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/news.jpg"
+  },
+  {
+    "name": "/news/22222222-2222-4222-8222-222222222222",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/news_22222222_2222_4222_8222_222222222222.jpg"
+  },
+  {
+    "name": "/start-consultation",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/start_consultation.jpg"
+  },
+  {
+    "name": "/consultation/22222222-2222-4222-8222-222222222222",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/consultation_22222222_2222_4222_8222_222222222222.jpg"
+  },
+  {
+    "name": "/doctor-dashboard",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/doctor_dashboard.jpg"
+  },
+  {
+    "name": "/users",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/users.jpg"
+  },
+  {
+    "name": "/create-prescription/22222222-2222-4222-8222-222222222222",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/create_prescription_22222222_2222_4222_8222_222222222222.jpg"
+  },
+  {
+    "name": "/prescription/22222222-2222-4222-8222-222222222222",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/prescription_22222222_2222_4222_8222_222222222222.jpg"
+  },
+  {
+    "name": "/my-prescriptions",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/my_prescriptions.jpg"
+  },
+  {
+    "name": "/ai-assistant",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/ai_assistant.jpg"
+  },
+  {
+    "name": "/health",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/health.jpg"
+  },
+  {
+    "name": "/pro",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/pro.jpg"
+  },
+  {
+    "name": "/medications",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/medications.jpg"
+  },
+  {
+    "name": "/wallet",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/wallet.jpg"
+  },
+  {
+    "name": "/lab-results",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/lab_results.jpg"
+  },
+  {
+    "name": "/family",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/family.jpg"
+  },
+  {
+    "name": "/emergency-card",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/emergency_card.jpg"
+  },
+  {
+    "name": "/e/0123456789abcdef0123456789abcdef",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/e_0123456789abcdef0123456789abcdef.jpg"
+  },
+  {
+    "name": "/second-opinion",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/second_opinion.jpg"
+  },
+  {
+    "name": "/admin",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin.jpg"
+  },
+  {
+    "name": "/admin#Statistika",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin_Statistika.jpg"
+  },
+  {
+    "name": "/admin#Foydalanuvchilar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin_Foydalanuvchilar.jpg"
+  },
+  {
+    "name": "/admin#Shifokorlar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin_Shifokorlar.jpg"
+  },
+  {
+    "name": "/admin#Postlar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin_Postlar.jpg"
+  },
+  {
+    "name": "/admin#Ban list",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin_Ban_list.jpg"
+  },
+  {
+    "name": "/admin#AI kutubxona",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/admin_AI_kutubxona.jpg"
+  },
+  {
+    "name": "/owner",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/owner.jpg"
+  },
+  {
+    "name": "/owner#Adminlar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/owner_Adminlar.jpg"
+  },
+  {
+    "name": "/owner#Bo'limlar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/owner_Bo_limlar.jpg"
+  },
+  {
+    "name": "/owner#Limitlar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/owner_Limitlar.jpg"
+  },
+  {
+    "name": "/owner#Majburiy obuna",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/owner_Majburiy_obuna.jpg"
+  },
+  {
+    "name": "/owner#Pro tariflar",
+    "vw": 360,
+    "sw": 360,
+    "offenders": [],
+    "file": "shots/owner_Pro_tariflar.jpg"
+  }
+]
