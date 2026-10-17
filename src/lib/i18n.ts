@@ -14,6 +14,8 @@ export const translations = {
       ai: "AI-yordamchi",
       health: "Salomatligim",
       meds: "Dori eslatmalari",
+      wallet: "Hamyon",
+      lab: "Tahlil natijalari",
       pro: "Pro",
     },
     hero: {
@@ -90,6 +92,8 @@ export const translations = {
       ai: "AI-помощник",
       health: "Моё здоровье",
       meds: "Напоминания о лекарствах",
+      wallet: "Кошелёк",
+      lab: "Результаты анализов",
       pro: "Pro",
     },
     hero: {
@@ -166,6 +170,8 @@ export const translations = {
       ai: "AI assistant",
       health: "My health",
       meds: "Medication reminders",
+      wallet: "Wallet",
+      lab: "Lab results",
       pro: "Pro",
     },
     hero: {

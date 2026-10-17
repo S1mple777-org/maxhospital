@@ -29,6 +29,8 @@ import HealthPage from "./pages/HealthPage";
 import AiAssistantButton from "./components/ai/AiAssistantButton";
 import ProPage from "./pages/ProPage";
 import MedicationsPage from "./pages/MedicationsPage";
+import WalletPage from "./pages/WalletPage";
+import LabResultsPage from "./pages/LabResultsPage";
 import ReminderListener from "./components/medications/ReminderListener";
 import NotFound from "./pages/NotFound";
 
@@ -66,6 +68,8 @@ const App = () => (
                 <Route path="/health" element={<HealthPage />} />
                 <Route path="/pro" element={<ProPage />} />
                 <Route path="/medications" element={<MedicationsPage />} />
+                <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/lab-results" element={<LabResultsPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AiAssistantButton />

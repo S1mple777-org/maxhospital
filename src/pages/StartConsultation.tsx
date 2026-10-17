@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Stethoscope, ArrowRight, MessageCircle } from "lucide-react";
+import { Stethoscope, ArrowRight, MessageCircle, Siren, Wallet, Phone } from "lucide-react";
+import { emergencyQuote, isDebtError, startConsultationOnCredit, usePlanStatus } from "@/lib/planPerks";
+import { formatUzs } from "@/lib/medications";
 import { toast } from "sonner";
 
 const StartConsultation = () => {
@@ -18,6 +20,7 @@ const StartConsultation = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [creating, setCreating] = useState(false);
   const [myConsultations, setMyConsultations] = useState<any[]>([]);
+  const { status: planStatus, refresh: refreshPlan } = usePlanStatus(!!user);
 
   const getName = (item: any, prefix = "name") =>
     language === "ru" ? item[`${prefix}_ru`] : language === "en" ? item[`${prefix}_en`] : item[`${prefix}_uz`];
@@ -72,10 +75,23 @@ const StartConsultation = () => {
       });
   }, [selectedDept]);
 
+  const price = selectedDept ? Number(selectedDept.price_uzs) : 0;
+  const balance = Number(profile?.balance_uzs || 0);
+  const quote = emergencyQuote({
+    price,
+    balance,
+    creditLimit: planStatus?.limits.emergency_credit_uzs ?? 0,
+    debt: planStatus?.debt_uzs ?? 0,
+  });
+
   const handleCreate = async () => {
     if (!user || !selectedDoctor || !selectedDept) return;
-    const price = Number(selectedDept.price_uzs);
-    if (Number(profile?.balance_uzs || 0) < price) {
+    if (quote.status === "debt") {
+      toast.error("Avval favqulodda qarzni to'lang");
+      navigate("/wallet");
+      return;
+    }
+    if (balance < price) {
       toast.error("Balansingizda yetarli mablag' yo'q");
       return;
     }
@@ -85,10 +101,35 @@ const StartConsultation = () => {
       _doctor_id: selectedDoctor.id,
     });
     setCreating(false);
-    if (error || !consultationId) { toast.error(error?.message || "Xatolik yuz berdi"); return; }
+    if (error || !consultationId) {
+      toast.error(error?.message || "Xatolik yuz berdi");
+      if (error && isDebtError(error.message)) navigate("/wallet");
+      return;
+    }
     await refreshProfile();
     toast.success("So'rov yuborildi! Shifokor javobini kuting.");
     navigate(`/consultation/${consultationId}`);
+  };
+
+  const handleCreateOnCredit = async () => {
+    if (!user || !selectedDoctor || quote.status !== "ok") return;
+    const ok = confirm(
+      `Favqulodda konsultatsiya: balansdagi ${formatUzs(quote.fromBalance)} ishlatiladi, qolgan ${formatUzs(quote.credit)} qarzga yoziladi.\n\n` +
+      "Qarz to'lanmaguncha yangi konsultatsiya va obuna olib bo'lmaydi. Davom etasizmi?",
+    );
+    if (!ok) return;
+    setCreating(true);
+    try {
+      const consultationId = await startConsultationOnCredit(selectedDoctor.id);
+      await Promise.all([refreshProfile(), refreshPlan()]);
+      toast.success("Favqulodda so'rov yuborildi! Shifokor javobini kuting.");
+      navigate(`/consultation/${consultationId}`);
+    } catch (e: any) {
+      toast.error(e.message);
+      void refreshPlan();
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -193,14 +234,57 @@ const StartConsultation = () => {
                 <p>Narx: <span className="text-foreground font-medium">{Number(selectedDept.price_uzs).toLocaleString()} UZS</span></p>
                 <p>Balansingiz: <span className="text-foreground font-medium">{Number(profile?.balance_uzs || 0).toLocaleString()} UZS</span></p>
               </div>
-              <button
-                onClick={handleCreate}
-                disabled={creating}
-                className="w-full py-3 rounded-xl bg-hero-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {creating ? "Yuborilmoqda..." : "Konsultatsiya boshlash"}
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {quote.status === "debt" ? (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">
+                  <p className="text-destructive font-medium mb-2">
+                    Sizda {formatUzs(planStatus?.debt_uzs ?? 0)} favqulodda qarz bor. Yangi konsultatsiyadan oldin uni to'lang.
+                  </p>
+                  <Link to="/wallet" className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground">
+                    <Wallet className="w-4 h-4" /> Hamyonga o'tish va qarzni to'lash
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={handleCreate}
+                  disabled={creating || balance < price}
+                  className="w-full py-3 rounded-xl bg-hero-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {creating ? "Yuborilmoqda..." : "Konsultatsiya boshlash"}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+
+              {(quote.status === "ok" || quote.status === "limit") && (
+                <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+                  <div className="flex items-center gap-2 font-semibold text-foreground mb-1">
+                    <Siren className="w-4 h-4 text-amber-600" /> Balans yetmayapti. Favqulodda holatmi?
+                  </div>
+                  {quote.status === "ok" ? (
+                    <>
+                      <p className="text-muted-foreground mb-3">
+                        Balansdagi {formatUzs(quote.fromBalance)} ishlatiladi, qolgan <b className="text-foreground">{formatUzs(quote.credit)}</b> qarzga
+                        yoziladi. Qarzni keyin Hamyon sahifasida, keyingi konsultatsiyadan oldin to'laysiz.
+                      </p>
+                      <button
+                        onClick={handleCreateOnCredit}
+                        disabled={creating}
+                        className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <Siren className="w-4 h-4" /> Favqulodda: qarzga boshlash
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Bu bo'lim uchun {formatUzs(quote.credit)} kerak, sizning favqulodda kredit limitingiz{" "}
+                      {formatUzs(planStatus?.limits.emergency_credit_uzs ?? 0)}.{" "}
+                      <Link to="/pro" className="text-primary hover:underline">Pro va Premium'da limit kattaroq</Link>.
+                    </p>
+                  )}
+                  <a href="tel:103" className="mt-3 flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400">
+                    <Phone className="w-3.5 h-3.5" /> Hayot uchun xavfli holatda darhol 103 ga qo'ng'iroq qiling
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>

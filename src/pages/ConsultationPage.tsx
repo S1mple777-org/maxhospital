@@ -7,6 +7,7 @@ import { Send, ArrowLeft, PhoneOff, Star, Timer, Video, Mic, MicOff, VideoOff, F
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import DailyIframe from "@daily-co/daily-js";
+import { usePlanStatus } from "@/lib/planPerks";
 
 interface Message {
   id: string;
@@ -44,7 +45,10 @@ const ConsultationPage = () => {
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Video time limit state
-  const VIDEO_FREE_SECONDS = 600;
+  // Free video minutes depend on the patient's plan (Free 10, Pro 20, Premium 30 by default).
+  const { status: planStatus } = usePlanStatus(!!user);
+  const videoFreeMinutes = planStatus?.limits.video_free_minutes ?? 10;
+  const VIDEO_FREE_SECONDS = videoFreeMinutes * 60;
   const VIDEO_EXTRA_COST_PER_MIN = 20000;
   const [callElapsed, setCallElapsed] = useState(0);
   const [showExtendPrompt, setShowExtendPrompt] = useState(false);
@@ -174,7 +178,7 @@ const ConsultationPage = () => {
       }, 1000);
       return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
     }
-  }, [inCall, callPaused, showExtendPrompt, isDoctor]);
+  }, [inCall, callPaused, showExtendPrompt, isDoctor, VIDEO_FREE_SECONDS]);
 
   const handleExtendCall = async () => {
     if (!user || !id) return;
@@ -187,8 +191,10 @@ const ConsultationPage = () => {
     }
     void refreshProfile();
     toast.success(`${VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS yechildi. +1 daqiqa`);
-    callStartRef.current = Date.now();
-    setCallElapsed(0);
+    // Exactly one paid minute: the prompt comes back after 60 seconds.
+    const resumeAt = Math.max(0, VIDEO_FREE_SECONDS - 60);
+    callStartRef.current = Date.now() - resumeAt * 1000;
+    setCallElapsed(resumeAt);
     setShowExtendPrompt(false);
     setCallPaused(false);
     if (frameRef.current) {
@@ -464,7 +470,7 @@ const ConsultationPage = () => {
                       initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                       className="bg-card rounded-2xl p-6 max-w-sm mx-4 text-center space-y-4"
                     >
-                      <h3 className="font-semibold text-foreground text-lg">10 daqiqa tugadi!</h3>
+                      <h3 className="font-semibold text-foreground text-lg">{videoFreeMinutes} daqiqa tugadi!</h3>
                       <p className="text-sm text-muted-foreground">
                         Davom etish uchun har bir qo'shimcha daqiqa uchun <span className="font-bold text-foreground">{VIDEO_EXTRA_COST_PER_MIN.toLocaleString()} UZS</span> to'lanadi.
                       </p>
