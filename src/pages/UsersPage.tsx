@@ -69,12 +69,12 @@ const UsersPage = () => {
               <Users className="w-6 h-6 text-primary" /> Foydalanuvchilar
             </h1>
 
-            <div className="flex gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ism yoki telefon bo'yicha qidiring..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary outline-none" />
               </div>
-              <button onClick={() => setSortAsc(!sortAsc)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm hover:bg-secondary">
+              <button onClick={() => setSortAsc(!sortAsc)} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm hover:bg-secondary">
                 <ArrowUpDown className="w-4 h-4" />
                 {sortAsc ? "Kam → Ko'p" : "Ko'p → Kam"}
               </button>
@@ -83,19 +83,19 @@ const UsersPage = () => {
             <div className="space-y-2">
               {filtered.map((u, i) => (
                 <motion.div key={u.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
-                  className="bg-card rounded-xl border border-border p-4 flex items-center justify-between"
+                  className="bg-card rounded-xl border border-border p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-hero-gradient flex items-center justify-center text-sm font-bold text-primary-foreground">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 shrink-0 rounded-full bg-hero-gradient flex items-center justify-center text-sm font-bold text-primary-foreground">
                       {u.full_name?.[0]?.toUpperCase() || "U"}
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">{u.full_name || "Noma'lum"}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground text-sm break-words">{u.full_name || "Noma'lum"}</p>
                       <p className="text-xs text-muted-foreground">{u.phone || "Telefon yo'q"}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-1">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pl-[52px] sm:pl-0">
+                    <div className="flex flex-wrap gap-1">
                       {u.roles.map((role: string) => {
                         const Icon = roleIcons[role] || User;
                         return (
@@ -105,7 +105,7 @@ const UsersPage = () => {
                         );
                       })}
                     </div>
-                    <div className="text-right min-w-[80px]">
+                    <div className="text-right shrink-0">
                       <p className="text-sm font-semibold text-foreground">{Number(u.balance_uzs).toLocaleString()}</p>
                       <p className="text-[10px] text-muted-foreground">UZS</p>
                     </div>

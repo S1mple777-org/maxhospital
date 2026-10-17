@@ -13,7 +13,7 @@ const AiAssistantButton = () => {
     <Link
       to="/ai-assistant"
       aria-label={t("nav.ai")}
-      className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-hero-gradient px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg hover:opacity-90"
+      className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 sm:right-5 z-40 flex items-center gap-2 rounded-full bg-hero-gradient px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg hover:opacity-90"
     >
       <Sparkles className="w-5 h-5" />
       <span className="hidden sm:inline">{t("nav.ai")}</span>

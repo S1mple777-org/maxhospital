@@ -74,6 +74,9 @@ function row(table, i) {
     { plan_id: "pro", ai_daily_questions: 50, video_free_minutes: 20, health_ai: true, lab_reads_monthly: 5, emergency_credit_uzs: 100000 },
     { plan_id: "premium", ai_daily_questions: null, video_free_minutes: 30, health_ai: true, lab_reads_monthly: 20, emergency_credit_uzs: 150000 },
   ][i];
+  if (table === "medication_reminders") return { ...base, status: ["pending", "taken", "sent", "missed"][i % 4] };
+  if (table === "medication_schedules") return { ...base, status: undefined };
+  if (table === "consultations") return { ...base, status: i === 0 ? "active" : base.status };
   if (table === "emergency_credits") return { ...base, amount_uzs: 40000, repaid_uzs: 0, status: i === 0 ? "open" : "repaid" };
   return base;
 }
@@ -115,7 +118,9 @@ async function handle(route) {
   }
   if (p.startsWith("/rest/v1/")) {
     const table = p.split("/").pop();
-    const n = ROWS[table] ?? 4;
+    // .eq("id", …) + maybeSingle() kabi so'rovlar bitta qator kutadi.
+    const byId = [...url.searchParams.entries()].some(([k, v]) => (k === "id" || k === "limit") && /^(eq\.|1$)/.test(v));
+    const n = byId ? 1 : ROWS[table] ?? 4;
     const rows = Array.from({ length: n }, (_, i) => row(table, i));
     const single = (req.headers()["accept"] || "").includes("vnd.pgrst.object");
     const range = { "content-range": `0-${n - 1}/${n}` };

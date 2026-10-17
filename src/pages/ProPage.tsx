@@ -122,7 +122,7 @@ const ProPage = () => {
             <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-3">
               <Crown className="w-3.5 h-3.5" /> MaxHospital Pro
             </div>
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">Ko'proq AI, ko'proq video, aqlli eslatmalar</h1>
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Ko'proq AI, ko'proq video, aqlli eslatmalar</h1>
             <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
               Ko'proq AI savollar, uzunroq bepul video, ko'rsatkichlar va tahlil natijalarini AI bilan tushunish,
               favqulodda kredit va dori eslatmalari — Telegram, sayt, telefon ilovasi yoki SMS orqali.
@@ -158,7 +158,7 @@ const ProPage = () => {
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-3xl border p-6 md:p-8 flex flex-col ${highlight ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+                  className={`relative rounded-3xl border p-5 md:p-8 flex flex-col ${highlight ? "border-primary bg-primary/5" : "border-border bg-card"}`}
                 >
                   {mine && (
                     <span className="absolute top-4 right-4 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Sizning tarifingiz</span>
@@ -190,21 +190,21 @@ const ProPage = () => {
 
           {compareRows(limits).length > 0 && (
             <div className="mt-10 rounded-2xl border border-border bg-card overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[420px] text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    <th className="px-4 py-3 font-medium text-muted-foreground">Imkoniyat</th>
+                    <th className="px-2 sm:px-4 py-3 font-medium text-muted-foreground">Imkoniyat</th>
                     {["Free", "Pro", "Premium"].map((n, i) => (
-                      <th key={n} className={`px-4 py-3 text-center font-semibold ${(["free", "pro", "premium"] as const)[i] === current ? "text-primary" : "text-foreground"}`}>{n}</th>
+                      <th key={n} className={`px-2 sm:px-4 py-3 text-center font-semibold ${(["free", "pro", "premium"] as const)[i] === current ? "text-primary" : "text-foreground"}`}>{n}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {compareRows(limits).map((r) => (
                     <tr key={r.label}>
-                      <td className="px-4 py-2.5 text-foreground">{r.label}</td>
+                      <td className="px-2 sm:px-4 py-2.5 text-foreground">{r.label}</td>
                       {r.cells.map((c, i) => (
-                        <td key={i} className="px-4 py-2.5 text-center text-foreground whitespace-nowrap">
+                        <td key={i} className="px-2 sm:px-4 py-2.5 text-center text-foreground whitespace-nowrap">
                           {c === true ? <Check className="w-4 h-4 text-primary inline" /> : c === false ? <Minus className="w-4 h-4 text-muted-foreground inline" /> : c}
                         </td>
                       ))}
