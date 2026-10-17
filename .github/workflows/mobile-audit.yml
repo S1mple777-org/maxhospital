@@ -1,0 +1,57 @@
+name: Mobile audit
+
+# Har bir sahifani telefon kengligida (360 px) ochadi, ekrandan toshib chiqqan joylarni topadi
+# va skrinshotlarni "mobile-audit-shots" branchiga yozadi.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "fix/mobile-**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit
+        run: |
+          mkdir -p mobile-audit
+          npx vite preview --port 4173 --strictPort &
+          npx --yes wait-on@8.0.1 -t 60000 http://localhost:4173
+          BASE_URL=http://localhost:4173 node scripts/mobile-audit.mjs | tee mobile-audit/log.txt || true
+
+      - name: Publish screenshots
+        if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd mobile-audit
+          echo "${GITHUB_SHA} ${GITHUB_REF_NAME}" > SOURCE.txt
+          git init -q
+          git checkout -q -b mobile-audit-shots
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "Mobile audit ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" mobile-audit-shots
