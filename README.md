@@ -46,6 +46,10 @@ npm test
 4. `ai-assistant` va `ingest-book` edge funksiyalarini deploy qiling.
 5. Admin panel → **AI kutubxona** bo'limida matnli PDF kitoblarni yuklang.
 
+### Android ilova
+
+Telefon ilovasi (APK) qanday yig'ilishi [ANDROID.md](ANDROID.md) faylida yozilgan.
+
 ## Loyiha tuzilmasi
 
 ```

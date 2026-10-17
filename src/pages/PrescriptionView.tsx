@@ -6,6 +6,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ArrowLeft, Download, FileText, Pill, Calendar, User, Stethoscope } from "lucide-react";
 import { generatePrescriptionPdf, type PrescriptionData, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
+import { savePdf } from "@/lib/native";
+import { toast } from "sonner";
 
 const PrescriptionView = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,10 +30,14 @@ const PrescriptionView = () => {
     load();
   }, [id, user]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!rx) return;
     const pdf = generatePrescriptionPdf(rx);
-    pdf.save(`retsept-${rx.id.slice(0, 8)}.pdf`);
+    try {
+      await savePdf(pdf, `retsept-${rx.id.slice(0, 8)}.pdf`);
+    } catch (e: any) {
+      toast.error(e?.message || "PDF saqlanmadi");
+    }
   };
 
   if (loading || loadingRx) {

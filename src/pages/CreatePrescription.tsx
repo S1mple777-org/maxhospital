@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { ArrowLeft, Plus, Trash2, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
 import { generatePrescriptionPdf, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
+import { openPdf } from "@/lib/native";
 import MeasurementsInput, { type MeasurementValues } from "@/components/ai/MeasurementsInput";
 import { isPlausible, METRIC_BY_KEY, type MetricKey } from "@/lib/aiAssistant";
 
@@ -127,7 +128,7 @@ const CreatePrescription = () => {
       department_name: doctorInfo.department,
       created_at: new Date().toISOString(),
     });
-    window.open(pdf.output("bloburl") as unknown as string, "_blank");
+    openPdf(pdf, "retsept-korinish.pdf").catch((e) => toast.error(e?.message || "PDF ochilmadi"));
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Yuklanmoqda...</p></div>;
