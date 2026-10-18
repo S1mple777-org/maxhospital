@@ -32,13 +32,20 @@ jobs:
           arduino-cli lib install "WiFiManager" "ArduinoJson" "Adafruit SSD1306" "Adafruit GFX Library" "SparkFun MAX3010x Pulse and Proximity Sensor Library"
 
       - name: Compile (ESP32-C3, Huge APP partition)
+        shell: bash
         run: |
+          set +e
           arduino-cli compile \
             --fqbn "esp32:esp32:esp32c3:CDCOnBoot=cdc,PartitionScheme=huge_app" \
             --warnings default \
             --output-dir build \
-            hardware/maxband/firmware/maxband
-          ls -la build
+            hardware/maxband/firmware/maxband 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          # Errors as annotations: visible on the run page without opening the log.
+          grep -E "error:|Error|undefined reference" build.log | head -20 | while IFS= read -r line; do echo "::error::${line}"; done
+          grep -E "Sketch uses|Global variables" build.log | while IFS= read -r line; do echo "::notice::${line}"; done
+          ls -la build 2>/dev/null
+          exit $code
 
       - uses: actions/upload-artifact@v7
         with:
