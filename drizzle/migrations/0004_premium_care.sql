@@ -636,29 +636,7 @@ BEGIN
   );
 END; $$;
 
--- ---------------------------------------------------------------------
--- Haftalik hisobot uchun cron (pg_cron + pg_net + Vault). Yo'q bo'lsa migratsiya baribir o'tadi;
--- zaxira: .github/workflows/weekly-report-cron.yml
--- ---------------------------------------------------------------------
-DO $cron$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron')
-     AND EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') THEN
-    PERFORM cron.unschedule(jobid) FROM cron.job WHERE jobname = 'maxhospital-weekly-report';
-    -- Yakshanba 20:00 Toshkent = 15:00 UTC
-    PERFORM cron.schedule('maxhospital-weekly-report', '0 15 * * 0', $job$
-      SELECT net.http_post(
-        url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'weekly_report_function_url'),
-        headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret',
-          (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'reminders_cron_secret')),
-        body := '{"mode":"cron"}'::jsonb)
-      WHERE EXISTS (SELECT 1 FROM vault.decrypted_secrets WHERE name = 'weekly_report_function_url');
-    $job$);
-  END IF;
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'weekly report cron not scheduled: %', SQLERRM;
-END
-$cron$;
+-- Haftalik hisobot cron'i migratsiyada emas: supabase/cron/schedule.sql. Zaxira: .github/workflows/weekly-report-cron.yml
 
 -- ---------------------------------------------------------------------
 -- Ruxsatlar
