@@ -1,0 +1,56 @@
+name: MaxBand firmware
+
+# Bilaguzuk dasturini ESP32-C3 uchun kompilyatsiya qiladi va tayyor .bin faylni artefakt qilib saqlaydi.
+on:
+  push:
+    paths:
+      - "hardware/maxband/**"
+      - ".github/workflows/firmware.yml"
+  pull_request:
+    paths:
+      - "hardware/maxband/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: ESP32 core and libraries
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "WiFiManager" "ArduinoJson" "Adafruit SSD1306" "Adafruit GFX Library" "SparkFun MAX3010x Pulse and Proximity Sensor Library"
+
+      - name: Compile (ESP32-C3, Huge APP partition)
+        shell: bash
+        run: |
+          set +e
+          arduino-cli compile \
+            --fqbn "esp32:esp32:esp32c3:CDCOnBoot=cdc,PartitionScheme=huge_app" \
+            --warnings default \
+            --output-dir build \
+            hardware/maxband/firmware/maxband 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          # Errors as annotations: visible on the run page without opening the log.
+          grep -E "error:|Error|undefined reference" build.log | head -20 | while IFS= read -r line; do echo "::error::${line}"; done
+          grep -E "Sketch uses|Global variables" build.log | while IFS= read -r line; do echo "::notice::${line}"; done
+          ls -la build 2>/dev/null
+          exit $code
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: maxband-firmware
+          path: |
+            build/maxband.ino.merged.bin
+            build/maxband.ino.bin
+          if-no-files-found: warn

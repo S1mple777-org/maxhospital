@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock, FlaskConical, IdCard, Scale } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock, FlaskConical, IdCard, Scale, Watch } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -138,6 +138,9 @@ const Navbar = () => {
                     <Link to="/family" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Users className="w-4 h-4" /> {t("nav.family")}
                     </Link>
+                    <Link to="/maxband" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Watch className="w-4 h-4 text-primary" /> {t("nav.maxband")}
+                    </Link>
                     <Link to="/emergency-card" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <IdCard className="w-4 h-4 text-red-500" /> {t("nav.ecard")}
                     </Link>
@@ -199,6 +202,7 @@ const Navbar = () => {
                   <Link to="/lab-results" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.lab")}</Link>
                   <Link to="/wallet" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.wallet")}</Link>
                   <Link to="/family" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.family")}</Link>
+                  <Link to="/maxband" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.maxband")}</Link>
                   <Link to="/emergency-card" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.ecard")}</Link>
                   <Link to="/second-opinion" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.opinion")}</Link>
                   <Link to="/pro" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.pro")}</Link>

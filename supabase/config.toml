@@ -11,3 +11,7 @@ verify_jwt = false
 # Telegram chaqiradi (JWT yo'q); X-Telegram-Bot-Api-Secret-Token bilan tekshiriladi.
 [functions.telegram-webhook]
 verify_jwt = false
+
+# MaxBand bilaguzugi chaqiradi: foydalanuvchi JWT si yo'q, qurilma tokeni (x-device-token) funksiya ichida tekshiriladi.
+[functions.device-api]
+verify_jwt = false
