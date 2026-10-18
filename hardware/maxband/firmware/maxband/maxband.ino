@@ -30,6 +30,7 @@
 #include "qrcodegen.h"
 #include "config.h"
 #include "root_ca.h"
+#include "types.h"  // structs live in a header: Arduino puts function prototypes above the sketch code
 
 // ---------------------------------------------------------------------------------
 // State
@@ -75,7 +76,6 @@ uint32_t nextSyncMs = 0;
 uint32_t syncEveryMs = 300000;
 
 // Buffered readings
-struct Reading { uint32_t t; float v; char k; };
 const int MAX_READINGS = 1500;
 Reading readings[MAX_READINGS];
 int readingCount = 0;
@@ -99,15 +99,10 @@ const char* kindName(char k) {
   }
 }
 
-// Buttons (declared here: Arduino puts function prototypes above the first function)
-struct Button { int pin; bool down; uint32_t since; bool longFired; };
-
 // Medication reminders
-struct Reminder { char id[37]; uint32_t at; char name[21]; char dose[21]; bool done; uint32_t snoozeUntil; };
 Reminder reminders[20];
 int reminderCount = 0;
 int alerting = -1;  // index of the reminder on screen
-struct Ack { char id[37]; bool taken; };
 Ack acks[20];
 int ackCount = 0;
 
