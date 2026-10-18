@@ -36,6 +36,13 @@
       "when": 1792253430054,
       "tag": "0004_premium_care",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792310400000,
+      "tag": "0005_maxband",
+      "breakpoints": true
     }
   ]
 }

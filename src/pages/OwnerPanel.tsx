@@ -5,9 +5,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone, Pill
+  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone, Pill, Watch
 } from "lucide-react";
 import PlansEditor from "@/components/medications/PlansEditor";
+import BandCodesAdmin from "@/components/band/BandCodesAdmin";
 
 type AdminType = "financial" | "dept_head" | "journalist";
 
@@ -211,6 +212,7 @@ const OwnerPanel = () => {
     { id: "limits", label: "Limitlar", icon: Wallet },
     { id: "subscriptions", label: "Majburiy obuna", icon: Megaphone },
     { id: "pro-plans", label: "Pro tariflar", icon: Pill },
+    { id: "maxband", label: "MaxBand kodlari", icon: Watch },
   ];
 
   const IconUploader = () => (
@@ -411,6 +413,8 @@ const OwnerPanel = () => {
             )}
 
             {activeTab === "pro-plans" && <PlansEditor />}
+
+            {activeTab === "maxband" && <BandCodesAdmin />}
 
             {/* Subscriptions Tab */}
             {activeTab === "subscriptions" && (

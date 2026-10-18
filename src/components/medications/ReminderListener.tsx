@@ -43,7 +43,14 @@ const ReminderListener = () => {
             await (supabase.from("user_notifications" as any) as any).update({ read_at: new Date().toISOString() }).eq("id", n.id);
           };
 
-          toast(n.title, {
+          // MaxBand SOS / fall: a red toast that stays until it is dismissed.
+          if (n.kind === "maxband_sos") {
+            toast.error(n.title, {
+              description: n.body ?? undefined,
+              duration: 30 * 60_000,
+              action: { label: "Ochish", onClick: () => window.location.assign(n.data?.link ?? "/maxband") },
+            });
+          } else toast(n.title, {
             description: n.body ?? undefined,
             duration: 5 * 60_000,
             action: reminderId ? { label: "✅ Ichdim", onClick: () => void act("taken") } : undefined,

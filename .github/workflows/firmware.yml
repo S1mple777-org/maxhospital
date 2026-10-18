@@ -1,0 +1,49 @@
+name: MaxBand firmware
+
+# Bilaguzuk dasturini ESP32-C3 uchun kompilyatsiya qiladi va tayyor .bin faylni artefakt qilib saqlaydi.
+on:
+  push:
+    paths:
+      - "hardware/maxband/**"
+      - ".github/workflows/firmware.yml"
+  pull_request:
+    paths:
+      - "hardware/maxband/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: ESP32 core and libraries
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "WiFiManager" "ArduinoJson" "Adafruit SSD1306" "Adafruit GFX Library" "SparkFun MAX3010x Pulse and Proximity Sensor Library"
+
+      - name: Compile (ESP32-C3, Huge APP partition)
+        run: |
+          arduino-cli compile \
+            --fqbn "esp32:esp32:esp32c3:CDCOnBoot=cdc,PartitionScheme=huge_app" \
+            --warnings default \
+            --output-dir build \
+            hardware/maxband/firmware/maxband
+          ls -la build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: maxband-firmware
+          path: |
+            build/maxband.ino.merged.bin
+            build/maxband.ino.bin
+          if-no-files-found: warn
