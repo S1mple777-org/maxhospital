@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const SITE_URL = "https://maxhospital.lovable.app";
+const SITE_URL = (Deno.env.get("SITE_URL") ?? "https://maxhospital.lovable.app").replace(/\/+$/, "");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1059,17 +1059,30 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
 
+    // Telegram sends the secret given to setWebhook in this header; without it anyone
+    // who knows the URL could fake an update (e.g. an admin's /topup).
+    const secret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") ?? "";
+
     if (url.searchParams.get("action") === "setup") {
       const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/telegram-webhook`;
       const res = await fetch(`${TELEGRAM_API}/setWebhook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: webhookUrl }),
+        body: JSON.stringify(secret ? { url: webhookUrl, secret_token: secret } : { url: webhookUrl }),
       });
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (secret) {
+      const given = req.headers.get("x-telegram-bot-api-secret-token") ?? "";
+      let diff = given.length ^ secret.length;
+      for (let i = 0; i < secret.length; i++) diff |= (given.charCodeAt(i) || 0) ^ secret.charCodeAt(i);
+      if (diff !== 0) return new Response("Forbidden", { status: 403, headers: corsHeaders });
+    } else {
+      console.warn("TELEGRAM_WEBHOOK_SECRET is not set: webhook updates are not verified");
     }
 
     const body = await req.json();
