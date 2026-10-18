@@ -78,12 +78,12 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           name: roomName,
+          privacy: "private", // top-level field: a meeting token is required to join
           properties: {
             exp: Math.floor(Date.now() / 1000) + 3600 * 48, // 48 hours
             enable_chat: false,
             enable_knocking: false,
             max_participants: 2,
-            privacy: "private", // a meeting token is required to join
           },
         }),
       });
