@@ -99,6 +99,9 @@ const char* kindName(char k) {
   }
 }
 
+// Buttons (declared here: Arduino puts function prototypes above the first function)
+struct Button { int pin; bool down; uint32_t since; bool longFired; };
+
 // Medication reminders
 struct Reminder { char id[37]; uint32_t at; char name[21]; char dose[21]; bool done; uint32_t snoozeUntil; };
 Reminder reminders[20];
@@ -606,7 +609,6 @@ void answerReminder(bool taken) {
 // ---------------------------------------------------------------------------------
 // Buttons
 // ---------------------------------------------------------------------------------
-struct Button { int pin; bool down; uint32_t since; bool longFired; };
 Button btnA = { PIN_BTN_A, false, 0, false };
 Button btnB = { PIN_BTN_B, false, 0, false };
 
