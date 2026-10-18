@@ -3,12 +3,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import { toast } from "sonner";
 
 const ProfilePage = () => {
-  const { user, profile, roles, signOut, refreshProfile, isDoctor } = useAuth();
+  const { user, profile, roles, signOut, refreshProfile, isDoctor, isAdmin, isOwner } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -258,6 +258,25 @@ const ProfilePage = () => {
               </span>
             </div>
           </div>
+
+          {/* Admin / owner panels: only for accounts that have them */}
+          {(isAdmin || isOwner) && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Boshqaruv</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => navigate("/admin")} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border text-sm text-foreground hover:bg-secondary transition-colors text-left">
+                  <Shield className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Admin Panel</span>
+                </button>
+                {isOwner && (
+                  <button onClick={() => navigate("/owner")} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border text-sm text-foreground hover:bg-secondary transition-colors text-left">
+                    <Crown className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span className="truncate">Owner Panel</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Secondary services moved out of the main menu */}
           <div className="mb-6">

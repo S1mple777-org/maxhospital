@@ -141,16 +141,6 @@ const Navbar = () => {
                     <Link to="/pro" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Crown className="w-4 h-4 text-amber-500" /> {t("nav.pro")}
                     </Link>
-                    {(isAdmin || isOwner) && (
-                      <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                        <Shield className="w-4 h-4" /> Admin Panel
-                      </Link>
-                    )}
-                    {isOwner && (
-                      <Link to="/owner" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                        <Crown className="w-4 h-4" /> Owner Panel
-                      </Link>
-                    )}
                     <button onClick={handleSignOut} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-secondary">
                       <LogOut className="w-4 h-4" /> Chiqish
                     </button>
