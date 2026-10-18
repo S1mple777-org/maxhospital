@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
 
       if (!createRes.ok) {
         const err = await createRes.text();
+        console.error("daily create room failed", { lookup: getRes.status, create: createRes.status, err });
         return new Response(JSON.stringify({ error: "Failed to create room", details: err }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -116,7 +117,9 @@ Deno.serve(async (req) => {
     });
 
     if (!tokenRes.ok) {
-      return new Response(JSON.stringify({ error: "Failed to create token" }), {
+      const err = await tokenRes.text();
+      console.error("daily meeting token failed", { status: tokenRes.status, err });
+      return new Response(JSON.stringify({ error: "Failed to create token", details: err }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
