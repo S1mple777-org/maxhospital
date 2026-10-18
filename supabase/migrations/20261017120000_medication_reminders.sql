@@ -461,45 +461,5 @@ GRANT EXECUTE ON FUNCTION public.stop_medication_schedule(uuid) TO authenticated
 GRANT EXECUTE ON FUNCTION public.mark_medication_reminder(uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_due_medication_reminders(int) TO service_role;
 
--- ---------------------------------------------------------------------
--- Rejalashtirilgan ishlar (pg_cron). Mavjud bo'lmasa migratsiya baribir o'tadi;
--- unda MEDICATIONS.md dagi GitHub Actions zaxira variantidan foydalaning.
--- ---------------------------------------------------------------------
-DO $$
-BEGIN
-  BEGIN
-    CREATE EXTENSION IF NOT EXISTS pg_cron;
-  EXCEPTION WHEN others THEN
-    RAISE NOTICE 'pg_cron unavailable: %', SQLERRM;
-  END;
-  BEGIN
-    CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
-  EXCEPTION WHEN others THEN
-    RAISE NOTICE 'pg_net unavailable: %', SQLERRM;
-  END;
-
-  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
-    BEGIN
-      PERFORM cron.schedule('maxhospital-renew-subscriptions', '7 * * * *',
-        'SELECT public.renew_subscriptions()');
-
-      IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') THEN
-        -- Har daqiqada eslatmalarni yuboruvchi funksiyani chaqiradi.
-        -- URL va maxfiy kalit Vault'da saqlanadi (MEDICATIONS.md, 2-qadam).
-        PERFORM cron.schedule('maxhospital-dispatch-reminders', '* * * * *', $cron$
-          SELECT net.http_post(
-            url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'reminders_function_url'),
-            headers := jsonb_build_object(
-              'Content-Type', 'application/json',
-              'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'reminders_cron_secret')
-            ),
-            body := '{}'::jsonb
-          )
-          WHERE EXISTS (SELECT 1 FROM vault.decrypted_secrets WHERE name = 'reminders_function_url');
-        $cron$);
-      END IF;
-    EXCEPTION WHEN others THEN
-      RAISE NOTICE 'cron jobs not scheduled: %', SQLERRM;
-    END;
-  END IF;
-END $$;
+-- Rejalashtirilgan ishlar (pg_cron + Vault) migratsiyada emas: supabase/cron/schedule.sql.
+-- Zaxira: .github/workflows/reminders-cron.yml (dispatch-reminders obunalarni ham uzaytiradi).

@@ -1,0 +1,14 @@
+# Netlify: yangi Supabase loyihasiga ulangan sayt.
+# VITE_SUPABASE_* o'zgaruvchilari Netlify → Site configuration → Environment variables da beriladi.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# React Router: /doctor-dashboard kabi sahifalar yangilanganda 404 bo'lmasin.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

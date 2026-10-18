@@ -107,6 +107,11 @@ Deno.serve(async (req) => {
   if (!authorized(req)) return json({ error: "Forbidden" }, 403);
 
   const db = serviceClient();
+
+  // Muddati tugagan obunalarni uzaytirish (pg_cron bo'lmasa ham shu chaqiruv orqali ishlaydi).
+  const { data: renewed, error: renewError } = await db.rpc("renew_subscriptions");
+  if (renewError) console.error("renew_subscriptions failed", renewError);
+
   const { data, error } = await db.rpc("claim_due_medication_reminders", { _limit: 300 });
   if (error) {
     console.error("claim failed", error);
@@ -117,7 +122,7 @@ Deno.serve(async (req) => {
   const { data: smsPlans } = await db.from("subscription_plans").select("id").eq("sms_enabled", true);
   const smsPlanIds = new Set((smsPlans ?? []).map((p) => p.id));
 
-  const stats = { claimed: due.length, web: 0, telegram: 0, sms: 0 };
+  const stats = { claimed: due.length, web: 0, telegram: 0, sms: 0, renewed: Number(renewed ?? 0) };
   const webRows: Record<string, unknown>[] = [];
 
   await Promise.all(due.map(async (r) => {
