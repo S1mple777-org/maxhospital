@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import { toast } from "sonner";
 
@@ -256,6 +256,29 @@ const ProfilePage = () => {
               <span className="text-sm font-medium text-foreground">
                 {new Date(profile.created_at).toLocaleDateString()}
               </span>
+            </div>
+          </div>
+
+          {/* Secondary services moved out of the main menu */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Qo'shimcha xizmatlar</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { to: "/emergency-card", label: "Favqulodda karta", icon: IdCard, cls: "text-red-500" },
+                { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
+                { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },
+                { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "" },
+                { to: "/users", label: "Foydalanuvchilar", icon: Users, cls: "" },
+              ].map(({ to, label, icon: Icon, cls }) => (
+                <button
+                  key={to}
+                  onClick={() => navigate(to)}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border text-sm text-foreground hover:bg-secondary transition-colors text-left"
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${cls}`} />
+                  <span className="truncate">{label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
