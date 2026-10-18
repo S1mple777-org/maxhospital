@@ -22,7 +22,7 @@ const themes = [
 const Navbar = () => {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const { user, profile, isAdmin, isOwner, hasRole, signOut } = useAuth();
+  const { user, profile, hasRole, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -35,7 +35,6 @@ const Navbar = () => {
     { label: t("nav.departments"), href: "/departments" },
     { label: t("nav.doctors"), href: "/doctors" },
     { label: t("nav.news"), href: "/news" },
-    { label: t("nav.ai"), href: "/ai-assistant" },
   ];
 
   const handleSignOut = async () => {
@@ -174,16 +173,11 @@ const Navbar = () => {
                   <Link to="/start-consultation" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Konsultatsiya</Link>
                   <Link to="/health" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.health")}</Link>
                   <Link to="/medications" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.meds")}</Link>
-                  <Link to="/lab-results" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.lab")}</Link>
                   <Link to="/wallet" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.wallet")}</Link>
                   <Link to="/family" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.family")}</Link>
                   <Link to="/maxband" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.maxband")}</Link>
-                  <Link to="/emergency-card" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.ecard")}</Link>
-                  <Link to="/second-opinion" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.opinion")}</Link>
                   <Link to="/pro" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.pro")}</Link>
                   {isDoctor && <Link to="/doctor-dashboard" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Shifokor kabineti</Link>}
-                  {(isAdmin || isOwner) && <Link to="/admin" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Admin Panel</Link>}
-                  {isOwner && <Link to="/owner" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Owner Panel</Link>}
                   <button onClick={handleSignOut} className="block text-sm font-medium text-destructive">Chiqish</button>
                 </>
               ) : (
