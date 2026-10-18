@@ -29,15 +29,15 @@ Supabase Dashboard → **SQL Editor** → New query. U yerga `supabase/manual/st
 | `TELEGRAM_BOT_TOKEN` | **Yangi** token (@BotFather → /revoke; eski token GitHub'da ochiq qolgan) |
 | `TELEGRAM_WEBHOOK_SECRET` | 32+ belgili tasodifiy matn (faqat harf/raqam/_-) |
 | `REMINDERS_CRON_SECRET` | 32+ belgili tasodifiy matn |
-| `SITE_URL` | Vercel domeningiz, masalan `https://maxhospital.vercel.app` |
+| `SITE_URL` | `https://maxhospital.vercel.app` |
 | `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM` | ixtiyoriy (SMS) |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` va `SUPABASE_SERVICE_ROLE_KEY` o'zi bor, ularni qo'shmang.
 
 ## 4. Auth sozlamalari (Dashboard → Authentication)
 
-- **URL Configuration → Site URL**: Vercel domeni. **Redirect URLs** ga quyidagilarni qo'shing:
-  - `https://<domen>/**`
+- **URL Configuration → Site URL**: `https://maxhospital.vercel.app`. **Redirect URLs** ga quyidagilarni qo'shing:
+  - `https://maxhospital.vercel.app/**`
   - `https://*-<vercel-akkaunt>.vercel.app/**` (preview uchun)
   - Android ilova sxemasi (agar bor bo'lsa).
 - **Providers → Google** saytda ishlatilsa, Google Cloud'dagi OAuth client'ga yangi callback qo'shiladi: `https://sgmeuwbvfffopmczjwcv.supabase.co/auth/v1/callback`
@@ -56,7 +56,7 @@ VITE_SUPABASE_PROJECT_ID=sgmeuwbvfffopmczjwcv
 Keyin `feature/own-supabase` branch'ini push qiling (Vercel o'zi preview yasaydi) va sinov ro'yxatini bajaring:
 
 1. Ro'yxatdan o'tish va kirish.
-2. Owner rolini berish: Claude'ga emailingizni ayting yoki SQL Editor'da quyidagini bajaring: `insert into user_roles(user_id, role) select id,'owner' from auth.users where email='...';`
+2. Owner akkaunti (`owner@gmail.com`) yangi bazada tayyor: kirib, owner panel ochilishini tekshiring.
 3. Owner panel: bo'lim narxlari, tariflar, limitlar.
 4. Shifokor qo'shish (admin panel → email bo'yicha).
 5. Balans to'ldirish → konsultatsiya → shifokor qabul qiladi → chat.
