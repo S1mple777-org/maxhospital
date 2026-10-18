@@ -31,7 +31,9 @@ async function buildReport(db: SupabaseClient, userId: string, lang: Lang) {
     db.from("medication_reminders").select("status, scheduled_at")
       .eq("user_id", userId).gte("scheduled_at", period.startIso).lt("scheduled_at", period.endIso).limit(2000),
   ]);
-  const stats: WeeklyStats = computeWeeklyStats({ period, measurements: ms ?? [], reminders: rs ?? [] });
+  // MaxBand (if the user wears one); a missing function or no data simply leaves it out.
+  const { data: band } = await db.rpc("band_week_summary", { _owner: userId, _from: period.startIso, _to: period.endIso });
+  const stats: WeeklyStats = computeWeeklyStats({ period, measurements: ms ?? [], reminders: rs ?? [], band: (band as any) ?? null });
 
   let content = fallbackReport(stats, lang);
   if (hasData(stats) && Deno.env.get("GEMINI_API_KEY")) {

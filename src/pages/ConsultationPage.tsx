@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import DailyIframe from "@daily-co/daily-js";
 import { usePlanStatus } from "@/lib/planPerks";
+import BandLivePanel from "@/components/band/BandLivePanel";
 
 interface Message {
   id: string;
@@ -453,6 +454,9 @@ const ConsultationPage = () => {
             )}
           </div>
         </motion.div>
+
+        {/* MaxBand: the doctor sees the patient's pulse and SpO2 live (Premium, active consultation) */}
+        {isDoctor && !isEnded && id && consultation?.status === "active" && <BandLivePanel consultationId={id} />}
 
         {/* Video container - always in DOM for Daily.co createFrame ref */}
         <div

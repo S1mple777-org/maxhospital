@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Activity, Bot, CalendarDays, Check, Crown, FlaskConical, HelpCircle, Home, IdCard, Loader2, MessageSquare, Minus, Pill, Scale, Send, Siren, Sparkles, Users, Video, Wallet, Zap } from "lucide-react";
+import { Activity, Bot, CalendarDays, Check, Crown, FlaskConical, HelpCircle, Home, IdCard, Loader2, MessageSquare, Minus, Pill, Scale, Send, Siren, Sparkles, Users, Video, Wallet, Watch, Zap } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -69,6 +69,9 @@ function compareRows(limits: PlanLimitsRow[]): { label: string; cells: Cell[] }[
     { label: "Oila profili", cells: ls.map((l) => (l.family_members > 0 ? `${l.family_members} a'zo` : false)) },
     { label: "Dori eslatmalari (Telegram, sayt, ilova)", cells: [false, true, true] },
     { label: "SMS eslatma", cells: [false, false, true] },
+    { label: "MaxBand: SOS va yiqilish xabari", cells: [true, true, true] },
+    { label: "MaxBand: sinxron, dori eslatmasi, ogohlantirish, QR", cells: [false, true, true] },
+    { label: "MaxBand: oila nazorati, shifokor jonli ko'radi", cells: [false, false, true] },
   ];
 }
 
@@ -253,6 +256,15 @@ const ProPage = () => {
               </Link>
             </div>
           )}
+
+          <Link to="/maxband" className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl border border-primary/30 bg-primary/5 p-5 hover:bg-primary/10 transition-colors">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-hero-gradient flex items-center justify-center"><Watch className="w-6 h-6 text-primary-foreground" /></div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-semibold text-foreground">MaxBand aqlli bilaguzugi — qutida 3 oy Premium</div>
+              <div className="text-sm text-muted-foreground">Dori eslatmasi bilakda, puls va SpO₂, uyqu, SOS va yiqilishni aniqlash, oila nazorati, shifokor jonli ko'radi.</div>
+            </div>
+            <span className="text-sm font-semibold text-primary whitespace-nowrap">Batafsil →</span>
+          </Link>
 
           <p className="mt-8 text-center text-xs text-muted-foreground max-w-2xl mx-auto">
             To'lov ichki balansdan yechiladi. Favqulodda qarz bo'lsa, avval uni Hamyon sahifasida to'lash kerak. Avtomatik uzaytirish yoqilgan bo'lsa, davr tugaganda balansda yetarli mablag'
