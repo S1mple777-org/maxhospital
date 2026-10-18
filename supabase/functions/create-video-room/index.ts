@@ -88,15 +88,28 @@ Deno.serve(async (req) => {
         }),
       });
 
-      if (!createRes.ok) {
+      if (createRes.ok) {
+        const room = await createRes.json();
+        roomUrl = room.url;
+      } else {
         const err = await createRes.text();
-        return new Response(JSON.stringify({ error: "Failed to create room", details: err }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        // Patient and doctor join at the same moment: the other one may have created the room
+        // between our lookup and our create. Then just read the room that now exists.
+        let existing: { url?: string } | null = null;
+        if (err.includes("already exists")) {
+          const again = await fetch(`https://api.daily.co/v1/rooms/${roomName}`, {
+            headers: { Authorization: `Bearer ${DAILY_API_KEY}` },
+          });
+          if (again.ok) existing = await again.json();
+        }
+        if (!existing?.url) {
+          console.error("daily create room failed", { lookup: getRes.status, create: createRes.status, err });
+          return new Response(JSON.stringify({ error: "Failed to create room", details: err }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        roomUrl = existing.url;
       }
-
-      const room = await createRes.json();
-      roomUrl = room.url;
     }
 
     // Create meeting token
@@ -116,7 +129,9 @@ Deno.serve(async (req) => {
     });
 
     if (!tokenRes.ok) {
-      return new Response(JSON.stringify({ error: "Failed to create token" }), {
+      const err = await tokenRes.text();
+      console.error("daily meeting token failed", { status: tokenRes.status, err });
+      return new Response(JSON.stringify({ error: "Failed to create token", details: err }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
