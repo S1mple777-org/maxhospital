@@ -44,14 +44,7 @@ ALTER TABLE public.plan_limits
   ADD COLUMN IF NOT EXISTS emergency_card boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS family_members int NOT NULL DEFAULT 0 CHECK (family_members BETWEEN 0 AND 10);
 
--- Standart qiymatlar (owner keyin o'zgartiradi). Faqat hali tegilmagan qatorlar yangilanadi.
-UPDATE public.plan_limits SET queue_boost = 4, queue_first_monthly = 1, queue_first_price_uzs = 15000,
-  followup_hours = 72, home_diary = true, weekly_report = true, emergency_card = true
-WHERE plan_id = 'pro' AND queue_boost = 0 AND queue_first_price_uzs IS NULL;
-UPDATE public.plan_limits SET queue_boost = 6, queue_first_monthly = 3, queue_first_price_uzs = 10000,
-  followup_hours = 72, second_opinions_monthly = 1, home_diary = true, weekly_report = true,
-  emergency_card = true, family_members = 4
-WHERE plan_id = 'premium' AND queue_boost = 0 AND queue_first_price_uzs IS NULL;
+-- Pro / Premium uchun standart qiymatlar supabase/seed/plan_defaults.sql faylida.
 
 GRANT UPDATE (queue_boost, queue_first_monthly, queue_first_price_uzs, followup_hours, second_opinions_monthly,
               home_diary, weekly_report, emergency_card, family_members)

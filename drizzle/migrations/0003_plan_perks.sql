@@ -23,11 +23,7 @@ CREATE TABLE IF NOT EXISTS public.plan_limits (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-INSERT INTO public.plan_limits (plan_id, ai_daily_questions, video_free_minutes, health_ai, lab_reads_monthly, emergency_credit_uzs)
-VALUES ('free', 5, 10, false, 0, 50000),
-       ('pro', 50, 20, true, 5, 100000),
-       ('premium', NULL, 30, true, 20, 150000)
-ON CONFLICT (plan_id) DO NOTHING;
+-- Boshlang'ich limitlar (free, pro, premium) supabase/seed/plan_defaults.sql faylida.
 
 GRANT SELECT ON public.plan_limits TO anon, authenticated;
 GRANT UPDATE (ai_daily_questions, video_free_minutes, health_ai, lab_reads_monthly, emergency_credit_uzs, updated_at)

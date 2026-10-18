@@ -24,10 +24,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_plans (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-INSERT INTO public.subscription_plans (id, name, price_uzs, period_days, sms_enabled, sort_order)
-VALUES ('pro', 'Pro', 19000, 30, false, 1),
-       ('premium', 'Premium', 39000, 30, true, 2)
-ON CONFLICT (id) DO NOTHING;
+-- Boshlang'ich tariflar (Pro, Premium) supabase/seed/plan_defaults.sql faylida.
 
 GRANT SELECT ON public.subscription_plans TO anon, authenticated;
 GRANT UPDATE (name, price_uzs, period_days, is_active, updated_at) ON public.subscription_plans TO authenticated;

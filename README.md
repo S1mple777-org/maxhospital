@@ -60,7 +60,7 @@ Limitlar `plan_limits` jadvalida saqlanadi va **Owner Panel → Pro tariflar** b
 **Favqulodda kredit.** Balans yetmasa bemor konsultatsiyani "favqulodda" qilib boshlaydi. Balansdagi pul ishlatiladi, yetmagan qismi (tarif limitigacha) qarzga yoziladi. Qarz to'lanmaguncha yangi konsultatsiya va obuna sotib olinmaydi. Qarz **Hamyon** sahifasida (`/wallet`) balansdan to'lanadi. Shifokor rad etsa, qarz bekor qilinadi va balansdan to'langan qism qaytariladi. Shoshilinch belgilarga AI javobi hech qachon limitlanmaydi.
 
 Sozlash:
-1. `0003_plan_perks.sql` va `0004_premium_care.sql` migratsiyalarini qo'llang.
+1. `0002_medication_reminders.sql`, `0003_plan_perks.sql` va `0004_premium_care.sql` migratsiyalarini qo'llang, keyin **bir marta** `supabase/seed/plan_defaults.sql` ni ishga tushiring (tariflar va limitlarning boshlang'ich qiymatlari; qayta ishga tushirish xavfsiz).
 2. `ai-assistant`, `read-lab-result`, `home-measurement` va `weekly-report` funksiyalarini deploy qiling.
 
 ## Texnologiyalar
