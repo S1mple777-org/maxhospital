@@ -40,27 +40,18 @@ Lovable chatiga yozing:
 
 > `telegram-webhook` funksiyasi hozircha tokenni kod ichidan oladi. Token yangilansa, uni ham yangi tokenga moslash kerak bo'ladi: `BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")`.
 
-### 3. Har daqiqalik yuborish (cron)
+### 3. Jadval bo'yicha yuborish (cron)
 
-Migratsiya `pg_cron` orqali ikkita ishni rejalashtiradi:
-- har soatda obunalarni uzaytirish;
-- har daqiqada `dispatch-reminders` funksiyasini chaqirish.
+Eslatmalar va obunani uzaytirish `dispatch-reminders` funksiyasi orqali ishlaydi. Uni muntazam chaqirib turish kerak.
 
-Ikkinchi ish funksiya manzilini va kalitni Vault'dan oladi. SQL editorda bir marta bajaring:
+**Asosiy usul (Lovable Cloud'da ham ishlaydi): GitHub Actions.** GitHub repo → **Settings → Secrets and variables → Actions** ga quyidagilarni qo'shing:
+- `REMINDERS_FUNCTION_URL`: `https://<loyiha>.supabase.co/functions/v1/dispatch-reminders`;
+- `REMINDERS_CRON_SECRET`: funksiya secret'idagi bilan bir xil matn;
+- `WEEKLY_REPORT_FUNCTION_URL`: `https://<loyiha>.supabase.co/functions/v1/weekly-report` (yakshanba hisoboti uchun).
 
-```sql
-select vault.create_secret('https://mhyiqzeowliasmozvjdk.supabase.co/functions/v1/dispatch-reminders', 'reminders_function_url');
-select vault.create_secret('<REMINDERS_CRON_SECRET bilan bir xil matn>', 'reminders_cron_secret');
+Shunda `.github/workflows/reminders-cron.yml` har 5 daqiqada eslatmalarni yuboradi va muddati tugagan obunalarni uzaytiradi. `weekly-report-cron.yml` har yakshanba 20:00 da hisobot yuboradi. GitHub jadvali ba'zan bir necha daqiqa kechikadi. Ilovadagi eslatmalarga bu ta'sir qilmaydi, ular telefonning o'zida chalinadi.
 
--- tekshirish:
-select jobname, schedule from cron.job;
-```
-
-**Zaxira variant:** bazada `pg_cron` yoki `pg_net` ishlamasa (migratsiya xato bermaydi, faqat ogohlantiradi), GitHub repo → **Settings → Secrets → Actions** ga quyidagilarni qo'shing:
-- `REMINDERS_FUNCTION_URL`: yuqoridagi manzil;
-- `REMINDERS_CRON_SECRET`: yuqoridagi kalit.
-
-Shunda `.github/workflows/reminders-cron.yml` har 5 daqiqada yuboradi. GitHub jadvali ba'zan bir necha daqiqa kechikadi, shuning uchun asosiy usul pg_cron. Ilovadagi eslatmalarga bu ta'sir qilmaydi, ular telefonning o'zida chalinadi.
+**Ixtiyoriy (faqat o'z Supabase loyihangizda):** aniqroq vaqt uchun `supabase/cron/schedule.sql` ni SQL Editor'da ishga tushiring. U `pg_cron` bilan har daqiqada ishlaydi. Lovable Cloud migratsiyalari Vault'ga kirishga ruxsat bermaydi, shuning uchun bu fayl migratsiyalardan ajratilgan.
 
 ### 4. SMS shabloni (Eskiz)
 
