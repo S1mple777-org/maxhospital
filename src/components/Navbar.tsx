@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Sparkles, Activity, AlarmClock, FlaskConical, IdCard, Scale, Watch } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Activity, AlarmClock, Watch } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -129,9 +129,6 @@ const Navbar = () => {
                     <Link to="/medications" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <AlarmClock className="w-4 h-4" /> {t("nav.meds")}
                     </Link>
-                    <Link to="/lab-results" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <FlaskConical className="w-4 h-4" /> {t("nav.lab")}
-                    </Link>
                     <Link to="/wallet" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Wallet className="w-4 h-4" /> {t("nav.wallet")}
                     </Link>
@@ -141,31 +138,9 @@ const Navbar = () => {
                     <Link to="/maxband" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Watch className="w-4 h-4 text-primary" /> {t("nav.maxband")}
                     </Link>
-                    <Link to="/emergency-card" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <IdCard className="w-4 h-4 text-red-500" /> {t("nav.ecard")}
-                    </Link>
-                    <Link to="/second-opinion" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <Scale className="w-4 h-4" /> {t("nav.opinion")}
-                    </Link>
                     <Link to="/pro" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Crown className="w-4 h-4 text-amber-500" /> {t("nav.pro")}
                     </Link>
-                    <Link to="/ai-assistant" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <Sparkles className="w-4 h-4" /> {t("nav.ai")}
-                    </Link>
-                    <Link to="/users" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <Users className="w-4 h-4" /> Foydalanuvchilar
-                    </Link>
-                    {(isAdmin || isOwner) && (
-                      <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                        <Shield className="w-4 h-4" /> Admin Panel
-                      </Link>
-                    )}
-                    {isOwner && (
-                      <Link to="/owner" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                        <Crown className="w-4 h-4" /> Owner Panel
-                      </Link>
-                    )}
                     <button onClick={handleSignOut} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-secondary">
                       <LogOut className="w-4 h-4" /> Chiqish
                     </button>
