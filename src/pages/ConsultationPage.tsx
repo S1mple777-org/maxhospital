@@ -481,7 +481,7 @@ const ConsultationPage = () => {
           ref={videoContainerRef}
           id="daily-video"
           className={`${inCall || joiningCall ? "block" : "hidden"} bg-black relative overflow-hidden`}
-          style={{ height: inCall ? "50vh" : 0 }}
+          style={{ height: inCall || joiningCall ? "50vh" : 0 }}
         >
           {inCall && (
             <>
