@@ -280,7 +280,15 @@ const ConsultationPage = () => {
 
       const res = await supabase.functions.invoke("create-video-room", { body: { consultation_id: id } });
       if (res.error || !res.data?.url) {
-        toast.error("Video qo'ng'iroqni boshlashda xatolik");
+        // Show the real reason (e.g. "Konsultatsiya faol emas", Daily error) instead of a generic message.
+        let detail = "";
+        try {
+          const body = await (res.error as any)?.context?.json?.();
+          detail = String(body?.details || body?.error || "");
+        } catch { /* body was not JSON */ }
+        if (!detail) detail = String((res.error as any)?.message || "");
+        console.error("create-video-room failed:", res.error, res.data);
+        toast.error(`Video qo'ng'iroqni boshlashda xatolik${detail ? `: ${detail.slice(0, 140)}` : ""}`);
         mediaStream?.getTracks().forEach(t => t.stop());
         setJoiningCall(false);
         return;
