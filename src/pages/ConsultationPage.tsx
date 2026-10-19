@@ -278,6 +278,16 @@ const ConsultationPage = () => {
         await cleanupCallFrame(frameRef.current);
       }
 
+      // The saved session may have been revoked (e.g. signed out on another device). Check it first.
+      const { data: sessionCheck, error: sessionErr } = await supabase.auth.getUser();
+      if (sessionErr || !sessionCheck?.user) {
+        await supabase.auth.signOut({ scope: "local" });
+        toast.error("Sessiya tugagan. Iltimos, qayta kiring.");
+        mediaStream?.getTracks().forEach(t => t.stop());
+        setJoiningCall(false);
+        return;
+      }
+
       const res = await supabase.functions.invoke("create-video-room", { body: { consultation_id: id } });
       if (res.error || !res.data?.url) {
         // Show the real reason (e.g. "Konsultatsiya faol emas", Daily error) instead of a generic message.
