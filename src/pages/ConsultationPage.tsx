@@ -338,7 +338,7 @@ const ConsultationPage = () => {
         if (e?.errorMsg === "account-missing-payment-method") {
           toast.error("Video qo'ng'iroq hozircha mavjud emas. Hisob sozlamalari talab qilinadi.");
         } else {
-          toast.error("Video qo'ng'iroq xatoligi");
+          toast.error(`Video qo'ng'iroq xatoligi: ${e?.errorMsg || e?.error?.msg || e?.error?.type || "noma'lum"}`);
         }
         void cleanupCallFrame(frame);
       });
@@ -352,7 +352,7 @@ const ConsultationPage = () => {
     } catch (err: any) {
       mediaStream?.getTracks().forEach(t => t.stop());
       await cleanupCallFrame(frame);
-      toast.error(err?.message || "Video xatolik");
+      toast.error(`Video xatolik: ${err?.message || err?.errorMsg || "noma'lum"}`);
     } finally {
       setJoiningCall(false);
     }
