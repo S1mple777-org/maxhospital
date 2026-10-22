@@ -105,7 +105,7 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
       const message = String(e?.message || e);
       toast.error(`Kitobni o'qib bo'lmadi: ${message.slice(0, 160)}`);
       // Make sure the book does not stay on "processing" forever.
-      await supabase.from("medical_books").update({ status: "error", error_message: message.slice(0, 500) }).eq("id", bookId).eq("status", "processing");
+      await supabase.from("medical_books").update({ status: "error", error_message: message.slice(0, 500) }).eq("id", bookId).in("status", ["processing", "pending"]);
     } finally {
       setProgress((p) => { const n = { ...p }; delete n[bookId]; return n; });
       load();
