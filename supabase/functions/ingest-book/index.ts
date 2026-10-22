@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         return await fail(`Kitob juda katta (${MAX_CHUNKS} bo'lakdan ko'p). Uni qismlarga bo'lib yuklang.`, 400);
       }
       // The book title gives each chunk context, which improves retrieval.
-      const vectors = await embedTexts(chunks.map((c) => `${book.title}\n${c.content}`), "RETRIEVAL_DOCUMENT");
+      const vectors = await embedTexts(chunks.map((c) => `${book.title}\n${c.content}`), "RETRIEVAL_DOCUMENT", 0);
       const { error: insError } = await db.from("book_chunks").insert(
         chunks.map((c, j) => ({
           book_id,

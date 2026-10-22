@@ -82,9 +82,14 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
         const last = i + PAGES_PER_CALL >= pages.length;
         setProgress((p) => ({ ...p, [bookId]: `AI o'qiyapti: ${Math.min(i + PAGES_PER_CALL, pages.length)}/${pages.length} bet` }));
         for (let attempt = 0; ; attempt++) {
-          const res = await supabase.functions.invoke("ingest-book", {
-            body: { book_id: bookId, pages: batch, first_page: i + 1, reset: i === 0, done: last, total_pages: pages.length },
-          });
+          // A call that hangs (phone went to sleep, network dropped) is treated as a failed attempt.
+          const res: any = await Promise.race([
+            supabase.functions.invoke("ingest-book", {
+              body: { book_id: bookId, pages: batch, first_page: i + 1, reset: i === 0, done: last, total_pages: pages.length },
+            }),
+            new Promise((r) => setTimeout(() => r({ error: { message: "timeout" }, timedOut: true }), 140_000)),
+          ]);
+          if (res.timedOut && attempt < 3) continue;
           if (!res.error) break;
           let body: any = null;
           try { body = await (res.error as any)?.context?.json?.(); } catch { /* not JSON */ }
@@ -146,7 +151,7 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
         throw error;
       }
 
-      toast.success("Kitob yuklandi, endi AI uni o'qiydi. Sahifani yopmang.");
+      toast.success("Kitob yuklandi, endi AI uni o'qiydi. Sahifani yopmang va ekranni o'chirmang.");
       setTitle(""); setAuthor(""); setDepartmentId(""); setFile(null);
       if (fileRef.current) fileRef.current.value = "";
       setUploading(false);

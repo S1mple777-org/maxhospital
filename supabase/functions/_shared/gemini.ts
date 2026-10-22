@@ -23,7 +23,7 @@ function retryDelaySeconds(json: any): number | null {
   return m ? Number(m[1]) : null;
 }
 
-async function post(path: string, body: unknown, attempt = 0): Promise<any> {
+async function post(path: string, body: unknown, attempt = 0, maxQuotaWaitMs = 30_000): Promise<any> {
   const res = await fetch(`${API}/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey() },
@@ -36,9 +36,9 @@ async function post(path: string, body: unknown, attempt = 0): Promise<any> {
     // Free-tier quota: Google says how long to wait. Wait that long if it fits in the request time.
     const hinted = res.status === 429 ? retryDelaySeconds(json) : null;
     const waitMs = hinted !== null ? (hinted + 1) * 1000 : 1500 * 2 ** attempt;
-    if (waitMs <= 30_000) {
+    if (waitMs <= (hinted !== null ? maxQuotaWaitMs : 30_000)) {
       await new Promise((r) => setTimeout(r, waitMs));
-      return post(path, body, attempt + 1);
+      return post(path, body, attempt + 1, maxQuotaWaitMs);
     }
   }
   throw new Error(`Gemini ${res.status}: ${json?.error?.message ?? "request failed"}`);
@@ -66,7 +66,11 @@ async function generate(body: unknown): Promise<any> {
 
 export type EmbedTask = "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY";
 
-export async function embedTexts(texts: string[], taskType: EmbedTask): Promise<number[][]> {
+/**
+ * `maxQuotaWaitMs`: how long to wait inside the request when Gemini says the quota is used up.
+ * Book ingestion passes 0 so the browser waits instead and the function never hits its time limit.
+ */
+export async function embedTexts(texts: string[], taskType: EmbedTask, maxQuotaWaitMs = 30_000): Promise<number[][]> {
   const out: number[][] = [];
   const BATCH = 50;
   for (let i = 0; i < texts.length; i += BATCH) {
@@ -78,7 +82,7 @@ export async function embedTexts(texts: string[], taskType: EmbedTask): Promise<
         taskType,
         outputDimensionality: EMBEDDING_DIM,
       })),
-    });
+    }, 0, maxQuotaWaitMs);
     const embeddings = json.embeddings as { values: number[] }[] | undefined;
     if (!embeddings || embeddings.length !== slice.length) {
       throw new Error("Gemini returned an unexpected number of embeddings");
