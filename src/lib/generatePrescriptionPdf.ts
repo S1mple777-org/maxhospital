@@ -34,7 +34,7 @@ export function generatePrescriptionPdf(rx: PrescriptionData): jsPDF {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Elektron Retsept / E-Prescription", w / 2, 22, { align: "center" });
-  doc.text("maxhospital.lovable.app", w / 2, 28, { align: "center" });
+  doc.text("max-hospital1.netlify.app", w / 2, 28, { align: "center" });
 
   y = 42;
   doc.setTextColor(30, 30, 30);

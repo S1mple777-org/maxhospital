@@ -1,5 +1,6 @@
 // Pro / Premium care features: family, emergency card, second opinion, home diary, weekly report.
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp, PUBLIC_SITE_URL } from "@/lib/native";
 import type { Lang } from "@/lib/aiAssistant";
 import type { HomeAlert } from "../../supabase/functions/_shared/home-alerts.ts";
 
@@ -207,7 +208,8 @@ export async function loadPassportHistory(token: string): Promise<PassportHistor
 }
 
 export function emergencyCardUrl(token: string): string {
-  const base = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined) || "https://maxhospital.lovable.app";
+  // Browser: the site the user is on (Netlify, Vercel...). Android app: the public site address.
+  const base = isNativeApp() ? PUBLIC_SITE_URL : window.location.origin;
   return `${base.replace(/\/$/, "")}/e/${token}`;
 }
 

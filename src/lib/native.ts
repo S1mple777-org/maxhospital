@@ -6,7 +6,7 @@ export const isNativeApp = () => Capacitor.isNativePlatform();
 
 /** Saytning ommaviy manzili. Ilova ichida window.location "https://localhost" bo'ladi. */
 export const PUBLIC_SITE_URL: string =
-  (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined) || "https://maxhospital.lovable.app";
+  (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined) || "https://max-hospital1.netlify.app";
 
 /** Emaildagi tasdiqlash havolasi qaytadigan manzil. */
 export const authRedirectUrl = () => (isNativeApp() ? PUBLIC_SITE_URL : window.location.origin);
