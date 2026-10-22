@@ -120,6 +120,7 @@ export const PASSPORT_SECTIONS = [
   { key: "doctor", label: "Davolovchi shifokor", defaultVisible: false },
   { key: "insurance", label: "Sug'urta", defaultVisible: false },
   { key: "organ_donor", label: "Organ donorligi", defaultVisible: false },
+  { key: "history", label: "Konsultatsiyalar tarixi", defaultVisible: false },
 ] as const;
 export type PassportSectionKey = (typeof PASSPORT_SECTIONS)[number]["key"];
 
@@ -186,6 +187,23 @@ export async function loadPublicEmergencyCard(token: string): Promise<PublicEmer
   const { data, error } = await supabase.rpc("get_emergency_card" as any, { _token: token });
   if (error) throw new Error(error.message);
   return ((data as unknown as PublicEmergencyCard[]) ?? [])[0] ?? null;
+}
+
+export interface PassportHistoryItem {
+  consulted_at: string;
+  department_name: string | null;
+  doctor_name: string | null;
+  doctor_title: string | null;
+  diagnosis: string | null;
+  medicines: { name?: string; dose?: string; frequency?: string; duration?: string }[];
+  notes: string | null;
+}
+
+/** Completed consultations with diagnosis and prescription; empty unless the patient made history visible. */
+export async function loadPassportHistory(token: string): Promise<PassportHistoryItem[]> {
+  const { data, error } = await supabase.rpc("get_passport_history" as any, { _token: token });
+  if (error) return [];
+  return (data as unknown as PassportHistoryItem[]) ?? [];
 }
 
 export function emergencyCardUrl(token: string): string {

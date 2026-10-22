@@ -248,6 +248,14 @@ const EmergencyCardPage = () => {
                     </div>
                   </Field>
 
+                  <Group title="Konsultatsiyalar tarixi" />
+                  <Field vis={form.visibility} off={!allowed} toggle={toggleVis} k="history" label="Tashxislar, retseptlar va shifokor izohlari" span>
+                    <p className="mt-1 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      Tugagan konsultatsiyalaringiz avtomatik qo'shiladi: sana, bo'lim, shifokor, tashxis, dorilar va shifokor izohi.
+                      Qo'lda yozish shart emas. «Ko'rinadi» qilsangiz, QR ni skanerlagan odam butun tarixni ko'radi.
+                    </p>
+                  </Field>
+
                   <Group title="Boshqa" />
                   <Field vis={form.visibility} off={!allowed} toggle={toggleVis} k="insurance" label="Sug'urta" span>
                     <input disabled={!allowed} value={form.insurance ?? ""} maxLength={100} onChange={(e) => setForm({ ...form, insurance: e.target.value })} className={input} placeholder="Kompaniya va polis raqami" />

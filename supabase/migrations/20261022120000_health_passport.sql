@@ -47,7 +47,7 @@ BEGIN
   SELECT COALESCE(jsonb_object_agg(k, (_visibility ->> k)::boolean), '{}'::jsonb) INTO _vis
   FROM unnest(ARRAY['full_name', 'birth_date', 'gender', 'body', 'address', 'blood_type', 'allergies', 'conditions',
                     'medications', 'notes', 'surgeries', 'vaccinations', 'family_history', 'contact', 'contact2',
-                    'doctor', 'insurance', 'organ_donor']) AS k
+                    'doctor', 'insurance', 'organ_donor', 'history']) AS k
   WHERE _visibility ? k AND jsonb_typeof(_visibility -> k) = 'boolean';
 
   UPDATE public.emergency_cards SET
@@ -117,3 +117,26 @@ REVOKE EXECUTE ON FUNCTION public.save_passport(uuid, jsonb, jsonb, boolean, boo
 GRANT EXECUTE ON FUNCTION public.save_passport(uuid, jsonb, jsonb, boolean, boolean) TO authenticated;
 REVOKE EXECUTE ON FUNCTION public.passport_vis(jsonb, text, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.passport_vis(jsonb, text, boolean) TO anon, authenticated, service_role;
+
+-- Konsultatsiyalar tarixi (tashxis, retsept, shifokor izohi). Faqat bemor "history" ni yoqqan bo'lsa qaytadi.
+CREATE OR REPLACE FUNCTION public.get_passport_history(_token text)
+RETURNS TABLE (consulted_at timestamptz, department_name text, doctor_name text, doctor_title text,
+               diagnosis text, medicines jsonb, notes text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT COALESCE(c.ended_at, c.started_at, c.created_at),
+         COALESCE(rx.department_name, d.name_uz), rx.doctor_name, COALESCE(rx.doctor_title, doc.title),
+         NULLIF(rx.diagnosis, ''), COALESCE(rx.medicines, '[]'::jsonb), rx.notes
+  FROM public.emergency_cards e
+  JOIN public.consultations c
+    ON c.patient_id = e.owner_id AND c.family_member_id IS NOT DISTINCT FROM e.family_member_id
+  LEFT JOIN public.prescriptions rx ON rx.consultation_id = c.id
+  LEFT JOIN public.departments d ON d.id = c.department_id
+  LEFT JOIN public.doctors doc ON doc.id = c.doctor_id
+  WHERE e.token = _token AND e.is_enabled AND char_length(_token) = 32
+    AND public.passport_vis(e.visibility, 'history', false)
+    AND c.status = 'completed'
+  ORDER BY COALESCE(c.ended_at, c.started_at, c.created_at) DESC
+  LIMIT 50;
+$$;
+REVOKE EXECUTE ON FUNCTION public.get_passport_history(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_passport_history(text) TO anon, authenticated;

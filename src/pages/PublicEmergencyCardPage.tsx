@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AlertTriangle, Droplet, HeartPulse, Loader2, Phone, Pill, Ruler, ShieldAlert, Stethoscope, Syringe, Users } from "lucide-react";
-import { loadPublicEmergencyCard, type PublicEmergencyCard } from "@/lib/care";
+import { loadPassportHistory, loadPublicEmergencyCard, type PassportHistoryItem, type PublicEmergencyCard } from "@/lib/care";
 
 /** Opened by scanning the QR code. No login: an ambulance worker must see it in seconds. */
 const PublicEmergencyCardPage = () => {
   const { token } = useParams<{ token: string }>();
   const [card, setCard] = useState<PublicEmergencyCard | null | undefined>(undefined);
+  const [history, setHistory] = useState<PassportHistoryItem[]>([]);
 
   useEffect(() => {
     document.title = "MaxHospital Passport";
     if (!token) { setCard(null); return; }
     loadPublicEmergencyCard(token).then(setCard).catch(() => setCard(null));
+    loadPassportHistory(token).then(setHistory).catch(() => setHistory([]));
   }, [token]);
 
   if (card === undefined) {
@@ -86,6 +88,31 @@ const PublicEmergencyCardPage = () => {
             )}
           </div>
         ))}
+        {history.length > 0 && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <Stethoscope className="w-4 h-4" /> Konsultatsiyalar tarixi / Medical history ({history.length})
+            </div>
+            <ol className="mt-3 space-y-3">
+              {history.map((h, i) => (
+                <li key={i} className="border-l-2 border-red-200 pl-3">
+                  <div className="text-xs text-gray-500">
+                    {new Date(h.consulted_at).toLocaleDateString()} · {[h.department_name, h.doctor_name, h.doctor_title].filter(Boolean).join(" · ")}
+                  </div>
+                  <div className="mt-0.5 text-base font-semibold text-gray-900 break-words">{h.diagnosis || "Tashxis yozilmagan"}</div>
+                  {h.medicines?.length > 0 && (
+                    <ul className="mt-1 text-sm text-gray-800 list-disc pl-5">
+                      {h.medicines.map((m, j) => (
+                        <li key={j} className="break-words">{[m.name, m.dose, m.frequency, m.duration].filter(Boolean).join(" · ")}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {h.notes && <div className="mt-1 text-sm text-gray-600 whitespace-pre-line break-words">{h.notes}</div>}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
         <p className="pt-2 text-center text-xs text-gray-500">
           Bemor o'zi kiritgan va ko'rinishga ruxsat bergan ma'lumot · Yangilangan: {new Date(card.updated_at).toLocaleDateString()} · MaxHospital
         </p>
