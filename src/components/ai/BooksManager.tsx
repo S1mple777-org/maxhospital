@@ -16,6 +16,27 @@ const TRIAGE_LABEL: Record<string, string> = {
   self_care: "Manbali javob",
 };
 
+const PAGES_PER_CALL = 15;
+const PDFJS_VERSION = "4.10.38";
+const PDFJS_BASE = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build`;
+
+/** Extracts the text of every page with pdf.js (loaded on demand from the CDN). */
+async function extractPdfPages(pdf: Blob, onPage: (done: number, total: number) => void): Promise<string[]> {
+  const pdfjs: any = await import(/* @vite-ignore */ `${PDFJS_BASE}/pdf.min.mjs`);
+  pdfjs.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.mjs`;
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await pdf.arrayBuffer()) }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    pages.push(content.items.map((it: any) => (typeof it.str === "string" ? it.str + (it.hasEOL ? "\n" : " ") : "")).join(""));
+    page.cleanup();
+    onPage(i, doc.numPages);
+  }
+  await doc.destroy();
+  return pages;
+}
+
 const BooksManager = ({ departments }: { departments: any[] }) => {
   const [books, setBooks] = useState<any[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
@@ -25,6 +46,7 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
   const [language, setLanguage] = useState("uz");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -49,10 +71,56 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
     return () => clearInterval(id);
   }, [books]);
 
-  const startIngest = async (bookId: string) => {
-    const { error } = await supabase.functions.invoke("ingest-book", { body: { book_id: bookId } });
-    if (error) toast.error("Kitobni o'qishni boshlab bo'lmadi");
-    load();
+  // Reads the PDF in the browser and sends the text to the server in small batches.
+  const ingest = async (bookId: string, pdf: Blob) => {
+    setProgress((p) => ({ ...p, [bookId]: "PDF ochilmoqda..." }));
+    try {
+      const pages = await extractPdfPages(pdf, (done, total) =>
+        setProgress((p) => ({ ...p, [bookId]: `Matn ajratilmoqda: ${done}/${total} bet` })));
+      for (let i = 0; i < pages.length || i === 0; i += PAGES_PER_CALL) {
+        const batch = pages.slice(i, i + PAGES_PER_CALL);
+        const last = i + PAGES_PER_CALL >= pages.length;
+        setProgress((p) => ({ ...p, [bookId]: `AI o'qiyapti: ${Math.min(i + PAGES_PER_CALL, pages.length)}/${pages.length} bet` }));
+        for (let attempt = 0; ; attempt++) {
+          const res = await supabase.functions.invoke("ingest-book", {
+            body: { book_id: bookId, pages: batch, first_page: i + 1, reset: i === 0, done: last, total_pages: pages.length },
+          });
+          if (!res.error) break;
+          let body: any = null;
+          try { body = await (res.error as any)?.context?.json?.(); } catch { /* not JSON */ }
+          if (body?.retry && attempt < 4) {
+            // Free Gemini quota is per minute: wait and send the same batch again.
+            for (let s = 60; s > 0; s--) {
+              setProgress((p) => ({ ...p, [bookId]: `Gemini limiti: ${s} soniya kutilmoqda...` }));
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+            continue;
+          }
+          throw new Error(body?.error || res.error.message);
+        }
+        if (pages.length === 0) break;
+      }
+      toast.success("Kitob tayyor: AI endi undan foydalanadi");
+    } catch (e: any) {
+      const message = String(e?.message || e);
+      toast.error(`Kitobni o'qib bo'lmadi: ${message.slice(0, 160)}`);
+      // Make sure the book does not stay on "processing" forever.
+      await supabase.from("medical_books").update({ status: "error", error_message: message.slice(0, 500) }).eq("id", bookId).eq("status", "processing");
+    } finally {
+      setProgress((p) => { const n = { ...p }; delete n[bookId]; return n; });
+      load();
+    }
+  };
+
+  const retryIngest = async (book: any) => {
+    setProgress((p) => ({ ...p, [book.id]: "PDF yuklab olinmoqda..." }));
+    const { data, error } = await supabase.storage.from("medical-books").download(book.storage_path);
+    if (error || !data) {
+      setProgress((p) => { const n = { ...p }; delete n[book.id]; return n; });
+      toast.error("PDF faylni yuklab bo'lmadi");
+      return;
+    }
+    await ingest(book.id, data);
   };
 
   const handleUpload = async () => {
@@ -78,10 +146,11 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
         throw error;
       }
 
-      toast.success("Kitob yuklandi, AI uni o'qiyapti");
+      toast.success("Kitob yuklandi, endi AI uni o'qiydi. Sahifani yopmang.");
       setTitle(""); setAuthor(""); setDepartmentId(""); setFile(null);
       if (fileRef.current) fileRef.current.value = "";
-      await startIngest(book.id);
+      setUploading(false);
+      await ingest(book.id, file);
     } catch (e: any) {
       toast.error(e?.message || "Yuklashda xatolik");
     } finally {
@@ -157,13 +226,14 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
                   <div className="text-xs text-muted-foreground">
                     {[b.author, dept?.name_uz, b.status === "ready" ? `${b.page_count} bet, ${b.chunk_count} bo'lak` : null].filter(Boolean).join(" · ")}
                   </div>
-                  {b.status === "error" && b.error_message && <div className="text-xs text-destructive mt-1">{b.error_message}</div>}
+                  {progress[b.id] && <div className="text-xs text-amber-700 dark:text-amber-400 mt-1 inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> {progress[b.id]}</div>}
+                  {!progress[b.id] && b.status === "error" && b.error_message && <div className="text-xs text-destructive mt-1">{b.error_message}</div>}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st.cls}`}>{st.label}</span>
-                {(b.status === "error" || b.status === "pending") && (
-                  <button onClick={() => startIngest(b.id)} title="Qayta o'qish" className="p-1.5 rounded-lg text-foreground hover:bg-secondary"><RefreshCw className="w-4 h-4" /></button>
+                {!progress[b.id] && (b.status === "error" || b.status === "pending" || b.status === "processing") && (
+                  <button onClick={() => retryIngest(b)} title="Qayta o'qish" className="p-1.5 rounded-lg text-foreground hover:bg-secondary"><RefreshCw className="w-4 h-4" /></button>
                 )}
                 <button onClick={() => handleDelete(b)} title="O'chirish" className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></button>
               </div>
