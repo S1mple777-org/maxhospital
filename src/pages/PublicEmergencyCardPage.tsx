@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Droplet, HeartPulse, Loader2, Phone, Pill, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Droplet, HeartPulse, Loader2, Phone, Pill, Ruler, ShieldAlert, Stethoscope, Syringe, Users } from "lucide-react";
 import { loadPublicEmergencyCard, type PublicEmergencyCard } from "@/lib/care";
 
 /** Opened by scanning the QR code. No login: an ambulance worker must see it in seconds. */
@@ -9,7 +9,7 @@ const PublicEmergencyCardPage = () => {
   const [card, setCard] = useState<PublicEmergencyCard | null | undefined>(undefined);
 
   useEffect(() => {
-    document.title = "Favqulodda tibbiy karta";
+    document.title = "MaxHospital Passport";
     if (!token) { setCard(null); return; }
     loadPublicEmergencyCard(token).then(setCard).catch(() => setCard(null));
   }, [token]);
@@ -38,18 +38,20 @@ const PublicEmergencyCardPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <div className="bg-red-600 px-4 py-5 text-white text-center">
-        <div className="text-xs font-semibold tracking-widest">FAVQULODDA TIBBIY KARTA · EMERGENCY CARD</div>
+        <div className="text-xs font-semibold tracking-widest">MAXHOSPITAL PASSPORT · HEALTH PASSPORT</div>
         <h1 className="mt-2 text-2xl font-bold break-words">{card.full_name || "—"}</h1>
         {card.birth_year && <div className="text-sm opacity-90">{card.birth_year}-yil tug'ilgan</div>}
       </div>
       <div className="mx-auto max-w-lg p-4 space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-red-300 bg-white p-4 text-center">
-            <Droplet className="w-6 h-6 mx-auto text-red-600" />
-            <div className="text-xs text-gray-500 mt-1">Qon guruhi / Blood type</div>
-            <div className="text-3xl font-bold text-red-700">{card.blood_type || "?"}</div>
-          </div>
-          <a href="tel:103" className="rounded-2xl bg-red-600 p-4 text-center text-white flex flex-col items-center justify-center">
+          {card.blood_type && (
+            <div className="rounded-2xl border border-red-300 bg-white p-4 text-center">
+              <Droplet className="w-6 h-6 mx-auto text-red-600" />
+              <div className="text-xs text-gray-500 mt-1">Qon guruhi / Blood type</div>
+              <div className="text-3xl font-bold text-red-700">{card.blood_type}</div>
+            </div>
+          )}
+          <a href="tel:103" className={`rounded-2xl bg-red-600 p-4 text-center text-white flex flex-col items-center justify-center ${card.blood_type ? "" : "col-span-2"}`}>
             <Phone className="w-6 h-6" />
             <div className="mt-1 text-2xl font-bold">103</div>
             <div className="text-xs">Tez yordam</div>
@@ -59,19 +61,33 @@ const PublicEmergencyCardPage = () => {
         <Row icon={HeartPulse} label="Kasalliklar / Conditions" value={card.conditions} />
         <Row icon={Pill} label="Dorilar / Medications" value={card.medications} />
         <Row icon={ShieldAlert} label="Qo'shimcha / Notes" value={card.notes} />
-        {(card.contact_name || card.contact_phone) && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Yaqin odam / Emergency contact</div>
-            <div className="mt-1 text-base text-gray-900 break-words">{card.contact_name}</div>
-            {card.contact_phone && (
-              <a href={`tel:${card.contact_phone.replace(/[^+\d]/g, "")}`} className="mt-2 inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white">
-                <Phone className="w-4 h-4" /> {card.contact_phone}
+        <Row icon={Stethoscope} label="Operatsiyalar / Surgeries" value={card.surgeries} />
+        <Row icon={Syringe} label="Emlashlar / Vaccinations" value={card.vaccinations} />
+        <Row icon={Users} label="Oilaviy kasalliklar / Family history" value={card.family_history} />
+        <Row icon={Ruler} label="Bo'y va vazn / Height, weight"
+          value={[card.height_cm ? `${card.height_cm} sm` : null, card.weight_kg ? `${card.weight_kg} kg` : null].filter(Boolean).join(", ") || null} />
+        <Row icon={Users} label="Jinsi / Sex" value={card.gender === "male" ? "Erkak / Male" : card.gender === "female" ? "Ayol / Female" : null} />
+        <Row icon={ShieldAlert} label="Manzil / Address" value={card.address} />
+        <Row icon={ShieldAlert} label="Sug'urta / Insurance" value={card.insurance} />
+        <Row icon={ShieldAlert} label="Organ donorligi / Organ donor"
+          value={card.organ_donor === null ? null : card.organ_donor ? "Ha / Yes" : "Yo'q / No"} />
+        {([
+          ["Yaqin odam / Emergency contact", card.contact_name, card.contact_phone],
+          ["Ikkinchi yaqin odam / 2nd contact", card.contact2_name, card.contact2_phone],
+          ["Davolovchi shifokor / Doctor", card.doctor_name, card.doctor_phone],
+        ] as const).map(([label, name, phone]) => (name || phone) && (
+          <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+            <div className="mt-1 text-base text-gray-900 break-words">{name}</div>
+            {phone && (
+              <a href={`tel:${phone.replace(/[^+\d]/g, "")}`} className="mt-2 inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white">
+                <Phone className="w-4 h-4" /> {phone}
               </a>
             )}
           </div>
-        )}
+        ))}
         <p className="pt-2 text-center text-xs text-gray-500">
-          Bemor o'zi kiritgan ma'lumot · Yangilangan: {new Date(card.updated_at).toLocaleDateString()} · MaxHospital
+          Bemor o'zi kiritgan va ko'rinishga ruxsat bergan ma'lumot · Yangilangan: {new Date(card.updated_at).toLocaleDateString()} · MaxHospital
         </p>
       </div>
     </div>

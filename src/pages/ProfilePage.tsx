@@ -283,7 +283,7 @@ const ProfilePage = () => {
             <h3 className="text-sm font-semibold text-foreground mb-3">Qo'shimcha xizmatlar</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { to: "/emergency-card", label: "Favqulodda karta", icon: IdCard, cls: "text-red-500" },
+                { to: "/emergency-card", label: "MaxHospital Passport", icon: IdCard, cls: "text-red-500" },
                 { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
                 { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },
                 { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "" },

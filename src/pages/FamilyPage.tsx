@@ -86,7 +86,7 @@ const FamilyPage = () => {
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center mb-6">
               <Crown className="w-8 h-8 mx-auto text-amber-500 mb-2" />
               <h2 className="font-display font-semibold text-foreground">Premium imkoniyati</h2>
-              <p className="text-sm text-muted-foreground mt-1 mb-4">Premium tarifda bitta akkauntga 4 tagacha oila a'zosini qo'shib, ular uchun konsultatsiya, dori eslatmasi va favqulodda karta yuritasiz.</p>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">Premium tarifda bitta akkauntga 4 tagacha oila a'zosini qo'shib, ular uchun konsultatsiya, dori eslatmasi va MaxHospital Passport yuritasiz.</p>
               <Link to="/pro" className="inline-flex items-center gap-2 rounded-xl bg-hero-gradient px-5 py-2.5 text-sm font-semibold text-primary-foreground"><Crown className="w-4 h-4" /> Tariflar</Link>
             </div>
           )}
@@ -149,7 +149,7 @@ const FamilyPage = () => {
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link to="/start-consultation" className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"><Stethoscope className="w-3.5 h-3.5" /> Konsultatsiya</Link>
-                      <Link to={`/emergency-card?member=${m.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400"><IdCard className="w-3.5 h-3.5" /> Favqulodda karta</Link>
+                      <Link to={`/emergency-card?member=${m.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400"><IdCard className="w-3.5 h-3.5" /> MaxHospital Passport</Link>
                     </div>
                   </div>
                 );
