@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import { toast } from "sonner";
+import { WEEK_DAYS, normalizeWorkHours, hasWorkHours, loadDoctorPrivate, saveDoctorPrivate, type DayKey, type DayHours } from "@/lib/doctorProfile";
 
 const ProfilePage = () => {
   const { user, profile, roles, signOut, refreshProfile, isDoctor, isAdmin, isOwner } = useAuth();
@@ -23,17 +24,35 @@ const ProfilePage = () => {
   const [docWorkplace, setDocWorkplace] = useState("");
   const [docExperience, setDocExperience] = useState(0);
   const [docTelegram, setDocTelegram] = useState("");
+  const [docLanguages, setDocLanguages] = useState("");
+  const [docEducation, setDocEducation] = useState("");
+  const [docHours, setDocHours] = useState<Record<DayKey, DayHours>>(normalizeWorkHours(null));
+  const [docHome, setDocHome] = useState("");
+  const [docShowHome, setDocShowHome] = useState(false);
+  const [privateData, setPrivateData] = useState<{ home_address: string | null; show_home_address: boolean } | null>(null);
+
+  const fillDoctorForm = (d: any, priv: typeof privateData) => {
+    setDocTitle(d.title || "");
+    setDocAddress(d.address || "");
+    setDocWorkplace(d.workplace || "");
+    setDocExperience(d.experience_years || 0);
+    setDocTelegram(d.telegram_username || "");
+    setDocLanguages(d.languages || "");
+    setDocEducation(d.education || "");
+    setDocHours(normalizeWorkHours(d.work_hours));
+    setDocHome(priv?.home_address || "");
+    setDocShowHome(!!priv?.show_home_address);
+  };
 
   useEffect(() => {
     if (isDoctor && user) {
       supabase.from("doctors").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         if (data) {
           setDoctorData(data);
-          setDocTitle(data.title || "");
-          setDocAddress(data.address || "");
-          setDocWorkplace(data.workplace || "");
-          setDocExperience(data.experience_years || 0);
-          setDocTelegram(data.telegram_username || "");
+          loadDoctorPrivate(data.id).then((priv) => {
+            setPrivateData(priv);
+            fillDoctorForm(data, priv);
+          });
         }
       });
     }
@@ -47,13 +66,7 @@ const ProfilePage = () => {
   const startEditing = () => {
     setFullName(profile?.full_name || "");
     setPhone(profile?.phone || "");
-    if (doctorData) {
-      setDocTitle(doctorData.title || "");
-      setDocAddress(doctorData.address || "");
-      setDocWorkplace(doctorData.workplace || "");
-      setDocExperience(doctorData.experience_years || 0);
-      setDocTelegram(doctorData.telegram_username || "");
-    }
+    if (doctorData) fillDoctorForm(doctorData, privateData);
     setEditing(true);
   };
 
@@ -76,22 +89,36 @@ const ProfilePage = () => {
 
     // Save doctor fields
     if (isDoctor && doctorData) {
+      for (const { key, label } of WEEK_DAYS) {
+        const d = docHours[key];
+        if (d.on && d.from >= d.to) {
+          toast.error(`${label}: ish tugash vaqti boshlanishidan keyin bo'lishi kerak`);
+          setSaving(false);
+          return;
+        }
+      }
+      const docUpdate = {
+        title: docTitle.trim(),
+        address: docAddress.trim(),
+        workplace: docWorkplace.trim(),
+        experience_years: docExperience,
+        telegram_username: docTelegram.trim().replace(/^@/, ""),
+        languages: docLanguages.trim() || null,
+        education: docEducation.trim() || null,
+        work_hours: docHours,
+      };
       const { error: docErr } = await supabase
         .from("doctors")
-        .update({
-          title: docTitle.trim(),
-          address: docAddress.trim(),
-          workplace: docWorkplace.trim(),
-          experience_years: docExperience,
-          telegram_username: docTelegram.trim(),
-        })
+        .update(docUpdate as any)
         .eq("id", doctorData.id);
-      if (docErr) {
-        toast.error(docErr.message);
+      const privErr = docErr ? null : await saveDoctorPrivate(doctorData.id, docHome, docShowHome);
+      if (docErr || privErr) {
+        toast.error((docErr || privErr).message);
         setSaving(false);
         return;
       }
-      setDoctorData({ ...doctorData, title: docTitle.trim(), address: docAddress.trim(), workplace: docWorkplace.trim(), experience_years: docExperience, telegram_username: docTelegram.trim() });
+      setDoctorData({ ...doctorData, ...docUpdate });
+      setPrivateData({ home_address: docHome.trim() || null, show_home_address: docShowHome });
     }
 
     setSaving(false);
@@ -181,7 +208,7 @@ const ProfilePage = () => {
                   <input value={docWorkplace} onChange={(e) => setDocWorkplace(e.target.value)} placeholder="Toshkent tibbiyot akademiyasi" className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Manzil</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Ish manzili</label>
                   <input value={docAddress} onChange={(e) => setDocAddress(e.target.value)} placeholder="Toshkent sh., Chilonzor t." className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
@@ -190,6 +217,48 @@ const ProfilePage = () => {
                     <Send className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     <input value={docTelegram} onChange={(e) => setDocTelegram(e.target.value)} placeholder="username" className="pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm w-full" />
                   </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Tillar</label>
+                  <input value={docLanguages} onChange={(e) => setDocLanguages(e.target.value)} placeholder="O'zbek, rus, ingliz" className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Ma'lumoti</label>
+                  <input value={docEducation} onChange={(e) => setDocEducation(e.target.value)} placeholder="TTA, 2015" className={inputClass} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-muted-foreground mb-1 block">Yashash manzili</label>
+                  <input value={docHome} onChange={(e) => setDocHome(e.target.value)} placeholder="Toshkent sh., Yunusobod t." className={inputClass} />
+                  <label className="flex items-center gap-2 mt-2 text-xs text-foreground cursor-pointer">
+                    <input type="checkbox" checked={docShowHome} onChange={(e) => setDocShowHome(e.target.checked)} className="accent-primary" />
+                    Bemorlarga ko'rsatilsin
+                    <span className="text-muted-foreground">(belgilanmasa, faqat siz va admin ko'rasiz)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Ish vaqti</label>
+                <div className="space-y-1.5">
+                  {WEEK_DAYS.map(({ key, label }) => {
+                    const d = docHours[key];
+                    const set = (patch: Partial<DayHours>) => setDocHours({ ...docHours, [key]: { ...d, ...patch } });
+                    return (
+                      <div key={key} className="flex items-center gap-2 text-sm">
+                        <label className="flex items-center gap-2 w-32 shrink-0 cursor-pointer">
+                          <input type="checkbox" checked={d.on} onChange={(e) => set({ on: e.target.checked })} className="accent-primary" />
+                          <span className="text-foreground">{label}</span>
+                        </label>
+                        {d.on ? (
+                          <>
+                            <input type="time" value={d.from} onChange={(e) => set({ from: e.target.value })} className="px-2 py-1 rounded-lg border border-input bg-background text-foreground text-sm" />
+                            <span className="text-muted-foreground">–</span>
+                            <input type="time" value={d.to} onChange={(e) => set({ to: e.target.value })} className="px-2 py-1 rounded-lg border border-input bg-background text-foreground text-sm" />
+                          </>
+                        ) : <span className="text-xs text-muted-foreground">Dam olish</span>}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -205,9 +274,14 @@ const ProfilePage = () => {
                 {doctorData.title && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Lavozim</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.title}</span></div>}
                 {doctorData.experience_years > 0 && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Tajriba</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.experience_years} yil</span></div>}
                 {doctorData.workplace && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Ish joyi</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.workplace}</span></div>}
-                {doctorData.address && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Manzil</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.address}</span></div>}
+                {doctorData.address && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Ish manzili</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.address}</span></div>}
                 {doctorData.telegram_username && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Telegram</span><span className="text-primary font-medium text-right break-all min-w-0">@{doctorData.telegram_username.replace("@", "")}</span></div>}
+                {doctorData.languages && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Tillar</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.languages}</span></div>}
+                {doctorData.education && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Ma'lumoti</span><span className="text-foreground font-medium text-right break-words min-w-0">{doctorData.education}</span></div>}
+                {privateData?.home_address && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Yashash manzili</span><span className="text-foreground font-medium text-right break-words min-w-0">{privateData.home_address} <span className="text-xs text-muted-foreground">({privateData.show_home_address ? "ko'rinadi" : "yashirin"})</span></span></div>}
+                {hasWorkHours(doctorData.work_hours) && <div className="flex justify-between gap-3"><span className="text-muted-foreground shrink-0">Ish vaqti</span><span className="text-foreground font-medium text-right min-w-0">Belgilangan</span></div>}
               </div>
+              <button onClick={() => navigate(`/doctors/${doctorData.id}`)} className="mt-3 text-xs text-primary font-medium hover:underline">Ommaviy profilimni ko'rish →</button>
             </div>
           )}
 
