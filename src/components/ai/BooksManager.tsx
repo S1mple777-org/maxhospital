@@ -72,12 +72,13 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
   }, [books]);
 
   // Reads the PDF in the browser and sends the text to the server in small batches.
-  const ingest = async (bookId: string, pdf: Blob) => {
+  const ingest = async (bookId: string, pdf: Blob, resumeFromPage = 0) => {
     setProgress((p) => ({ ...p, [bookId]: "PDF ochilmoqda..." }));
     try {
       const pages = await extractPdfPages(pdf, (done, total) =>
         setProgress((p) => ({ ...p, [bookId]: `Matn ajratilmoqda: ${done}/${total} bet` })));
-      for (let i = 0; i < pages.length || i === 0; i += PAGES_PER_CALL) {
+      const from = resumeFromPage > 0 && resumeFromPage < pages.length ? resumeFromPage : 0;
+      for (let i = from; i < pages.length || i === 0; i += PAGES_PER_CALL) {
         const batch = pages.slice(i, i + PAGES_PER_CALL);
         const last = i + PAGES_PER_CALL >= pages.length;
         setProgress((p) => ({ ...p, [bookId]: `AI o'qiyapti: ${Math.min(i + PAGES_PER_CALL, pages.length)}/${pages.length} bet` }));
@@ -93,6 +94,11 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
           if (!res.error) break;
           let body: any = null;
           try { body = await (res.error as any)?.context?.json?.(); } catch { /* not JSON */ }
+          if (body?.retry && Number(body?.retry_after) > 300) {
+            // Daily free quota is used up: stop here, the saved pages stay and the book resumes later.
+            const hours = Math.max(1, Math.round(Number(body.retry_after) / 3600));
+            throw new Error(`Gemini kunlik bepul limiti tugadi. ${i}-betgacha saqlandi. Taxminan ${hours} soatdan keyin ↻ ni bosing: o'sha joydan davom etadi.`);
+          }
           if (body?.retry && attempt < 4) {
             // Free Gemini quota is per minute: wait and send the same batch again.
             for (let s = 60; s > 0; s--) {
@@ -125,7 +131,9 @@ const BooksManager = ({ departments }: { departments: any[] }) => {
       toast.error("PDF faylni yuklab bo'lmadi");
       return;
     }
-    await ingest(book.id, data);
+    // Resume a stopped book from the last saved page instead of starting over (saves Gemini quota).
+    const resume = book.status !== "ready" && Number(book.page_count) > 0 ? Number(book.page_count) : 0;
+    await ingest(book.id, data, resume);
   };
 
   const handleUpload = async () => {

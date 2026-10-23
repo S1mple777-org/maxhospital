@@ -12,6 +12,17 @@ import { embedTexts, toPgVector } from "../_shared/gemini.ts";
 
 const MAX_CHUNKS = 3000;
 const MAX_PAGES_PER_CALL = 40;
+// Bigger chunks = fewer embedding requests (the free Gemini tier allows ~1000 a day).
+const CHUNK_SIZE = 2400;
+const CHUNK_OVERLAP = 300;
+
+/** "4h46m48.5s" / "58.7s" (from Gemini's quota message) -> seconds, or null. */
+function retryAfterSeconds(message: string): number | null {
+  const m = message.match(/retry in ((?:\d+h)?(?:\d+m)?(?:[\d.]+s)?)/i)?.[1];
+  if (!m) return null;
+  const h = Number(m.match(/(\d+)h/)?.[1] ?? 0), min = Number(m.match(/(\d+)m/)?.[1] ?? 0), sec = Number(m.match(/([\d.]+)s/)?.[1] ?? 0);
+  return Math.ceil(h * 3600 + min * 60 + sec);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -45,7 +56,7 @@ Deno.serve(async (req) => {
       await db.from("medical_books").update({ status: "processing", error_message: null, chunk_count: 0 }).eq("id", book_id);
     }
 
-    const chunks = chunkPages(pages as string[]).map((c) => ({ ...c, page: c.page + firstPage - 1 }));
+    const chunks = chunkPages(pages as string[], CHUNK_SIZE, CHUNK_OVERLAP).map((c) => ({ ...c, page: c.page + firstPage - 1 }));
     if (chunks.length > 0) {
       const { count: already } = await db.from("book_chunks").select("id", { count: "exact", head: true }).eq("book_id", book_id);
       const start = already ?? 0;
@@ -65,6 +76,10 @@ Deno.serve(async (req) => {
       );
       if (insError) throw new Error(insError.message);
     }
+    // Progress: while processing, page_count = last page saved, so a stopped book can resume from there.
+    if (!done) {
+      await db.from("medical_books").update({ page_count: firstPage + pages.length - 1 }).eq("id", book_id);
+    }
 
     if (done) {
       const { count } = await db.from("book_chunks").select("id", { count: "exact", head: true }).eq("book_id", book_id);
@@ -82,7 +97,7 @@ Deno.serve(async (req) => {
     const message = String((e as Error)?.message ?? e);
     console.error("ingest-book failed", book_id, message);
     // Gemini quota: keep what is already saved, the browser waits and retries this batch.
-    if (/Gemini 429/.test(message)) return json({ error: message, retry: true }, 429);
+    if (/Gemini 429/.test(message)) return json({ error: message, retry: true, retry_after: retryAfterSeconds(message) }, 429);
     return await fail(message);
   }
 });
