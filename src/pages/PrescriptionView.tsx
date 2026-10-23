@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ArrowLeft, Download, FileText, Pill, Calendar, User, Stethoscope, AlarmClock } from "lucide-react";
-import { generatePrescriptionPdf, type PrescriptionData, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
+import { ArrowLeft, Download, FileText, Pill, Calendar, User, Stethoscope, AlarmClock, Send, Loader2 } from "lucide-react";
+import { generatePrescriptionPdf, sendPrescriptionToTelegram, type PrescriptionData, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
 import { savePdf } from "@/lib/native";
 import { toast } from "sonner";
 
@@ -15,6 +15,18 @@ const PrescriptionView = () => {
   const navigate = useNavigate();
   const [rx, setRx] = useState<PrescriptionData | null>(null);
   const [loadingRx, setLoadingRx] = useState(true);
+  const [sendingTg, setSendingTg] = useState(false);
+
+  const handleTelegram = async () => {
+    if (!rx) return;
+    setSendingTg(true);
+    const r = await sendPrescriptionToTelegram(rx);
+    setSendingTg(false);
+    if (r === "sent") toast.success("Retsept Telegramga yuborildi");
+    else if (r === "not_linked") toast.error("Bemor Telegramni ulamagan. Profil → Telegram bo'limidan ulang.");
+    else if (r === "disabled") toast.error("Bemor Telegram xabarnomalarini o'chirib qo'ygan");
+    else toast.error("Telegramga yuborib bo'lmadi");
+  };
 
   useEffect(() => {
     if (!id || !user) return;
@@ -72,8 +84,11 @@ const PrescriptionView = () => {
                   <AlarmClock className="w-4 h-4" /> Eslatma qo'yish
                 </button>
               )}
-              <button onClick={handleDownload} className="only:col-span-2 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl whitespace-nowrap bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+              <button onClick={handleDownload} className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl whitespace-nowrap bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
                 <Download className="w-4 h-4" /> PDF yuklash
+              </button>
+              <button onClick={handleTelegram} disabled={sendingTg} className={`${rx && (rx as any).patient_id === user?.id ? "col-span-2" : ""} sm:col-span-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl whitespace-nowrap bg-[#229ED9] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60`}>
+                {sendingTg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Telegramga yuborish
               </button>
             </div>
           </div>

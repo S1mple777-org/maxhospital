@@ -153,3 +153,26 @@ export function generatePrescriptionPdf(rx: PrescriptionData): jsPDF {
 
   return doc;
 }
+
+/**
+ * Sends the prescription (full text + this same PDF) to the patient's Telegram via the
+ * send-prescription edge function. Returns what happened; never throws.
+ */
+export async function sendPrescriptionToTelegram(
+  rx: PrescriptionData,
+): Promise<"sent" | "not_linked" | "disabled" | "error"> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const pdf = generatePrescriptionPdf(rx);
+    const pdf_base64 = pdf.output("datauristring").split(",")[1] ?? "";
+    const { data, error } = await supabase.functions.invoke("send-prescription", {
+      body: { prescription_id: rx.id, pdf_base64 },
+    });
+    if (error) return "error";
+    if (data?.sent) return "sent";
+    if (data?.reason === "not_linked" || data?.reason === "disabled") return data.reason;
+    return "error";
+  } catch {
+    return "error";
+  }
+}
