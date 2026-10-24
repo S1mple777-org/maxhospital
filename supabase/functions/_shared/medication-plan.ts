@@ -66,6 +66,26 @@ export function spreadTimes(n: number, wake = "08:00", sleep = "22:00"): string[
   return cleanTimes(Array.from({ length: count }, (_, i) => fromMinutes(Math.round((start + step * i) / 5) * 5)));
 }
 
+/** A sensible time for a newly added dose: 4 hours after the last one, never a duplicate. */
+export function suggestNextTime(times: string[]): string {
+  const valid = cleanTimes(times);
+  let t = valid.length ? toMinutes(valid[valid.length - 1]) + 240 : 8 * 60;
+  const taken = new Set(valid);
+  for (let i = 0; i < 288 && taken.has(fromMinutes(t)); i++) t += 5;
+  return fromMinutes(t);
+}
+
+/**
+ * "Kuniga N marta": N=1 keeps the time the user already chose (it used to jump to the wake-up
+ * time, 07:00 by default, which looked like the entered time was ignored); N>1 spreads the doses
+ * from the first chosen time to bedtime.
+ */
+export function timesPerDay(n: number, current: string[], wake = "08:00", sleep = "22:00"): string[] {
+  const first = cleanTimes(current)[0];
+  if (Math.round(n) <= 1) return [first ?? normalizeTime(wake) ?? "08:00"];
+  return spreadTimes(n, first ?? wake, sleep);
+}
+
 export function normalizeName(name: string): string {
   return name
     .toLowerCase()
