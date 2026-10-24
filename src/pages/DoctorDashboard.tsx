@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { Clock, CheckCircle, MessageCircle, Users, Wifi, WifiOff, Timer, Crown, Zap, Scale, HelpCircle } from "lucide-react";
 import { loadSecondOpinionRequests, orderQueue } from "@/lib/care";
 import { toast } from "sonner";
+import TreatmentOverview from "@/components/care/TreatmentOverview";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -240,6 +241,8 @@ const DoctorDashboard = () => {
               </div>
             </div>
           )}
+
+          <TreatmentOverview />
 
           {followups.length > 0 && (
             <div className="mb-8">

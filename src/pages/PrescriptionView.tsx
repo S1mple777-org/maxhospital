@@ -8,6 +8,7 @@ import { ArrowLeft, Download, FileText, Pill, Calendar, User, Stethoscope, Alarm
 import { generatePrescriptionPdf, sendPrescriptionToTelegram, type PrescriptionData, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
 import { savePdf } from "@/lib/native";
 import { toast } from "sonner";
+import TreatmentTracker from "@/components/care/TreatmentTracker";
 
 const PrescriptionView = () => {
   const { id } = useParams<{ id: string }>();
@@ -176,6 +177,8 @@ const PrescriptionView = () => {
               )}
             </div>
           </div>
+
+          <TreatmentTracker prescriptionId={rx.id} isPatient={(rx as any).patient_id === user?.id} />
         </div>
       </div>
       <Footer />

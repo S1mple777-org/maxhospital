@@ -36,6 +36,7 @@ import EmergencyCardPage from "./pages/EmergencyCardPage";
 import PublicEmergencyCardPage from "./pages/PublicEmergencyCardPage";
 import SecondOpinionPage from "./pages/SecondOpinionPage";
 import MaxBandPage from "./pages/MaxBandPage";
+import CheckinPage from "./pages/CheckinPage";
 import ReminderListener from "./components/medications/ReminderListener";
 import NotFound from "./pages/NotFound";
 
@@ -78,6 +79,7 @@ const App = () => (
                 <Route path="/family" element={<FamilyPage />} />
                 <Route path="/emergency-card" element={<EmergencyCardPage />} />
                 <Route path="/e/:token" element={<PublicEmergencyCardPage />} />
+                <Route path="/c/:token" element={<CheckinPage />} />
                 <Route path="/second-opinion" element={<SecondOpinionPage />} />
                 <Route path="/maxband" element={<MaxBandPage />} />
                 <Route path="*" element={<NotFound />} />
