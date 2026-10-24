@@ -4,7 +4,7 @@ import { isNativeApp, PUBLIC_SITE_URL } from "@/lib/native";
 import type { Lang } from "@/lib/aiAssistant";
 import type { HomeAlert } from "../../supabase/functions/_shared/home-alerts.ts";
 
-export { orderQueue } from "../../supabase/functions/_shared/queue.ts";
+export { orderQueue, isFutureBooking } from "../../supabase/functions/_shared/queue.ts";
 export type { HomeAlert } from "../../supabase/functions/_shared/home-alerts.ts";
 
 async function fnError(error: any, fallback: string): Promise<Error & { code?: string }> {

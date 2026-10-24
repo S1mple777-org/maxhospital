@@ -59,10 +59,8 @@ Deno.serve(async (req) => {
 
   // 1) Bemorlarga so'rovlar
   const { data: due, error } = await db.rpc("claim_due_checkins", { _limit: 50 });
-  if (error) {
-    console.error("dispatch-checkins: claim_due_checkins", error.message);
-    return json({ error: error.message }, 500);
-  }
+  // Bir qism xato bersa ham qolganlari (bron eslatmasi) ishlayveradi.
+  if (error) console.error("dispatch-checkins: claim_due_checkins", error.message);
   for (const c of (due ?? []) as DueCheckin[]) {
     sent++;
     const { error: nErr } = await db.from("user_notifications").insert({
@@ -92,5 +90,26 @@ Deno.serve(async (req) => {
     if (await telegramToUser(db, w.doctor_user_id, html)) doctorAlerts++;
   }
 
-  return json({ checkins: sent, telegram, doctorAlerts });
+  // 3) Bron eslatmasi: qabulga 1 soat qolganda bemorga va shifokorga (bir marta).
+  let bookingReminders = 0;
+  const { data: soon, error: bErr } = await db.rpc("claim_booking_reminders", { _limit: 100 });
+  if (bErr) console.warn("dispatch-checkins: claim_booking_reminders", bErr.message);
+  for (const b of (soon ?? []) as { consultation_id: string; scheduled_at: string; patient_id: string; doctor_user_id: string | null; patient_name: string; doctor_name: string }[]) {
+    bookingReminders++;
+    const time = new Date(b.scheduled_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Tashkent" });
+    const link = `${siteUrl()}/consultation/${b.consultation_id}`;
+    await db.from("user_notifications").insert({
+      user_id: b.patient_id, kind: "booking_reminder", title: `Qabul soat ${time} da`,
+      body: `${b.doctor_name} bilan konsultatsiya. 15 daqiqa oldin navbatning boshiga o'tasiz.`,
+      data: { url: `/consultation/${b.consultation_id}` },
+    });
+    await telegramToUser(db, b.patient_id,
+      `⏰ <b>Qabul soat ${time} da</b>\n\nShifokor: ${escHtml(b.doctor_name)}\n<a href="${link}">Konsultatsiyani ochish</a>`);
+    if (b.doctor_user_id) {
+      await telegramToUser(db, b.doctor_user_id,
+        `⏰ <b>Soat ${time} da yozuv</b>\n\nBemor: ${escHtml(b.patient_name)}\n<a href="${siteUrl()}/doctor-dashboard">Shifokor kabineti</a>`);
+    }
+  }
+
+  return json({ checkins: sent, telegram, doctorAlerts, bookingReminders });
 });

@@ -3,13 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
-import { Send, ArrowLeft, PhoneOff, Star, Timer, Video, Mic, MicOff, VideoOff, FileText } from "lucide-react";
+import { Send, ArrowLeft, PhoneOff, Star, Timer, Video, Mic, MicOff, VideoOff, FileText, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import DailyIframe from "@daily-co/daily-js";
 import { usePlanStatus } from "@/lib/planPerks";
 import BandLivePanel from "@/components/band/BandLivePanel";
 import PassportForDoctor from "@/components/care/PassportForDoctor";
+import QueueStatusBanner from "@/components/booking/QueueStatusBanner";
+import { fmtSlotFull } from "@/lib/booking";
 
 interface Message {
   id: string;
@@ -47,6 +49,9 @@ const ConsultationPage = () => {
   const frameRef = useRef<any>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
+  // "audio": voice only (camera off) — for slow internet or when the patient prefers not to show the camera.
+  const [callMode, setCallMode] = useState<"video" | "audio">("video");
+  const lowNetworkWarnedRef = useRef(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Video time limit state
@@ -254,9 +259,11 @@ const ConsultationPage = () => {
     }
   };
 
-  const handleStartCall = async () => {
+  const handleStartCall = async (mode: "video" | "audio" = "video") => {
     if (!id || joiningCall) return;
+    setCallMode(mode);
     setJoiningCall(true);
+    lowNetworkWarnedRef.current = false;
 
     let frame: any = null;
     let mediaStream: MediaStream | null = null;
@@ -264,12 +271,12 @@ const ConsultationPage = () => {
     try {
       // CRITICAL: Request media permissions FIRST, directly in user gesture context
       try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: mode === "video", audio: true });
       } catch (mediaErr: any) {
         if (mediaErr.name === "NotAllowedError") {
-          toast.error("Kamera va mikrofonga ruxsat bering");
+          toast.error(mode === "video" ? "Kamera va mikrofonga ruxsat bering" : "Mikrofonga ruxsat bering");
         } else {
-          toast.error("Kamera/mikrofon topilmadi");
+          toast.error(mode === "video" ? "Kamera/mikrofon topilmadi. «Ovoz» tugmasi bilan faqat ovozli qo'ng'iroq qilib ko'ring." : "Mikrofon topilmadi");
         }
         setJoiningCall(false);
         return;
@@ -334,6 +341,18 @@ const ConsultationPage = () => {
         void cleanupCallFrame(frame);
       });
 
+      // Slow internet: offer to turn the camera off and continue with voice only (once per call).
+      frame.on("network-quality-change", (ev: any) => {
+        const low = ev?.threshold === "low" || ev?.threshold === "very-low";
+        if (!low || lowNetworkWarnedRef.current || !frameRef.current?.localVideo?.()) return;
+        lowNetworkWarnedRef.current = true;
+        toast("Internet sust", {
+          description: "Kamerani o'chirib, faqat ovoz bilan davom etsangiz aloqa yaxshilanadi.",
+          duration: 20_000,
+          action: { label: "Faqat ovoz", onClick: () => { frame.setLocalVideo(false); setCamOn(false); setCallMode("audio"); } },
+        });
+      });
+
       frame.on("error", (e: any) => {
         console.error("Daily error:", e);
         if (e?.errorMsg === "account-missing-payment-method") {
@@ -344,7 +363,9 @@ const ConsultationPage = () => {
         void cleanupCallFrame(frame);
       });
 
-      await frame.join({ url, token });
+      await frame.join({ url, token, startVideoOff: mode === "audio" });
+      setCamOn(mode === "video");
+      setMicOn(true);
       setInCall(true);
       setCallElapsed(0);
       setCallPaused(false);
@@ -376,6 +397,7 @@ const ConsultationPage = () => {
     if (frame) {
       frame.setLocalVideo(!camOn);
       setCamOn(!camOn);
+      setCallMode(camOn ? "audio" : "video");
     }
   }, [camOn]);
 
@@ -396,6 +418,7 @@ const ConsultationPage = () => {
   };
 
   const isEnded = localEnded || consultation?.status === "completed" || consultation?.status === "cancelled";
+  const isPending = !isEnded && consultation?.status === "pending";
 
   const getTimeLeft = () => {
     if (!consultation?.max_end_time) return null;
@@ -432,8 +455,8 @@ const ConsultationPage = () => {
             <div>
               <h2 className="font-display font-semibold text-foreground text-sm">{otherName}</h2>
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-medium ${isEnded ? "text-destructive" : "text-green-600"}`}>
-                  {isEnded ? "✕ Tugagan" : "● Faol"}
+                <span className={`text-xs font-medium ${isEnded ? "text-destructive" : isPending ? "text-warning" : "text-green-600"}`}>
+                  {isEnded ? "✕ Tugagan" : isPending ? (consultation?.scheduled_at ? `📅 ${fmtSlotFull(consultation.scheduled_at)}` : "⏳ Navbatda") : "● Faol"}
                 </span>
                 {!isEnded && consultation?.max_end_time && (
                   <span className="text-xs text-warning flex items-center gap-1">
@@ -444,14 +467,24 @@ const ConsultationPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!isEnded && !inCall && (
-              <motion.button
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                onClick={handleStartCall} disabled={joiningCall}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 disabled:opacity-50 transition-colors"
-              >
-                <Video className="w-3.5 h-3.5" /> {joiningCall ? "..." : "Video"}
-              </motion.button>
+            {!isEnded && !isPending && !inCall && (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => handleStartCall("video")} disabled={joiningCall}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 disabled:opacity-50 transition-colors"
+                >
+                  <Video className="w-3.5 h-3.5" /> {joiningCall && callMode === "video" ? "..." : "Video"}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => handleStartCall("audio")} disabled={joiningCall}
+                  title="Faqat ovoz: internet sust bo'lsa yoki kamerasiz gaplashish uchun"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-100 text-sky-700 text-xs font-medium hover:bg-sky-200 disabled:opacity-50 transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5" /> {joiningCall && callMode === "audio" ? "..." : "Ovoz"}
+                </motion.button>
+              </>
             )}
             {isDoctor && isEnded && (
               <motion.button
@@ -462,7 +495,7 @@ const ConsultationPage = () => {
                 <FileText className="w-3.5 h-3.5" /> Retsept
               </motion.button>
             )}
-            {!isEnded && (
+            {!isEnded && !isPending && (
               <motion.button
                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={handleEndConsultation}
@@ -473,6 +506,14 @@ const ConsultationPage = () => {
             )}
           </div>
         </motion.div>
+
+        {/* Not started yet: patient sees the booked time or the queue position and estimated wait */}
+        {!isDoctor && isPending && id && <QueueStatusBanner consultationId={id} onCancelled={() => navigate("/start-consultation")} />}
+        {isDoctor && isPending && (
+          <p className="mx-3 sm:mx-4 mt-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Bu so'rov hali qabul qilinmagan. Qabul qilish shifokor panelida{consultation?.scheduled_at ? ` (yozuv vaqti: ${fmtSlotFull(consultation.scheduled_at)})` : ""}.
+          </p>
+        )}
 
         {/* MaxBand: the doctor sees the patient's pulse and SpO2 live (Premium, active consultation) */}
         {isDoctor && !isEnded && id && consultation?.status === "active" && <BandLivePanel consultationId={id} />}
@@ -485,13 +526,13 @@ const ConsultationPage = () => {
           ref={videoContainerRef}
           id="daily-video"
           className={`${inCall || joiningCall ? "block" : "hidden"} bg-black relative overflow-hidden`}
-          style={{ height: inCall || joiningCall ? "50vh" : 0 }}
+          style={{ height: inCall || joiningCall ? (callMode === "audio" ? "180px" : "50vh") : 0 }}
         >
           {inCall && (
             <>
               {/* Timer display */}
               <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-mono z-20">
-                {Math.floor(callElapsed / 60).toString().padStart(2, "0")}:{(callElapsed % 60).toString().padStart(2, "0")} / 10:00
+                {callMode === "audio" ? "🎙 " : ""}{Math.floor(callElapsed / 60).toString().padStart(2, "0")}:{(callElapsed % 60).toString().padStart(2, "0")} / {String(videoFreeMinutes).padStart(2, "0")}:00
               </div>
               {/* Extend prompt overlay */}
               <AnimatePresence>

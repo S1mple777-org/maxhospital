@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
 import { Star, MapPin, Briefcase, Clock, Users, ArrowLeft, Stethoscope, Send, Phone, Home, Languages, GraduationCap, Activity, ClipboardList } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import BookingPicker from "@/components/booking/BookingPicker";
 import {
   WEEK_DAYS, normalizeWorkHours, hasWorkHours, isWorkingNow, tashkentNow,
   loadDoctorStats, loadDoctorContact, loadDoctorPatients, type DoctorStats, type DoctorPatient,
@@ -198,6 +199,9 @@ const DoctorProfilePage = () => {
                 );
               })()}
             </div>
+
+            {/* Book a time inside the doctor's working hours */}
+            <BookingPicker doctorId={doctor.id} departmentId={doctor.department_id ?? null} doctorUserId={doctor.user_id} />
 
             {/* Work hours */}
             {hasWorkHours(doctor.work_hours) && (

@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Clock, CheckCircle, MessageCircle, Users, Wifi, WifiOff, Timer, Crown, Zap, Scale, HelpCircle } from "lucide-react";
-import { loadSecondOpinionRequests, orderQueue } from "@/lib/care";
+import { Clock, CheckCircle, MessageCircle, Users, Wifi, WifiOff, Timer, Crown, Zap, Scale, HelpCircle, CalendarClock } from "lucide-react";
+import { isFutureBooking, loadSecondOpinionRequests, orderQueue } from "@/lib/care";
+import { fmtSlotFull, notifyPatientCalled } from "@/lib/booking";
 import { toast } from "sonner";
 import TreatmentOverview from "@/components/care/TreatmentOverview";
 
@@ -17,7 +18,13 @@ const DoctorDashboard = () => {
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(false);
   const [toggling, setToggling] = useState(false);
-  const [pending, setPending] = useState<any[]>([]);
+  // All pending requests; split below into the live queue and bookings for later.
+  const [pendingAll, setPendingAll] = useState<any[]>([]);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
+  const pending = orderQueue(pendingAll.filter((c) => !isFutureBooking(c, now)));
+  const upcoming = pendingAll.filter((c) => isFutureBooking(c, now))
+    .sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
   const [active, setActive] = useState<any[]>([]);
   const [ended, setEnded] = useState<any[]>([]);
   const [followups, setFollowups] = useState<any[]>([]);
@@ -91,7 +98,7 @@ const DoctorDashboard = () => {
       };
     }));
 
-    setPending(orderQueue(withProfiles.filter(c => c.status === "pending")));
+    setPendingAll(withProfiles.filter(c => c.status === "pending"));
     setActive(withProfiles.filter(c => c.status === "active"));
     setEnded(withProfiles.filter(c => c.status === "completed" && !c.has_prescription));
     setFollowups(withProfiles.filter(c => c.status === "completed" && c.followup_until && new Date(c.followup_until).getTime() > Date.now()));
@@ -115,8 +122,9 @@ const DoctorDashboard = () => {
       .from("consultations")
       .update({ status: "active", started_at: now.toISOString(), max_end_time: maxEnd.toISOString() })
       .eq("id", id);
-    if (error) toast.error(error.message);
-    else navigate(`/consultation/${id}`);
+    if (error) { toast.error(error.message); return; }
+    void notifyPatientCalled(id);   // Telegram: "Shifokor sizni kutmoqda"
+    navigate(`/consultation/${id}`);
   };
 
   const handleReject = async (id: string) => {
@@ -200,6 +208,7 @@ const DoctorDashboard = () => {
                         <p className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</p>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
                           <span className="text-xs text-primary">{Number(c.price_uzs).toLocaleString()} UZS</span>
+                          {c.scheduled_at && <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"><CalendarClock className="w-3 h-3" /> Yozuv: {fmtSlotFull(c.scheduled_at)}</span>}
                           {c.queue_first && <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400"><Zap className="w-3 h-3" /> Birinchi navbat</span>}
                           {!c.queue_first && c.queue_boost > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"><Crown className="w-3 h-3" /> Ustuvor</span>}
                         </div>
@@ -208,6 +217,30 @@ const DoctorDashboard = () => {
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => handleAccept(c.id)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium">Qabul</button>
                       <button onClick={() => handleReject(c.id)} className="px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium">Rad</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {upcoming.length > 0 && (
+            <div className="mb-8">
+              <h2 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-primary" /> Vaqtga yozilganlar <span className="text-xs font-normal text-muted-foreground">({upcoming.length})</span>
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">Har bir yozuv vaqtidan 15 daqiqa oldin yuqoridagi navbatning boshiga chiqadi. Bemorga 1 soat oldin eslatma boradi.</p>
+              <div className="space-y-2">
+                {upcoming.map((c) => (
+                  <div key={c.id} className="bg-card rounded-xl border border-border p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{fmtSlotFull(c.scheduled_at)}</p>
+                      <p className="text-sm text-foreground break-words">{c.patient_name}</p>
+                      {c.account_name && <p className="text-xs text-muted-foreground">Akkaunt: {c.account_name}</p>}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button onClick={() => navigate(`/consultation/${c.id}`)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-foreground hover:bg-secondary">Chat</button>
+                      <button onClick={() => { if (confirm("Yozuvni rad etasizmi? Bemorga pul qaytariladi.")) void handleReject(c.id); }} className="px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium">Rad</button>
                     </div>
                   </div>
                 ))}
