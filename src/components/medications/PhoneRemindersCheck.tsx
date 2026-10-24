@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BellRing, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { isNativeApp } from "@/lib/native";
-import { reminderDiagnostics, scheduleTestReminder, syncLocalReminders, type ReminderDiagnostics } from "@/lib/localReminders";
+import { ensureNotificationPermission, openExactAlarmSettings, reminderDiagnostics, scheduleTestReminder, syncLocalReminders, type ReminderDiagnostics } from "@/lib/localReminders";
 
 const ok = (v: string) => v === "granted";
 
@@ -14,7 +14,14 @@ const PhoneRemindersCheck = () => {
   const [d, setD] = useState<ReminderDiagnostics | null>(null);
   const [busy, setBusy] = useState(false);
   const refresh = () => reminderDiagnostics().then(setD).catch(() => setD(null));
-  useEffect(() => { if (isNativeApp()) void refresh(); }, []);
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    void refresh();
+    // Returning from the settings screen: show the new state.
+    const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
   if (!isNativeApp() || !d) return null;
 
   const sync = async () => {
@@ -36,10 +43,17 @@ const PhoneRemindersCheck = () => {
       <p className="text-sm font-semibold text-foreground flex items-center gap-2"><BellRing className="w-4 h-4 text-primary" /> Telefondagi eslatmalar</p>
       <ul className="mt-2 space-y-1 text-xs">
         <li className={ok(d.display) ? "text-emerald-700" : "text-destructive"}>
-          {ok(d.display) ? "✓ Bildirishnomaga ruxsat bor" : "✗ Bildirishnomaga ruxsat yo'q — Sozlamalar → Ilovalar → MaxHospital → Bildirishnomalar"}
+          {ok(d.display) ? "✓ Bildirishnomaga ruxsat bor" : "✗ Bildirishnomaga ruxsat yo'q"}
+          {!ok(d.display) && (
+            <button onClick={async () => { if (!(await ensureNotificationPermission())) toast.error("Sozlamalar → Ilovalar → MaxHospital → Bildirishnomalar dan yoqing"); void refresh(); }}
+              className="ml-2 underline font-medium">Ruxsat berish</button>
+          )}
         </li>
         <li className={d.exact === "denied" ? "text-amber-700" : "text-emerald-700"}>
-          {d.exact === "denied" ? "! Aniq vaqtli budilnik o'chiq — eslatma bir necha daqiqa kechikishi mumkin" : "✓ Aniq vaqtda chalinadi"}
+          {d.exact === "denied" ? "! Aniq vaqtli budilnik o'chiq — eslatma kechikib kelishi mumkin" : "✓ Aniq vaqtda chalinadi"}
+          {d.exact === "denied" && (
+            <button onClick={() => void openExactAlarmSettings()} className="ml-2 underline font-medium">Yoqish</button>
+          )}
         </li>
         <li className={d.scheduled > 0 ? "text-emerald-700" : "text-amber-700"}>
           {d.scheduled > 0
