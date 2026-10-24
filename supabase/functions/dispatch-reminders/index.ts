@@ -6,6 +6,7 @@
 //   app      -> nothing here: the Android app schedules it on the phone itself
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { json, serviceClient } from "../_shared/http.ts";
+import { isCronRequest } from "../_shared/notify.ts";
 import { localTime, reminderBody, reminderSms, reminderTitle, smsPhone } from "../_shared/medication-plan.ts";
 
 interface DueReminder {
@@ -104,9 +105,8 @@ async function sendSms(phone: string, message: string, retry = true): Promise<bo
 // ---- Main -------------------------------------------------------------------
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (!authorized(req)) return json({ error: "Forbidden" }, 403);
-
   const db = serviceClient();
+  if (!authorized(req) && !(await isCronRequest(req, db))) return json({ error: "Forbidden" }, 403);
 
   // Muddati tugagan obunalarni uzaytirish (pg_cron bo'lmasa ham shu chaqiruv orqali ishlaydi).
   const { data: renewed, error: renewError } = await db.rpc("renew_subscriptions");
