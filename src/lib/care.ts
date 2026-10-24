@@ -122,6 +122,7 @@ export const PASSPORT_SECTIONS = [
   { key: "insurance", label: "Sug'urta", defaultVisible: false },
   { key: "organ_donor", label: "Organ donorligi", defaultVisible: false },
   { key: "history", label: "Konsultatsiyalar tarixi", defaultVisible: false },
+  { key: "consult", label: "Konsultatsiya paytida shifokorga", defaultVisible: true },
 ] as const;
 export type PassportSectionKey = (typeof PASSPORT_SECTIONS)[number]["key"];
 
@@ -311,4 +312,23 @@ export async function generateWeeklyReport(language: Lang, refresh = false): Pro
   if (error) throw await fnError(error, "Hisobotni tayyorlab bo'lmadi");
   if (data?.error) throw new Error(data.error);
   return data.report as WeeklyReport;
+}
+
+/** What a doctor sees during a consultation (only if the patient left "consult" on). */
+export interface ConsultPassport {
+  available: boolean;
+  shared?: boolean;
+  reason?: string;
+  data?: {
+    age: number | null; gender: string | null; height_cm: number | null; weight_kg: number | null;
+    blood_type: string | null; allergies: string | null; conditions: string | null; medications: string | null;
+    notes: string | null; surgeries: string | null; vaccinations: string | null; family_history: string | null;
+    updated_at: string | null;
+  };
+}
+
+export async function loadConsultationPassport(consultationId: string): Promise<ConsultPassport> {
+  const { data, error } = await supabase.rpc("get_consultation_passport" as any, { _consultation_id: consultationId });
+  if (error || !data) return { available: false };
+  return data as unknown as ConsultPassport;
 }

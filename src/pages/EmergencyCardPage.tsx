@@ -30,14 +30,14 @@ interface PField { vis: Record<string, boolean>; off: boolean; toggle: (k: Passp
 const Group = ({ title }: { title: string }) => (
   <h2 className="sm:col-span-2 mt-2 border-b border-border pb-1 text-sm font-semibold text-foreground">{title}</h2>
 );
-const Field = ({ k, label, span, vis, off, toggle, children }: PField & { k: PassportSectionKey; label: string; span?: boolean; children: React.ReactNode }) => {
+const Field = ({ k, label, span, vis, off, toggle, hint, children }: PField & { k: PassportSectionKey; label: string; span?: boolean; hint?: [string, string]; children: React.ReactNode }) => {
   const on = isSectionVisible(vis, k);
   return (
     <div className={`text-xs text-muted-foreground ${span ? "sm:col-span-2" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span>{label}</span>
         <button type="button" disabled={off} onClick={() => toggle(k)} aria-pressed={on}
-          title={on ? "QR orqali ko'rinadi" : "QR orqali yashirilgan"}
+          title={on ? (hint?.[0] ?? "QR orqali ko'rinadi") : (hint?.[1] ?? "QR orqali yashirilgan")}
           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${on ? "bg-green-500/10 text-green-700" : "bg-muted text-muted-foreground"}`}>
           {on ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />} {on ? "Ko'rinadi" : "Yashirin"}
         </button>
@@ -253,6 +253,17 @@ const EmergencyCardPage = () => {
                     <p className="mt-1 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                       Tugagan konsultatsiyalaringiz avtomatik qo'shiladi: sana, bo'lim, shifokor, tashxis, dorilar va shifokor izohi.
                       Qo'lda yozish shart emas. «Ko'rinadi» qilsangiz, QR ni skanerlagan odam butun tarixni ko'radi.
+                    </p>
+                  </Field>
+
+                  <Group title="Shifokor uchun" />
+                  <Field vis={form.visibility} off={!allowed} toggle={toggleVis} k="consult" label="Konsultatsiya paytida passportim shifokorga ko'rinsin" span
+                    hint={["Shifokorga ko'rinadi", "Shifokorga yashirilgan"]}>
+                    <p className="mt-1 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      Siz bilan konsultatsiya o'tkazayotgan shifokor qon guruhingiz, allergiyalaringiz, kasalliklaringiz, dorilaringiz,
+                      operatsiyalaringiz, emlashlaringiz va oilaviy kasalliklaringizni ko'radi, shunda sizdan hammasini qayta so'ramaydi.
+                      Manzil, sug'urta, donorlik va yaqinlaringiz raqami ko'rsatilmaydi. Faqat shu konsultatsiya davomida.
+                      Bu QR ko'rinishiga bog'liq emas: QR ni yashirsangiz ham, shifokor ko'ra oladi. Istamasangiz «Yashirin» qiling.
                     </p>
                   </Field>
 
