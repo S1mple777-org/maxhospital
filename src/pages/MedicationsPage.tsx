@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { isNativeApp } from "@/lib/native";
 import { cachedReminders, syncLocalReminders } from "@/lib/localReminders";
+import PhoneRemindersCheck from "@/components/medications/PhoneRemindersCheck";
 import {
   DEFAULT_ROUTINE, MAX_DAYS, MAX_TIMES_PER_DAY, cleanTimes, deleteSchedule, draftPlanWithAi, fileToBase64,
   loadReminders, loadSchedules, loadSubscription, localTime, markReminder, normalizeTime, planItemErrors,
@@ -245,6 +246,9 @@ const MedicationsPage = () => {
               <p className="text-sm text-muted-foreground">AI retseptdan jadval tuzadi, vaqti kelganda eslatamiz.</p>
             </div>
           </div>
+
+          {/* Faqat ilovada: telefon haqiqatan chalinadimi */}
+          <PhoneRemindersCheck />
 
           {offline && (
             <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">

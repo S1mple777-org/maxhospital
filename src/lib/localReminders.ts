@@ -220,3 +220,46 @@ export async function clearLocalReminders(): Promise<void> {
   writeJson(CACHE_KEY, []);
   writeJson(QUEUE_KEY, []);
 }
+
+export interface ReminderDiagnostics {
+  /** "granted" | "denied" | "prompt" ... */
+  display: string;
+  /** exact alarms (Android 12+): "granted" | "denied" | "unknown" */
+  exact: string;
+  /** medication notifications currently scheduled on this phone */
+  scheduled: number;
+  next: string | null;
+}
+
+/** What the phone actually has: permissions and how many reminders are scheduled. */
+export async function reminderDiagnostics(): Promise<ReminderDiagnostics | null> {
+  if (!isNativeApp()) return null;
+  const LocalNotifications = await plugin();
+  const perm = await LocalNotifications.checkPermissions();
+  let exact = "unknown";
+  try { exact = (await LocalNotifications.checkExactNotificationSetting()).exact_alarm; } catch { /* Android < 12 */ }
+  const pending = await LocalNotifications.getPending();
+  const ours = pending.notifications.filter((n) => (n.extra as any)?.kind === "med");
+  const times = ours.map((n) => (n.schedule?.at ? new Date(n.schedule.at as any).getTime() : NaN)).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b);
+  return { display: perm.display, exact, scheduled: ours.length, next: times.length ? new Date(times[0]).toISOString() : null };
+}
+
+/** Test notification in 1 minute, to check that the phone really rings (permissions, battery saver). */
+export async function scheduleTestReminder(): Promise<boolean> {
+  if (!isNativeApp()) return false;
+  await initLocalReminders();
+  if (!(await ensureNotificationPermission())) return false;
+  const LocalNotifications = await plugin();
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: 2_000_000_000 + Math.floor(Math.random() * 1000),
+      title: "💊 Sinov eslatmasi",
+      body: "Bu bildirishnoma keldi — dori eslatmalari telefoningizda ishlaydi.",
+      schedule: { at: new Date(Date.now() + 60_000), allowWhileIdle: true },
+      channelId: CHANNEL_ID,
+      autoCancel: true,
+      extra: { kind: "test" },
+    }],
+  });
+  return true;
+}

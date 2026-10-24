@@ -23,6 +23,21 @@ export async function telegramToUser(db: SupabaseClient, userId: string, html: s
   }
 }
 
+/**
+ * Is this a scheduled (cron) call? Two ways:
+ *  - x-cron-token: sent by pg_cron inside the database; checked against the token in Vault
+ *    (public.check_cron_token, migration 20261024190000_cron_scheduler.sql). No manual secret needed.
+ *  - x-cron-secret: the GitHub Actions fallback, checked against REMINDERS_CRON_SECRET.
+ */
+export async function isCronRequest(req: Request, db: SupabaseClient): Promise<boolean> {
+  if (cronAuthorized(req)) return true;
+  const token = req.headers.get("x-cron-token") ?? "";
+  if (token.length < 32) return false;
+  const { data, error } = await db.rpc("check_cron_token", { _token: token });
+  if (error) console.warn("check_cron_token failed", error.message);
+  return data === true;
+}
+
 /** Constant-time check of the x-cron-secret header against REMINDERS_CRON_SECRET. */
 export function cronAuthorized(req: Request): boolean {
   const secret = Deno.env.get("REMINDERS_CRON_SECRET");

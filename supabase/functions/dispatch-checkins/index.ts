@@ -1,11 +1,11 @@
 // Davolanish kuzatuvi: vaqti kelgan "Ahvolingiz qanday?" so'rovlarini bemorga yuboradi
 // va "yomonlashdi" javoblarini shifokorga Telegram orqali yetkazadi.
-// Cron chaqiradi (GitHub Actions: .github/workflows/checkins-cron.yml). Foydalanuvchilar chaqira olmaydi.
+// Cron chaqiradi (pg_cron: migration 20261024190000_cron_scheduler.sql; zaxira: GitHub Actions). Foydalanuvchilar chaqira olmaydi.
 //   web      -> user_notifications qatori (sayt real vaqtda ko'rsatadi)
 //   telegram -> 3 ta havola-tugma: 😀 Yaxshilandi / 😐 O'zgarmadi / 😟 Yomonlashdi (/c/<token> sahifasi)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { json, serviceClient } from "../_shared/http.ts";
-import { cronAuthorized, escHtml, telegramToUser } from "../_shared/notify.ts";
+import { escHtml, isCronRequest, telegramToUser } from "../_shared/notify.ts";
 
 const siteUrl = () => (Deno.env.get("SITE_URL") ?? "https://max-hospital1.netlify.app").replace(/\/+$/, "");
 
@@ -52,9 +52,8 @@ async function sendCheckinTelegram(c: DueCheckin): Promise<boolean> {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (!cronAuthorized(req)) return json({ error: "Unauthorized" }, 401);
-
   const db = serviceClient();
+  if (!(await isCronRequest(req, db))) return json({ error: "Unauthorized" }, 401);
   let sent = 0, telegram = 0, doctorAlerts = 0;
 
   // 1) Bemorlarga so'rovlar
