@@ -21,6 +21,12 @@ const lines = [
   // Dori eslatmasi aynan belgilangan daqiqada chalinishi uchun (Android 12+).
   // Foydalanuvchi ilovada bir marta ruxsat beradi; bermasa ham eslatma keladi, faqat biroz kechikishi mumkin.
   '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
+  // Android 13+: dori eslatmasi budilnik kabi aniq vaqtda — foydalanuvchidan so'ramasdan beriladi.
+  // (Android 14 da SCHEDULE_EXACT_ALARM yangi o'rnatilgan ilovaga sukut bo'yicha berilmaydi,
+  // shuning uchun eslatmalar kechikib kelardi.)
+  '<uses-permission android:name="android.permission.USE_EXACT_ALARM" />',
+  // Android 13+: bildirishnoma ko'rsatish ruxsati (ilova so'raydi).
+  '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
   // Kamerasi yo'q qurilmalarda ham ilova o'rnatilishi uchun.
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-feature android:name="android.hardware.microphone" android:required="false" />',

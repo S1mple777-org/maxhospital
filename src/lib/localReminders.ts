@@ -121,20 +121,25 @@ export async function flushQueue(): Promise<void> {
   writeJson(QUEUE_KEY, left);
 }
 
-/** Asks for notification + exact alarm permission. Returns false if notifications are blocked. */
+/**
+ * Asks for the notification permission. Returns false if notifications are blocked.
+ * The exact-alarm settings screen is NOT opened here any more (it used to open on every
+ * app resume); with USE_EXACT_ALARM (Android 13+) it is granted automatically, and the
+ * "Telefondagi eslatmalar" check on the medications page has a button for older phones.
+ */
 export async function ensureNotificationPermission(): Promise<boolean> {
   if (!isNativeApp()) return false;
   const LocalNotifications = await plugin();
   let perm = await LocalNotifications.checkPermissions();
   if (perm.display !== "granted") perm = await LocalNotifications.requestPermissions();
-  if (perm.display !== "granted") return false;
-  try {
-    const exact = await LocalNotifications.checkExactNotificationSetting();
-    if (exact.exact_alarm !== "granted") await LocalNotifications.changeExactNotificationSetting();
-  } catch {
-    /* Android < 12: nothing to do */
-  }
-  return true;
+  return perm.display === "granted";
+}
+
+/** Opens the "Alarms & reminders" setting (Android 12+), so reminders ring exactly on time. */
+export async function openExactAlarmSettings(): Promise<void> {
+  if (!isNativeApp()) return;
+  const LocalNotifications = await plugin();
+  try { await LocalNotifications.changeExactNotificationSetting(); } catch { /* Android < 12 */ }
 }
 
 /**
