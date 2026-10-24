@@ -37,6 +37,7 @@ import PublicEmergencyCardPage from "./pages/PublicEmergencyCardPage";
 import SecondOpinionPage from "./pages/SecondOpinionPage";
 import MaxBandPage from "./pages/MaxBandPage";
 import CheckinPage from "./pages/CheckinPage";
+import AppUpdateBanner from "./components/app/AppUpdateBanner";
 import ReminderListener from "./components/medications/ReminderListener";
 import NotFound from "./pages/NotFound";
 
@@ -86,6 +87,7 @@ const App = () => (
               </Routes>
               <AiAssistantButton />
               <ReminderListener />
+              <AppUpdateBanner />
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>

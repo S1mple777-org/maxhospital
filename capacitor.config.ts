@@ -10,6 +10,14 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
   },
   plugins: {
+    // Orqa fonda sayt yangilanishi (src/lib/appUpdate.ts boshqaradi, scripts/build-ota.mjs fayllarni tayyorlaydi).
+    // autoUpdate o'chiq: Capgo bulutiga ulanmaymiz, yangilanish o'zimizning Netlify saytimizdan olinadi.
+    // resetWhenUpdate: yangi APK o'rnatilsa, ichidagi (yangiroq) versiyaga qaytadi.
+    CapacitorUpdater: {
+      autoUpdate: false,
+      resetWhenUpdate: true,
+      appReadyTimeout: 10000,
+    },
     // Ilova status bar ostiga kirib ketmasligi uchun.
     SystemBars: {
       insetsHandling: "native",

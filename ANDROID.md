@@ -116,3 +116,20 @@ Telefonda quyidagilarni tekshiring:
 | "SDK location not found" | Loyihani Android Studio orqali oching (`npm run android:open`), u `local.properties` ni o'zi yaratadi |
 | Video ochilmaydi | Telefon Sozlamalar → Ilovalar → MaxHospital → Ruxsatlar: kamera va mikrofonni yoqing |
 | Oq ekran | `npm run android:sync` ni qayta ishga tushiring. Chrome'da `chrome://inspect` orqali ilovadagi xatolarni ko'ring |
+
+## Orqa fonda avtomatik yangilanish
+
+Ilova sayt kodini o'z ichida saqlaydi, lekin endi yangi APK kutmasdan **o'zi yangilanadi**:
+
+1. Har Netlify deployida `scripts/build-ota.mjs` saytning to'liq build'idan `/ota/bundle-<id>.zip` va `/ota/latest.json` yasaydi.
+2. Ilova har ochilganda `latest.json` ni tekshiradi. Yangi versiya bo'lsa, uni orqa fonda yuklab oladi (`@capgo/capacitor-updater`).
+3. Ilova keyingi safar ochilganda yangi versiya ishlaydi. Bemor hech narsa bosmaydi. Profil → "Ilova versiyasi" da holati ko'rinadi.
+4. Yangi versiya ochilmasa (buzuq bo'lsa), plagin 10 soniyada avvalgisiga o'zi qaytaradi.
+
+**Yangi APK qachon kerak:** faqat native o'zgarishda (yangi Capacitor plagini, yangi ruxsat). Shunda:
+- `ota.config.json` dagi `min_apk_build` ni shu o'zgarishli APK ning run raqamiga oshiring;
+- eski ilovalar sayt yangilanishini olmaydi va "Ilovaning yangi versiyasi bor → Yangilash" oynasini ko'radi. Bir bosishda Releases'dagi oxirgi APK ochiladi.
+
+Android xavfsizlik qoidasi bo'yicha APK ni foydalanuvchi so'rovisiz o'rnatib bo'lmaydi; to'liq avtomatik APK yangilanishi faqat Google Play orqali bo'ladi.
+
+> Birinchi marta: bu imkoniyat bor APK ni bir marta qo'lda o'rnatish kerak (eski APK da yangilanish plagini yo'q).

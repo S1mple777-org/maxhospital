@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
+import AppVersionCard from "@/components/app/AppVersionCard";
 import { toast } from "sonner";
 import { WEEK_DAYS, normalizeWorkHours, hasWorkHours, loadDoctorPrivate, saveDoctorPrivate, type DayKey, type DayHours } from "@/lib/doctorProfile";
 
@@ -397,6 +398,9 @@ const ProfilePage = () => {
         <div className="mt-6">
           <TelegramLinkSection />
         </div>
+
+        {/* Faqat ilovada: versiya va yangilanish */}
+        <AppVersionCard />
       </div>
     </div>
   );

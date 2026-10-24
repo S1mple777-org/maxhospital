@@ -12,3 +12,11 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Ilovaning orqa fonda yangilanishi (scripts/build-ota.mjs): latest.json har doim yangi o'qilsin,
+# ilova (https://localhost) uni o'qiy olsin.
+[[headers]]
+  for = "/ota/*"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Access-Control-Allow-Origin = "*"

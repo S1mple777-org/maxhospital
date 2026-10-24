@@ -61,6 +61,9 @@ export async function signInWithMagicLink(
 /** Android "orqaga" tugmasi: sahifalar bo'yicha orqaga, bosh sahifada esa ilovadan chiqadi. */
 export async function initNativeApp(): Promise<void> {
   if (!isNativeApp()) return;
+  // Orqa fonda yangilanish: birinchi navbatda "ilova ochildi" deb belgilaydi (aks holda plagin
+  // avvalgi versiyaga qaytaradi), keyin yangi versiyani tekshiradi. Kutmaymiz — ilova darhol ochiladi.
+  void import("@/lib/appUpdate").then((m) => m.initAppUpdates()).catch(() => undefined);
   const { App } = await import("@capacitor/app");
   await App.addListener("backButton", ({ canGoBack }) => {
     if (canGoBack && window.location.pathname !== "/") window.history.back();
