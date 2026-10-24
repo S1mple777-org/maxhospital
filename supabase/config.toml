@@ -4,6 +4,10 @@ project_id = "mhyiqzeowliasmozvjdk"
 [functions.dispatch-reminders]
 verify_jwt = false
 
+# Davolanish kuzatuvi: cron chaqiradi (x-cron-secret), foydalanuvchi JWT si yo'q.
+[functions.dispatch-checkins]
+verify_jwt = false
+
 # Har yakshanba cron chaqiradi (x-cron-secret); foydalanuvchi so'rovida JWT funksiya ichida tekshiriladi.
 [functions.weekly-report]
 verify_jwt = false

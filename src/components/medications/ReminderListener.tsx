@@ -53,7 +53,11 @@ const ReminderListener = () => {
           } else toast(n.title, {
             description: n.body ?? undefined,
             duration: 5 * 60_000,
-            action: reminderId ? { label: "✅ Ichdim", onClick: () => void act("taken") } : undefined,
+            action: reminderId
+              ? { label: "✅ Ichdim", onClick: () => void act("taken") }
+              : typeof n.data?.url === "string" && n.data.url.startsWith("/")
+                ? { label: "Ochish", onClick: () => window.location.assign(n.data.url) }
+                : undefined,
             cancel: reminderId ? { label: "O'tkazish", onClick: () => void act("skipped") } : undefined,
           });
 

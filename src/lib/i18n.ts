@@ -18,7 +18,7 @@ export const translations = {
       lab: "Tahlil natijalari",
       family: "Oila profili",
       maxband: "MaxBand bilaguzuk",
-      ecard: "Favqulodda karta",
+      ecard: "MaxHospital Passport",
       opinion: "Ikkinchi fikr",
       pro: "Pro",
     },

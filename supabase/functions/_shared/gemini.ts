@@ -15,26 +15,62 @@ export function chatModel(): string {
   return Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
 }
 
-async function post(path: string, body: unknown, attempt = 0): Promise<any> {
+/** Seconds Google asks us to wait before retrying (from a 429 body), or null. */
+function retryDelaySeconds(json: any): number | null {
+  const details = json?.error?.details as { retryDelay?: string }[] | undefined;
+  const hint = details?.find((d) => typeof d?.retryDelay === "string")?.retryDelay;
+  const m = hint?.match(/^(\d+(?:\.\d+)?)s$/) ?? String(json?.error?.message ?? "").match(/retry in (\d+(?:\.\d+)?)s/i);
+  return m ? Number(m[1]) : null;
+}
+
+async function post(path: string, body: unknown, attempt = 0, maxQuotaWaitMs = 30_000): Promise<any> {
   const res = await fetch(`${API}/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey() },
     body: JSON.stringify(body),
   });
-  if ((res.status === 429 || res.status >= 500) && attempt < 3) {
-    await new Promise((r) => setTimeout(r, 1500 * 2 ** attempt));
-    return post(path, body, attempt + 1);
-  }
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(`Gemini ${res.status}: ${json?.error?.message ?? "request failed"}`);
+  if (res.ok) return json;
+
+  if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+    // Free-tier quota: Google says how long to wait. Wait that long if it fits in the request time.
+    const hinted = res.status === 429 ? retryDelaySeconds(json) : null;
+    const waitMs = hinted !== null ? (hinted + 1) * 1000 : 1500 * 2 ** attempt;
+    if (waitMs <= (hinted !== null ? maxQuotaWaitMs : 30_000)) {
+      await new Promise((r) => setTimeout(r, waitMs));
+      return post(path, body, attempt + 1, maxQuotaWaitMs);
+    }
   }
-  return json;
+  throw new Error(`Gemini ${res.status}: ${json?.error?.message ?? "request failed"}`);
+}
+
+/** Chat models to try in order: GEMINI_MODEL, then any in GEMINI_FALLBACK_MODELS (comma-separated). */
+function chatModels(): string[] {
+  const extra = (Deno.env.get("GEMINI_FALLBACK_MODELS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  return [chatModel(), ...extra.filter((m) => m !== chatModel())];
+}
+
+/** generateContent with fallback to the next model when one is overloaded or out of quota. */
+async function generate(body: unknown): Promise<any> {
+  let lastError: unknown;
+  for (const model of chatModels()) {
+    try {
+      return await post(`models/${model}:generateContent`, body);
+    } catch (e) {
+      lastError = e;
+      if (!/Gemini (429|5\d\d)/.test(String((e as Error)?.message))) throw e;
+    }
+  }
+  throw lastError;
 }
 
 export type EmbedTask = "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY";
 
-export async function embedTexts(texts: string[], taskType: EmbedTask): Promise<number[][]> {
+/**
+ * `maxQuotaWaitMs`: how long to wait inside the request when Gemini says the quota is used up.
+ * Book ingestion passes 0 so the browser waits instead and the function never hits its time limit.
+ */
+export async function embedTexts(texts: string[], taskType: EmbedTask, maxQuotaWaitMs = 30_000): Promise<number[][]> {
   const out: number[][] = [];
   const BATCH = 50;
   for (let i = 0; i < texts.length; i += BATCH) {
@@ -46,7 +82,7 @@ export async function embedTexts(texts: string[], taskType: EmbedTask): Promise<
         taskType,
         outputDimensionality: EMBEDDING_DIM,
       })),
-    });
+    }, 0, maxQuotaWaitMs);
     const embeddings = json.embeddings as { values: number[] }[] | undefined;
     if (!embeddings || embeddings.length !== slice.length) {
       throw new Error("Gemini returned an unexpected number of embeddings");
@@ -77,7 +113,7 @@ export async function generateJson<T>(opts: {
   files?: InlineFile[];
 }): Promise<T> {
   const last = opts.turns.length - 1;
-  const json = await post(`models/${chatModel()}:generateContent`, {
+  const json = await generate({
     systemInstruction: { parts: [{ text: opts.system }] },
     contents: opts.turns.map((t, i) => ({
       role: t.role,

@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ArrowLeft, Plus, Trash2, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
-import { generatePrescriptionPdf, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
+import { generatePrescriptionPdf, sendPrescriptionToTelegram, type PrescriptionMedicine } from "@/lib/generatePrescriptionPdf";
 import { openPdf } from "@/lib/native";
 import MeasurementsInput, { type MeasurementValues } from "@/components/ai/MeasurementsInput";
 import { isPlausible, METRIC_BY_KEY, type MetricKey } from "@/lib/aiAssistant";
@@ -107,14 +107,14 @@ const CreatePrescription = () => {
       if (mError) toast.error("Ko'rsatkichlarni saqlab bo'lmadi: " + mError.message);
     }
 
-    // Notify patient via Telegram
-    supabase.functions.invoke("telegram-notify", {
-      body: {
-        type: "prescription_created",
-        user_id: consultation.patient_id,
-        data: { prescription_id: data.id, doctor_name: doctorInfo.name },
-      },
-    }).catch(() => {});
+    // Send the e-prescription (text + PDF) to the patient's Telegram. Does not block the doctor.
+    void sendPrescriptionToTelegram({
+      ...data,
+      medicines: (data.medicines as unknown as PrescriptionMedicine[]) || [],
+    }).then((r) => {
+      if (r === "sent") toast.success("Retsept bemorning Telegramiga yuborildi");
+      else if (r === "not_linked") toast.info("Bemor Telegramni ulamagan: retsept faqat saytda");
+    });
 
     toast.success("Retsept yaratildi!");
     setSubmitting(false);

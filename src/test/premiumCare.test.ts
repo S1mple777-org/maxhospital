@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderQueue } from "../../supabase/functions/_shared/queue";
+import { isFutureBooking, orderQueue } from "../../supabase/functions/_shared/queue";
 import { alertLevel, alertsFor, alertMessage, sanitizeHomeItems } from "../../supabase/functions/_shared/home-alerts";
 import { computeWeeklyStats, fallbackReport, hasData, needsDoctor, weekPeriod } from "../../supabase/functions/_shared/weekly-report";
 import { normalizeStatus, queueFirstPrice } from "../../supabase/functions/_shared/plan";
@@ -26,6 +26,16 @@ describe("orderQueue", () => {
   it("two boosted requests keep their own order", () => {
     const base = "ABCDE".split("").map((id, i) => q(id, i));
     expect(ids(orderQueue([...base, q("P", 10, 4), q("Q", 11, 4)]))).toBe("APBQCDE");
+  });
+  it("booked appointments whose time has come go first, by booked time", () => {
+    const b = (id: string, min: number, slotMin: number) => ({ ...q(id, min), scheduled_at: at(slotMin) });
+    expect(ids(orderQueue([q("A", 1), q("F", 2, 0, true), b("Y", 0, 40), b("X", 5, 30)]))).toBe("XYFA");
+  });
+  it("isFutureBooking: only bookings more than 15 minutes ahead are kept out of the live queue", () => {
+    const now = Date.UTC(2026, 9, 17, 8, 0);
+    expect(isFutureBooking({ scheduled_at: new Date(now + 16 * 60_000).toISOString() }, now)).toBe(true);
+    expect(isFutureBooking({ scheduled_at: new Date(now + 10 * 60_000).toISOString() }, now)).toBe(false);
+    expect(isFutureBooking({ scheduled_at: null }, now)).toBe(false);
   });
 });
 

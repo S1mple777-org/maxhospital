@@ -1,9 +1,10 @@
 // Pro / Premium care features: family, emergency card, second opinion, home diary, weekly report.
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp, PUBLIC_SITE_URL } from "@/lib/native";
 import type { Lang } from "@/lib/aiAssistant";
 import type { HomeAlert } from "../../supabase/functions/_shared/home-alerts.ts";
 
-export { orderQueue } from "../../supabase/functions/_shared/queue.ts";
+export { orderQueue, isFutureBooking } from "../../supabase/functions/_shared/queue.ts";
 export type { HomeAlert } from "../../supabase/functions/_shared/home-alerts.ts";
 
 async function fnError(error: any, fallback: string): Promise<Error & { code?: string }> {
@@ -82,22 +83,77 @@ export interface EmergencyCard {
   notes: string | null;
   is_enabled: boolean;
   updated_at?: string;
+  // MaxHospital Passport
+  birth_date: string | null;
+  gender: "male" | "female" | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  address: string | null;
+  surgeries: string | null;
+  vaccinations: string | null;
+  family_history: string | null;
+  insurance: string | null;
+  organ_donor: boolean | null;
+  doctor_name: string | null;
+  doctor_phone: string | null;
+  contact2_name: string | null;
+  contact2_phone: string | null;
+  visibility: Record<string, boolean>;
 }
+
+/** Which passport sections the patient can show or hide behind the QR code. */
+export const PASSPORT_SECTIONS = [
+  { key: "full_name", label: "Ism-familiya", defaultVisible: true },
+  { key: "birth_date", label: "Tug'ilgan yil", defaultVisible: true },
+  { key: "gender", label: "Jinsi", defaultVisible: false },
+  { key: "body", label: "Bo'y va vazn", defaultVisible: false },
+  { key: "address", label: "Yashash manzili", defaultVisible: false },
+  { key: "blood_type", label: "Qon guruhi", defaultVisible: true },
+  { key: "allergies", label: "Allergiyalar", defaultVisible: true },
+  { key: "conditions", label: "Surunkali kasalliklar", defaultVisible: true },
+  { key: "medications", label: "Doimiy dorilar", defaultVisible: true },
+  { key: "notes", label: "Qo'shimcha eslatma", defaultVisible: true },
+  { key: "surgeries", label: "O'tkazilgan operatsiyalar", defaultVisible: false },
+  { key: "vaccinations", label: "Emlashlar", defaultVisible: false },
+  { key: "family_history", label: "Oilaviy kasalliklar", defaultVisible: false },
+  { key: "contact", label: "Yaqin odam", defaultVisible: true },
+  { key: "contact2", label: "Ikkinchi yaqin odam", defaultVisible: false },
+  { key: "doctor", label: "Davolovchi shifokor", defaultVisible: false },
+  { key: "insurance", label: "Sug'urta", defaultVisible: false },
+  { key: "organ_donor", label: "Organ donorligi", defaultVisible: false },
+  { key: "history", label: "Konsultatsiyalar tarixi", defaultVisible: false },
+  { key: "consult", label: "Konsultatsiya paytida shifokorga", defaultVisible: true },
+] as const;
+export type PassportSectionKey = (typeof PASSPORT_SECTIONS)[number]["key"];
+
+export const isSectionVisible = (v: Record<string, boolean> | null | undefined, key: PassportSectionKey) => {
+  const def = PASSPORT_SECTIONS.find((x) => x.key === key)?.defaultVisible ?? false;
+  return typeof v?.[key] === "boolean" ? v[key] : def;
+};
 
 export async function loadEmergencyCards(): Promise<EmergencyCard[]> {
   const { data, error } = await supabase.from("emergency_cards" as any).select("*");
   if (error) return [];
-  return (data as unknown as EmergencyCard[]) ?? [];
+  return ((data as unknown as EmergencyCard[]) ?? []).map((c) => ({ ...c, visibility: c.visibility ?? {} }));
 }
 
 export async function saveEmergencyCard(c: EmergencyCard, regenerate = false): Promise<EmergencyCard> {
-  const { data, error } = await supabase.rpc("save_emergency_card" as any, {
-    _family_member_id: c.family_member_id, _blood_type: c.blood_type || "", _allergies: c.allergies || "",
-    _conditions: c.conditions || "", _medications: c.medications || "", _contact_name: c.contact_name || "",
-    _contact_phone: c.contact_phone || "", _notes: c.notes || "", _is_enabled: c.is_enabled, _regenerate: regenerate,
+  const num = (x: unknown) => (x === null || x === undefined || x === "" ? "" : String(x));
+  const d = {
+    blood_type: c.blood_type || "", allergies: c.allergies || "", conditions: c.conditions || "",
+    medications: c.medications || "", contact_name: c.contact_name || "", contact_phone: c.contact_phone || "",
+    notes: c.notes || "", birth_date: c.birth_date || "", gender: c.gender || "",
+    height_cm: num(c.height_cm), weight_kg: num(c.weight_kg), address: c.address || "",
+    surgeries: c.surgeries || "", vaccinations: c.vaccinations || "", family_history: c.family_history || "",
+    insurance: c.insurance || "", organ_donor: c.organ_donor, doctor_name: c.doctor_name || "",
+    doctor_phone: c.doctor_phone || "", contact2_name: c.contact2_name || "", contact2_phone: c.contact2_phone || "",
+  };
+  const { data, error } = await supabase.rpc("save_passport" as any, {
+    _family_member_id: c.family_member_id, _d: d, _visibility: c.visibility ?? {},
+    _is_enabled: c.is_enabled, _regenerate: regenerate,
   });
   if (error) {
-    if (/contact_phone/.test(error.message)) throw new Error("Telefon raqami noto'g'ri. Masalan: +998 90 123 45 67");
+    if (/_phone/.test(error.message)) throw new Error("Telefon raqami noto'g'ri. Masalan: +998 90 123 45 67");
     throw new Error(error.message);
   }
   return data as unknown as EmergencyCard;
@@ -106,13 +162,26 @@ export async function saveEmergencyCard(c: EmergencyCard, regenerate = false): P
 export interface PublicEmergencyCard {
   full_name: string | null;
   birth_year: number | null;
+  gender: "male" | "female" | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  address: string | null;
   blood_type: string | null;
   allergies: string | null;
   conditions: string | null;
   medications: string | null;
+  notes: string | null;
+  surgeries: string | null;
+  vaccinations: string | null;
+  family_history: string | null;
   contact_name: string | null;
   contact_phone: string | null;
-  notes: string | null;
+  contact2_name: string | null;
+  contact2_phone: string | null;
+  doctor_name: string | null;
+  doctor_phone: string | null;
+  insurance: string | null;
+  organ_donor: boolean | null;
   updated_at: string;
 }
 
@@ -122,8 +191,26 @@ export async function loadPublicEmergencyCard(token: string): Promise<PublicEmer
   return ((data as unknown as PublicEmergencyCard[]) ?? [])[0] ?? null;
 }
 
+export interface PassportHistoryItem {
+  consulted_at: string;
+  department_name: string | null;
+  doctor_name: string | null;
+  doctor_title: string | null;
+  diagnosis: string | null;
+  medicines: { name?: string; dose?: string; frequency?: string; duration?: string }[];
+  notes: string | null;
+}
+
+/** Completed consultations with diagnosis and prescription; empty unless the patient made history visible. */
+export async function loadPassportHistory(token: string): Promise<PassportHistoryItem[]> {
+  const { data, error } = await supabase.rpc("get_passport_history" as any, { _token: token });
+  if (error) return [];
+  return (data as unknown as PassportHistoryItem[]) ?? [];
+}
+
 export function emergencyCardUrl(token: string): string {
-  const base = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined) || "https://maxhospital.lovable.app";
+  // Browser: the site the user is on (Netlify, Vercel...). Android app: the public site address.
+  const base = isNativeApp() ? PUBLIC_SITE_URL : window.location.origin;
   return `${base.replace(/\/$/, "")}/e/${token}`;
 }
 
@@ -225,4 +312,23 @@ export async function generateWeeklyReport(language: Lang, refresh = false): Pro
   if (error) throw await fnError(error, "Hisobotni tayyorlab bo'lmadi");
   if (data?.error) throw new Error(data.error);
   return data.report as WeeklyReport;
+}
+
+/** What a doctor sees during a consultation (only if the patient left "consult" on). */
+export interface ConsultPassport {
+  available: boolean;
+  shared?: boolean;
+  reason?: string;
+  data?: {
+    age: number | null; gender: string | null; height_cm: number | null; weight_kg: number | null;
+    blood_type: string | null; allergies: string | null; conditions: string | null; medications: string | null;
+    notes: string | null; surgeries: string | null; vaccinations: string | null; family_history: string | null;
+    updated_at: string | null;
+  };
+}
+
+export async function loadConsultationPassport(consultationId: string): Promise<ConsultPassport> {
+  const { data, error } = await supabase.rpc("get_consultation_passport" as any, { _consultation_id: consultationId });
+  if (error || !data) return { available: false };
+  return data as unknown as ConsultPassport;
 }

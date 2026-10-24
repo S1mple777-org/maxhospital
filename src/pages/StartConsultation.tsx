@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { fmtSlotFull } from "@/lib/booking";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -163,9 +164,11 @@ const StartConsultation = () => {
                   <div key={c.id} onClick={() => navigate(`/consultation/${c.id}`)} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between cursor-pointer hover:bg-secondary/50">
                     <div>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === "active" ? "bg-green-100 text-green-700" : c.status === "completed" ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
-                        {c.status === "active" ? "Faol" : c.status === "completed" ? "Bepul savol vaqti" : "Kutilmoqda"}
+                        {c.status === "active" ? "Faol" : c.status === "completed" ? "Bepul savol vaqti" : c.scheduled_at ? "Vaqtga yozilgan" : "Navbatda"}
                       </span>
-                      <p className="text-xs text-muted-foreground mt-1">{new Date(c.created_at).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {c.status === "pending" && c.scheduled_at ? `📅 Qabul: ${fmtSlotFull(c.scheduled_at)}` : new Date(c.created_at).toLocaleString()}
+                      </p>
                     </div>
                     <MessageCircle className="w-4 h-4 text-primary" />
                   </div>

@@ -1,62 +1,27 @@
-// Admin-only: extracts text from an uploaded PDF book, splits it into chunks,
-// embeds each chunk with Gemini and stores the vectors for the AI assistant.
+// Admin-only: stores an uploaded medical book for the AI assistant.
+//
+// The browser extracts the PDF text page by page and sends it here in small batches
+// ({ book_id, pages, first_page, reset, done, total_pages }). Each call only splits its
+// pages into chunks, embeds them with Gemini and saves the vectors, so it stays well
+// inside the edge function CPU and time limits. (Parsing a whole 400-page PDF here used
+// to get the function killed silently, leaving the book stuck on "processing".)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { extractText, getDocumentProxy } from "npm:unpdf@1";
 import { corsHeaders, getUser, isStaff, json, serviceClient } from "../_shared/http.ts";
 import { chunkPages } from "../_shared/medical-ai.ts";
 import { embedTexts, toPgVector } from "../_shared/gemini.ts";
 
 const MAX_CHUNKS = 3000;
+const MAX_PAGES_PER_CALL = 40;
+// Bigger chunks = fewer embedding requests (the free Gemini tier allows ~1000 a day).
+const CHUNK_SIZE = 2400;
+const CHUNK_OVERLAP = 300;
 
-async function processBook(bookId: string) {
-  const db = serviceClient();
-  const setStatus = (fields: Record<string, unknown>) =>
-    db.from("medical_books").update(fields).eq("id", bookId);
-
-  try {
-    const { data: book, error } = await db.from("medical_books").select("*").eq("id", bookId).single();
-    if (error || !book) throw new Error("Kitob topilmadi");
-
-    const { data: file, error: dlError } = await db.storage.from("medical-books").download(book.storage_path);
-    if (dlError || !file) throw new Error("PDF faylni yuklab bo'lmadi");
-
-    const pdf = await getDocumentProxy(new Uint8Array(await file.arrayBuffer()));
-    const { totalPages, text } = await extractText(pdf, { mergePages: false });
-    const pages = Array.isArray(text) ? text : [text];
-
-    const chunks = chunkPages(pages);
-    if (chunks.length === 0) {
-      throw new Error("PDF ichida matn topilmadi (skanerlangan rasm bo'lishi mumkin). Matnli PDF yuklang.");
-    }
-    if (chunks.length > MAX_CHUNKS) {
-      throw new Error(`Kitob juda katta (${chunks.length} bo'lak). Uni qismlarga bo'lib yuklang.`);
-    }
-
-    await db.from("book_chunks").delete().eq("book_id", bookId);
-
-    const BATCH = 50;
-    for (let i = 0; i < chunks.length; i += BATCH) {
-      const part = chunks.slice(i, i + BATCH);
-      // The book title gives each chunk context, which improves retrieval.
-      const vectors = await embedTexts(part.map((c) => `${book.title}\n${c.content}`), "RETRIEVAL_DOCUMENT");
-      const { error: insError } = await db.from("book_chunks").insert(
-        part.map((c, j) => ({
-          book_id: bookId,
-          chunk_index: i + j,
-          page_number: c.page,
-          content: c.content,
-          embedding: toPgVector(vectors[j]),
-        })),
-      );
-      if (insError) throw new Error(insError.message);
-    }
-
-    await setStatus({ status: "ready", error_message: null, page_count: totalPages, chunk_count: chunks.length });
-  } catch (e) {
-    console.error("ingest-book failed", bookId, e);
-    await db.from("book_chunks").delete().eq("book_id", bookId);
-    await setStatus({ status: "error", error_message: String((e as Error)?.message ?? e).slice(0, 500), chunk_count: 0 });
-  }
+/** "4h46m48.5s" / "58.7s" (from Gemini's quota message) -> seconds, or null. */
+function retryAfterSeconds(message: string): number | null {
+  const m = message.match(/retry in ((?:\d+h)?(?:\d+m)?(?:[\d.]+s)?)/i)?.[1];
+  if (!m) return null;
+  const h = Number(m.match(/(\d+)h/)?.[1] ?? 0), min = Number(m.match(/(\d+)m/)?.[1] ?? 0), sec = Number(m.match(/([\d.]+)s/)?.[1] ?? 0);
+  return Math.ceil(h * 3600 + min * 60 + sec);
 }
 
 Deno.serve(async (req) => {
@@ -68,16 +33,71 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: "Avval tizimga kiring" }, 401);
   if (!(await isStaff(db, user.id))) return json({ error: "Faqat admin uchun" }, 403);
 
-  const { book_id } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const { book_id, pages, first_page, reset, done, total_pages } = body ?? {};
   if (typeof book_id !== "string") return json({ error: "book_id kerak" }, 400);
+  if (!Array.isArray(pages) || pages.length > MAX_PAGES_PER_CALL || pages.some((p) => typeof p !== "string")) {
+    return json({ error: `pages: 0..${MAX_PAGES_PER_CALL} ta matn kerak. Sahifani yangilab, qayta urinib ko'ring.` }, 400);
+  }
+  const firstPage = Number.isInteger(first_page) && first_page > 0 ? first_page : 1;
 
-  const { data: book } = await db.from("medical_books").select("id, status").eq("id", book_id).maybeSingle();
+  const { data: book } = await db.from("medical_books").select("id, title").eq("id", book_id).maybeSingle();
   if (!book) return json({ error: "Kitob topilmadi" }, 404);
-  if (book.status === "processing") return json({ status: "processing" }, 202);
 
-  await db.from("medical_books").update({ status: "processing", error_message: null }).eq("id", book_id);
+  const fail = async (message: string, status = 500) => {
+    await db.from("book_chunks").delete().eq("book_id", book_id);
+    await db.from("medical_books").update({ status: "error", error_message: message.slice(0, 500), chunk_count: 0 }).eq("id", book_id);
+    return json({ error: message }, status);
+  };
 
-  // Large books take a while: keep working after the response is sent.
-  EdgeRuntime.waitUntil(processBook(book_id));
-  return json({ status: "processing" }, 202);
+  try {
+    if (reset) {
+      await db.from("book_chunks").delete().eq("book_id", book_id);
+      await db.from("medical_books").update({ status: "processing", error_message: null, chunk_count: 0 }).eq("id", book_id);
+    }
+
+    const chunks = chunkPages(pages as string[], CHUNK_SIZE, CHUNK_OVERLAP).map((c) => ({ ...c, page: c.page + firstPage - 1 }));
+    if (chunks.length > 0) {
+      const { count: already } = await db.from("book_chunks").select("id", { count: "exact", head: true }).eq("book_id", book_id);
+      const start = already ?? 0;
+      if (start + chunks.length > MAX_CHUNKS) {
+        return await fail(`Kitob juda katta (${MAX_CHUNKS} bo'lakdan ko'p). Uni qismlarga bo'lib yuklang.`, 400);
+      }
+      // The book title gives each chunk context, which improves retrieval.
+      const vectors = await embedTexts(chunks.map((c) => `${book.title}\n${c.content}`), "RETRIEVAL_DOCUMENT", 0);
+      const { error: insError } = await db.from("book_chunks").insert(
+        chunks.map((c, j) => ({
+          book_id,
+          chunk_index: start + j,
+          page_number: c.page,
+          content: c.content,
+          embedding: toPgVector(vectors[j]),
+        })),
+      );
+      if (insError) throw new Error(insError.message);
+    }
+    // Progress: while processing, page_count = last page saved, so a stopped book can resume from there.
+    if (!done) {
+      await db.from("medical_books").update({ page_count: firstPage + pages.length - 1 }).eq("id", book_id);
+    }
+
+    if (done) {
+      const { count } = await db.from("book_chunks").select("id", { count: "exact", head: true }).eq("book_id", book_id);
+      if (!count) {
+        return await fail("PDF ichida matn topilmadi (skanerlangan rasm bo'lishi mumkin). Matnli PDF yuklang.", 400);
+      }
+      await db.from("medical_books").update({
+        status: "ready", error_message: null, chunk_count: count,
+        page_count: Number.isInteger(total_pages) ? total_pages : null,
+      }).eq("id", book_id);
+      return json({ status: "ready", chunks: count });
+    }
+    return json({ status: "processing", added: chunks.length });
+  } catch (e) {
+    const message = String((e as Error)?.message ?? e);
+    console.error("ingest-book failed", book_id, message);
+    // Gemini quota: keep what is already saved, the browser waits and retries this batch.
+    if (/Gemini 429/.test(message)) return json({ error: message, retry: true, retry_after: retryAfterSeconds(message) }, 429);
+    return await fail(message);
+  }
 });
