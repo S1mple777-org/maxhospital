@@ -8,6 +8,8 @@ import {
   sanitizePlan,
   smsPhone,
   spreadTimes,
+  suggestNextTime,
+  timesPerDay,
 } from "../../supabase/functions/_shared/medication-plan.ts";
 
 describe("times", () => {
@@ -33,6 +35,22 @@ describe("times", () => {
 
   it("shows Tashkent local time", () => {
     expect(localTime("2030-01-01T03:00:00Z", "Asia/Tashkent")).toBe("08:00");
+  });
+});
+
+describe("manual time entry", () => {
+  it("1 per day keeps the chosen time instead of jumping to wake-up (07:00)", () => {
+    expect(timesPerDay(1, ["21:30"], "07:00", "23:00")).toEqual(["21:30"]);
+    expect(timesPerDay(1, [], "07:00", "23:00")).toEqual(["07:00"]);
+  });
+  it("N per day starts from the chosen time", () => {
+    expect(timesPerDay(2, ["09:00"], "07:00", "21:00")).toEqual(["09:00", "21:00"]);
+  });
+  it("new dose time: 4 hours after the last, no duplicates", () => {
+    expect(suggestNextTime(["08:00"])).toBe("12:00");
+    expect(suggestNextTime(["08:00", "12:00"])).toBe("16:00");
+    expect(suggestNextTime([])).toBe("08:00");
+    expect(suggestNextTime(["22:00", "02:00"])).toBe("02:05");
   });
 });
 

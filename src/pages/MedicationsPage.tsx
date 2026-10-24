@@ -15,7 +15,7 @@ import { cachedReminders, syncLocalReminders } from "@/lib/localReminders";
 import {
   DEFAULT_ROUTINE, MAX_DAYS, MAX_TIMES_PER_DAY, cleanTimes, deleteSchedule, draftPlanWithAi, fileToBase64,
   loadReminders, loadSchedules, loadSubscription, localTime, markReminder, normalizeTime, planItemErrors,
-  saveSchedules, spreadTimes, stopSchedule, todayInTashkent,
+  saveSchedules, stopSchedule, suggestNextTime, timesPerDay, todayInTashkent,
   type Channel, type MedicationReminder, type MedicationSchedule, type PlanId, type PlanItem, type Routine,
 } from "@/lib/medications";
 import { loadFamily, RELATIONS, type FamilyMember } from "@/lib/care";
@@ -64,7 +64,6 @@ const MedicationsPage = () => {
   const [channels, setChannels] = useState<Channel[]>(native ? ["web", "telegram", "app"] : ["web", "telegram"]);
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [newTime, setNewTime] = useState<Record<number, string>>({});
   const [family, setFamily] = useState<FamilyMember[]>([]);
   const [forWhom, setForWhom] = useState("");
   useEffect(() => { if (user) loadFamily().then(setFamily); }, [user]);
@@ -175,11 +174,15 @@ const MedicationsPage = () => {
   const updateItem = (i: number, patch: Partial<PlanItem>) =>
     setDraft((prev) => prev && prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
 
-  const addTime = (i: number) => {
-    const t = normalizeTime(newTime[i] ?? "");
+  // Each time chip is an editable time field: what the user sees is exactly what gets saved.
+  const setTimeAt = (i: number, ti: number, value: string) => {
+    const t = normalizeTime(value);
     if (!t || !draft) return;
-    updateItem(i, { times: cleanTimes([...draft[i].times, t]) });
-    setNewTime((p) => ({ ...p, [i]: "" }));
+    updateItem(i, { times: draft[i].times.map((x, idx) => (idx === ti ? t : x)) });
+  };
+  const addTime = (i: number) => {
+    if (!draft) return;
+    updateItem(i, { times: [...draft[i].times, suggestNextTime(draft[i].times)] });
   };
 
   const toggleChannel = (c: Channel) =>
@@ -198,7 +201,7 @@ const MedicationsPage = () => {
     try {
       const ids = await saveSchedules({
         items: draft.map(({ medicine_name, dose, instructions, times, days, start_date }) =>
-          ({ medicine_name, dose, instructions, times, days, start_date: start_date || todayInTashkent() })),
+          ({ medicine_name, dose, instructions, times: cleanTimes(times), days, start_date: start_date || todayInTashkent() })),
         source: draftSource,
         prescriptionId: draftPrescriptionId,
         channels,
@@ -413,27 +416,32 @@ const MedicationsPage = () => {
                       )}
 
                       <div className="flex flex-wrap items-center gap-2">
-                        {it.times.map((t) => (
-                          <span key={t} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary tabular-nums">
-                            {t}
-                            <button onClick={() => updateItem(i, { times: it.times.filter((x) => x !== t) })} aria-label="O'chirish"><X className="w-3.5 h-3.5" /></button>
+                        {it.times.map((t, ti) => (
+                          <span key={ti} className="inline-flex items-center gap-1 rounded-full bg-primary/10 pl-2 pr-1.5 py-0.5 text-sm font-medium text-primary">
+                            <input type="time" value={t} aria-label={`${ti + 1}-vaqt`}
+                              onChange={(e) => setTimeAt(i, ti, e.target.value)}
+                              onBlur={() => updateItem(i, { times: cleanTimes(it.times) })}
+                              className="bg-transparent tabular-nums text-primary focus:outline-none" />
+                            {it.times.length > 1 && (
+                              <button onClick={() => updateItem(i, { times: it.times.filter((_, idx) => idx !== ti) })} aria-label="O'chirish"><X className="w-3.5 h-3.5" /></button>
+                            )}
                           </span>
                         ))}
                         {it.times.length < MAX_TIMES_PER_DAY && (
-                          <span className="inline-flex items-center gap-1">
-                            <input type="time" value={newTime[i] ?? ""} onChange={(e) => setNewTime((p) => ({ ...p, [i]: e.target.value }))} className="px-2 py-1 rounded-lg border border-input bg-background text-sm" />
-                            <button onClick={() => addTime(i)} className="rounded-lg border border-border px-2 py-1 text-sm hover:bg-secondary"><Plus className="w-3.5 h-3.5" /></button>
-                          </span>
+                          <button onClick={() => addTime(i)} className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-secondary">
+                            <Plus className="w-3.5 h-3.5" /> vaqt
+                          </button>
                         )}
                         <select
                           value=""
-                          onChange={(e) => e.target.value && updateItem(i, { times: spreadTimes(Number(e.target.value), routine.wake, routine.sleep) })}
+                          onChange={(e) => e.target.value && updateItem(i, { times: timesPerDay(Number(e.target.value), it.times, routine.wake, routine.sleep) })}
                           className="px-2 py-1 rounded-lg border border-input bg-background text-xs text-muted-foreground"
                         >
                           <option value="">Kuniga N marta…</option>
                           {[1, 2, 3, 4, 6].map((n) => <option key={n} value={n}>{n} marta</option>)}
                         </select>
                       </div>
+                      <p className="text-[11px] text-muted-foreground -mt-1">Vaqtni bosib o'zgartiring. Ko'rsatilgan vaqtlar aynan shunday saqlanadi (Toshkent vaqti).</p>
 
                       <div className="flex flex-wrap gap-3 text-sm">
                         <label className="flex items-center gap-2 text-muted-foreground">
