@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { BellRing, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { isNativeApp } from "@/lib/native";
-import { ensureNotificationPermission, openExactAlarmSettings, reminderDiagnostics, scheduleTestReminder, syncLocalReminders, type ReminderDiagnostics } from "@/lib/localReminders";
+import { lastInitError, openExactAlarmSettings, reminderDiagnostics, scheduleTestReminder, syncLocalReminders, type ReminderDiagnostics } from "@/lib/localReminders";
+import { enableNotifications, getNotifyStatus, openAppSettings, openNotificationSettings, type NotifyStatus } from "@/lib/notifyPermission";
 
 const ok = (v: string) => v === "granted";
 
@@ -12,8 +13,12 @@ const ok = (v: string) => v === "granted";
  */
 const PhoneRemindersCheck = () => {
   const [d, setD] = useState<ReminderDiagnostics | null>(null);
+  const [ns, setNs] = useState<NotifyStatus | null>(null);
   const [busy, setBusy] = useState(false);
-  const refresh = () => reminderDiagnostics().then(setD).catch(() => setD(null));
+  const refresh = () => {
+    void getNotifyStatus().then(setNs).catch(() => setNs(null));
+    return reminderDiagnostics().then(setD).catch(() => setD(null));
+  };
   useEffect(() => {
     if (!isNativeApp()) return;
     void refresh();
@@ -45,7 +50,7 @@ const PhoneRemindersCheck = () => {
         <li className={ok(d.display) ? "text-emerald-700" : "text-destructive"}>
           {ok(d.display) ? "✓ Bildirishnomaga ruxsat bor" : "✗ Bildirishnomaga ruxsat yo'q"}
           {!ok(d.display) && (
-            <button onClick={async () => { if (!(await ensureNotificationPermission())) toast.error("Sozlamalar → Ilovalar → MaxHospital → Bildirishnomalar dan yoqing"); void refresh(); }}
+            <button onClick={async () => { if (await enableNotifications()) void sync(); else toast("Sozlamada «Bildirishnomalar»ni yoqing, so'ng qayting"); void refresh(); }}
               className="ml-2 underline font-medium">Ruxsat berish</button>
           )}
         </li>
@@ -55,6 +60,15 @@ const PhoneRemindersCheck = () => {
             <button onClick={() => void openExactAlarmSettings()} className="ml-2 underline font-medium">Yoqish</button>
           )}
         </li>
+        {ns?.detailed && (
+          <li className={ns.channelBlocked || ns.channelSilent ? "text-destructive" : "text-emerald-700"}>
+            {ns.channelBlocked ? "✗ «Dori eslatmalari» kanali o'chirilgan" : ns.channelSilent ? "✗ Dori eslatmalari ovozsiz" : "✓ Budilnik ovozi yoqilgan"}
+            {(ns.channelBlocked || ns.channelSilent) && (
+              <button onClick={() => void openNotificationSettings(true)} className="ml-2 underline font-medium">Yoqish</button>
+            )}
+          </li>
+        )}
+        {lastInitError && <li className="text-destructive">✗ Sozlashda xato: {lastInitError}</li>}
         <li className={d.scheduled > 0 ? "text-emerald-700" : "text-amber-700"}>
           {d.scheduled > 0
             ? `✓ Telefonda ${d.scheduled} ta eslatma rejalashtirilgan${d.next ? `, keyingisi: ${new Date(d.next).toLocaleString("uz-UZ", { timeZone: "Asia/Tashkent", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}`
@@ -65,6 +79,11 @@ const PhoneRemindersCheck = () => {
         Saytda (kompyuterda) qo'shilgan eslatmalar telefonga ilova ochilganda tushadi. Xiaomi, Samsung va boshqalarda
         «Batareyani tejash»dan MaxHospital'ni chiqaring, aks holda telefon eslatmani to'xtatib qo'yishi mumkin.
       </p>
+      {ns?.detailed && (
+        <button onClick={() => void openAppSettings()} className="mt-2 text-xs text-primary underline">
+          Avtostart va batareya sozlamasini ochish (Xiaomi, Samsung)
+        </button>
+      )}
       <div className="mt-3 flex gap-2">
         <button onClick={sync} disabled={busy} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-medium text-foreground disabled:opacity-60">
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Sinxronlash

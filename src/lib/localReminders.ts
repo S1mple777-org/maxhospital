@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 // "med-alarm": budilnikka o'xshash o'z ovozi bor kanal (res/raw/med_alarm.wav, scripts/android-setup.mjs).
 // Eski "med-reminders" kanali ovozsiz bo'lib qolgan telefonlar bor edi; Android kanal ovozini keyin
 // o'zgartirishga ruxsat bermaydi, shuning uchun yangi kanal.
-const CHANNEL_ID = "med-alarm";
+export const CHANNEL_ID = "med-alarm";
 const OLD_CHANNEL_ID = "med-reminders";
 const ALARM_SOUND = "med_alarm.wav";
 const ACTION_TYPE = "MED_REMINDER";
@@ -58,6 +58,8 @@ const writeJson = (key: string, value: unknown) => {
 export const cachedReminders = (): CachedReminder[] => readJson<CachedReminder[]>(CACHE_KEY, []);
 
 let initialized = false;
+/** Last setup error (shown in the "Telefondagi eslatmalar" check). */
+export let lastInitError: string | null = null;
 
 async function plugin() {
   return (await import("@capacitor/local-notifications")).LocalNotifications;
@@ -67,6 +69,19 @@ async function plugin() {
 export async function initLocalReminders(): Promise<void> {
   if (!isNativeApp() || initialized) return;
   initialized = true;
+  try {
+    await setupLocalReminders();
+    lastInitError = null;
+  } catch (e: any) {
+    // Keyingi chaqiruvda qayta urinadi (avval bitta xato butun sessiya davomida eslatmalarni o'chirib qo'yardi).
+    initialized = false;
+    lastInitError = String(e?.message || e).slice(0, 200);
+    console.warn("local reminders setup failed", e);
+    throw e;
+  }
+}
+
+async function setupLocalReminders(): Promise<void> {
   const LocalNotifications = await plugin();
 
   await LocalNotifications.createChannel({

@@ -7,17 +7,9 @@
 //     ilova keyingi safar ochilganda (yoki fonga o'tib qaytganda) yangisi ishlaydi. Hech narsa bosilmaydi.
 //  4. Agar yangi sayt versiyasi yangiroq APK talab qilsa (min_apk_build), yuklab olinmaydi va
 //     "Yangi versiya bor" oynasi chiqadi: bir bosishda APK yuklanadi, Android "O'rnatish"ni so'raydi.
-import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor/core";
+import { Capacitor } from "@capacitor/core";
 import { isNativeApp, PUBLIC_SITE_URL } from "@/lib/native";
-
-/** Native plugin from scripts/android/AppInstallerPlugin.java (APK 1.0.24+). */
-interface AppInstallerPlugin {
-  canInstall(): Promise<{ allowed: boolean }>;
-  openInstallSettings(): Promise<void>;
-  downloadAndInstall(options: { url: string }): Promise<{ started: boolean }>;
-  addListener(event: "progress", cb: (p: { percent: number }) => void): Promise<PluginListenerHandle>;
-}
-const AppInstaller = registerPlugin<AppInstallerPlugin>("AppInstaller");
+import { AppInstaller } from "@/lib/nativeTools";
 const RELEASES_API = "https://api.github.com/repos/S1mple777-org/maxhospital/releases/latest";
 
 export const APP_BUILD: string = typeof __APP_BUILD__ !== "undefined" ? __APP_BUILD__ : "dev";

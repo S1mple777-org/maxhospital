@@ -1,9 +1,13 @@
 package uz.maxhospital.app;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -17,7 +21,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * MaxHospital: ilova ichida yangilash.
+ * MaxHospital: ilova ichida yangilash va bildirishnoma sozlamalari.
  * Yangi APK ni ilovaning o'zida yuklab oladi (foiz bilan) va Android o'rnatish oynasini ochadi.
  * Android xavfsizlik qoidasi: o'rnatishni foydalanuvchi baribir "O'rnatish" tugmasi bilan tasdiqlaydi.
  * scripts/android-setup.mjs bu faylni Android loyihaga ko'chiradi va MainActivity'da ro'yxatdan o'tkazadi.
@@ -44,6 +48,59 @@ public class AppInstallerPlugin extends Plugin {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(i);
         }
+        call.resolve();
+    }
+
+    /**
+     * { channel? } -> { enabled, channelExists?, channelImportance?, channelSound? }
+     * enabled: ilova bildirishnomalari yoqilganmi; kanal: foydalanuvchi uni o'chirgan/ovozsiz qilganmi
+     * (Xiaomi/HyperOS yangi kanallarni ko'pincha ovozsiz qiladi).
+     */
+    @PluginMethod
+    public void notificationStatus(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("enabled", NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
+        String ch = call.getString("channel");
+        if (ch != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel c = nm != null ? nm.getNotificationChannel(ch) : null;
+            r.put("channelExists", c != null);
+            if (c != null) {
+                r.put("channelImportance", c.getImportance());
+                r.put("channelSound", c.getSound() != null);
+            }
+        }
+        call.resolve(r);
+    }
+
+    /** { channel? } -> kanal yoki ilovaning bildirishnoma sozlamasini ochadi. */
+    @PluginMethod
+    public void openNotificationSettings(PluginCall call) {
+        String pkg = getContext().getPackageName();
+        String ch = call.getString("channel");
+        Intent i;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (ch != null) {
+                i = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+                i.putExtra(Settings.EXTRA_CHANNEL_ID, ch);
+            } else {
+                i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            }
+            i.putExtra(Settings.EXTRA_APP_PACKAGE, pkg);
+        } else {
+            i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+        }
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i);
+        call.resolve();
+    }
+
+    /** Ilova ma'lumotlari sahifasi: Xiaomi'da shu yerda "Avtostart" va "Batareyani tejash". */
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i);
         call.resolve();
     }
 

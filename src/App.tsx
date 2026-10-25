@@ -38,6 +38,7 @@ import SecondOpinionPage from "./pages/SecondOpinionPage";
 import MaxBandPage from "./pages/MaxBandPage";
 import CheckinPage from "./pages/CheckinPage";
 import AppUpdateBanner from "./components/app/AppUpdateBanner";
+import NotificationGate from "./components/app/NotificationGate";
 import ReminderListener from "./components/medications/ReminderListener";
 import NotFound from "./pages/NotFound";
 
@@ -88,6 +89,7 @@ const App = () => (
               <AiAssistantButton />
               <ReminderListener />
               <AppUpdateBanner />
+              <NotificationGate />
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
