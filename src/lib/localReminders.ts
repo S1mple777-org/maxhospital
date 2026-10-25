@@ -94,7 +94,7 @@ export async function initLocalReminders(): Promise<void> {
   });
 
   await LocalNotifications.addListener("localNotificationActionPerformed", async (event) => {
-    const extra = (event.notification.extra ?? {}) as { reminderId?: string; notifyId?: number; info?: Record<string, string> };
+    const extra = (event.notification.extra ?? {}) as MedExtra;
     const reminderId = extra.reminderId;
     if (!reminderId) return;
     const followupId = typeof extra.notifyId === "number" ? FOLLOWUP_OFFSET + extra.notifyId : null;
@@ -250,7 +250,9 @@ export async function syncLocalReminders(): Promise<{ scheduled: number } | null
   return { scheduled: upcoming.length };
 }
 
-function followupNotification(id: number, extra: { reminderId?: string; notifyId?: number; info?: Record<string, string> }, atMs: number) {
+type MedExtra = { kind?: string; reminderId?: string; notifyId?: number; info?: Record<string, string> };
+
+function followupNotification(id: number, extra: MedExtra, atMs: number) {
   const info = extra.info ?? {};
   return {
     id,
