@@ -1,4 +1,4 @@
 {
   "izoh": "min_apk_build: sayt yangilanishi ishlashi uchun kerak bo'lgan eng kichik APK versionCode (GitHub Actions run raqami). Faqat native o'zgarish (yangi plagin, ruxsat) qo'shilganda oshiring: shunda eski ilovalar sayt yangilanishini olmaydi va 'Yangi versiya bor' oynasini ko'radi.",
-  "min_apk_build": 23
+  "min_apk_build": 24
 }

@@ -7,7 +7,18 @@
 //     ilova keyingi safar ochilganda (yoki fonga o'tib qaytganda) yangisi ishlaydi. Hech narsa bosilmaydi.
 //  4. Agar yangi sayt versiyasi yangiroq APK talab qilsa (min_apk_build), yuklab olinmaydi va
 //     "Yangi versiya bor" oynasi chiqadi: bir bosishda APK yuklanadi, Android "O'rnatish"ni so'raydi.
+import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 import { isNativeApp, PUBLIC_SITE_URL } from "@/lib/native";
+
+/** Native plugin from scripts/android/AppInstallerPlugin.java (APK 1.0.24+). */
+interface AppInstallerPlugin {
+  canInstall(): Promise<{ allowed: boolean }>;
+  openInstallSettings(): Promise<void>;
+  downloadAndInstall(options: { url: string }): Promise<{ started: boolean }>;
+  addListener(event: "progress", cb: (p: { percent: number }) => void): Promise<PluginListenerHandle>;
+}
+const AppInstaller = registerPlugin<AppInstallerPlugin>("AppInstaller");
+const RELEASES_API = "https://api.github.com/repos/S1mple777-org/maxhospital/releases/latest";
 
 export const APP_BUILD: string = typeof __APP_BUILD__ !== "undefined" ? __APP_BUILD__ : "dev";
 export const APK_DOWNLOAD_URL = "https://github.com/S1mple777-org/maxhospital/releases/latest";
@@ -30,9 +41,11 @@ export interface UpdateState {
   needsApk: boolean;
   checking: boolean;
   error: string | null;
+  /** APK yuklanmoqda: 0..100, null = yuklanmayapti */
+  apkProgress: number | null;
 }
 
-let state: UpdateState = { apkBuild: null, apkVersion: null, webBuild: APP_BUILD, queued: null, needsApk: false, checking: false, error: null };
+let state: UpdateState = { apkBuild: null, apkVersion: null, webBuild: APP_BUILD, queued: null, needsApk: false, checking: false, error: null, apkProgress: null };
 const listeners = new Set<(s: UpdateState) => void>();
 const set = (patch: Partial<UpdateState>) => { state = { ...state, ...patch }; listeners.forEach((l) => l(state)); };
 export const getUpdateState = () => state;
@@ -129,7 +142,57 @@ export async function applyQueuedUpdateNow(): Promise<void> {
   if (next) await CapacitorUpdater.set({ id: next.id });   // JS konteksti shu yerda qayta yuklanadi
 }
 
-/** Yangi APK sahifasini tizim brauzerida ochadi (Android yuklab olib, "O'rnatish"ni so'raydi). */
+/** Oxirgi APK fayl manzili (GitHub Releases). */
+async function latestApkUrl(): Promise<string | null> {
+  try {
+    const res = await fetch(RELEASES_API, { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const asset = (j?.assets ?? []).find((a: any) => typeof a?.name === "string" && a.name.endsWith(".apk"));
+    return typeof asset?.browser_download_url === "string" ? asset.browser_download_url : null;
+  } catch {
+    return null;
+  }
+}
+
+export type ApkInstallResult = "started" | "needs_permission" | "browser" | "error";
+
+/**
+ * Yangi APK ni ILOVANING O'ZIDA yuklab, Android o'rnatish oynasini ochadi.
+ * Birinchi marta Android "Bu manbadan o'rnatishga ruxsat"ni so'raydi — sozlama ochiladi, ruxsat berib qaytasiz.
+ * Eski APK larda (plagin yo'q) — tizim brauzerida Releases sahifasi ochiladi.
+ */
+export async function installLatestApk(): Promise<ApkInstallResult> {
+  if (!isNativeApp()) return "error";
+  if (!Capacitor.isPluginAvailable("AppInstaller")) {
+    window.open(APK_DOWNLOAD_URL, "_blank");
+    return "browser";
+  }
+  if (state.apkProgress !== null) return "started";
+  try {
+    const { allowed } = await AppInstaller.canInstall();
+    if (!allowed) {
+      await AppInstaller.openInstallSettings();
+      return "needs_permission";
+    }
+    const url = await latestApkUrl();
+    if (!url) { set({ error: "Yangi versiya topilmadi (internetni tekshiring)" }); return "error"; }
+    set({ apkProgress: 0, error: null });
+    const sub = await AppInstaller.addListener("progress", (p) => set({ apkProgress: p.percent }));
+    try {
+      await AppInstaller.downloadAndInstall({ url });
+    } finally {
+      await sub.remove();
+      set({ apkProgress: null });
+    }
+    return "started";
+  } catch (e: any) {
+    set({ apkProgress: null, error: String(e?.message || e).slice(0, 160) });
+    return "error";
+  }
+}
+
+/** Eski nom: endi ilova ichida yangilaydi. */
 export function openApkDownload(): void {
-  window.open(APK_DOWNLOAD_URL, "_blank");
+  void installLatestApk();
 }

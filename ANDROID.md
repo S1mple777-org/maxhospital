@@ -133,3 +133,15 @@ Ilova sayt kodini o'z ichida saqlaydi, lekin endi yangi APK kutmasdan **o'zi yan
 Android xavfsizlik qoidasi bo'yicha APK ni foydalanuvchi so'rovisiz o'rnatib bo'lmaydi; to'liq avtomatik APK yangilanishi faqat Google Play orqali bo'ladi.
 
 > Birinchi marta: bu imkoniyat bor APK ni bir marta qo'lda o'rnatish kerak (eski APK da yangilanish plagini yo'q).
+
+## Ilova ichida yangilash va doimiy imzo kaliti
+
+**Ilova ichida yangilash (1.0.24+):** "Ilovaning yangi versiyasi bor → Yangilash" bosilganda APK ilovaning o'zida yuklanadi (foiz ko'rinadi) va Android o'rnatish oynasi ochiladi — GitHub sahifasiga o'tilmaydi. Birinchi marta Android "Bu manbadan o'rnatishga ruxsat" so'raydi. Native kod: `scripts/android/AppInstallerPlugin.java` (`scripts/android-setup.mjs` uni loyihaga qo'shadi).
+
+**Doimiy imzo kaliti — shart:** Android yangi APK ni eskisining ustiga faqat bir xil kalit bilan imzolangan bo'lsa o'rnatadi. Eng oson yo'l — bitta secret:
+
+1. GitHub → Settings → Secrets and variables → Actions → **New repository secret**
+2. Nomi: `ANDROID_KEYSTORE_PASSWORD`, qiymati: kamida 20 belgili tasodifiy parol (parol menejerida saqlang).
+3. Keyingi build kalitni o'zi yaratadi va `android-signing/maxhospital.p12` ga (shu parol bilan himoyalangan holda) saqlaydi. Keyingi hamma APK lar shu kalit bilan imzolanadi.
+
+Kalitga o'tgandan keyingi **birinchi** APK ni o'rnatishda eski (debug) ilovani bir marta o'chirish kerak; undan keyin yangilanishlar ustidan o'rnatiladi. Parolni yo'qotmang va o'zgartirmang.
