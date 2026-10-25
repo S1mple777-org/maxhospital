@@ -6,7 +6,7 @@
 //   app      -> nothing here: the Android app schedules it on the phone itself
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { json, serviceClient } from "../_shared/http.ts";
-import { isCronRequest } from "../_shared/notify.ts";
+import { escHtml, isCronRequest, telegramToUser } from "../_shared/notify.ts";
 import { localTime, reminderBody, reminderSms, reminderTitle, smsPhone } from "../_shared/medication-plan.ts";
 
 interface DueReminder {
@@ -35,12 +35,12 @@ function authorized(req: Request): boolean {
 }
 
 // ---- Telegram ---------------------------------------------------------------
-async function sendTelegram(chatId: number, r: DueReminder, time: string): Promise<boolean> {
+async function sendTelegram(chatId: number, r: DueReminder, time: string, nudge = false): Promise<boolean> {
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
   if (!token) return false;
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const text = [
-    `💊 <b>Dori ichish vaqti</b> — ${time}`,
+    nudge ? `⏰ <b>Eslatma: dorini ichdingizmi?</b> (soat ${time})` : `💊 <b>Dori ichish vaqti</b> — ${time}`,
     "",
     `<b>${esc(r.medicine_name)}</b>${r.dose ? ` — ${esc(r.dose)}` : ""}`,
     r.instructions ? `<i>${esc(r.instructions)}</i>` : "",
@@ -169,5 +169,56 @@ Deno.serve(async (req) => {
     if (insertError) console.error("web notifications failed", insertError);
   }
 
-  return json(stats);
+  // ---- 10 daqiqada "Ichdim" bosilmadi: qayta eslatma ----------------------------
+  const extra = { nudged: 0, family: 0, lowStock: 0 };
+  const { data: nudges, error: nErr } = await db.rpc("claim_medication_nudges", { _limit: 300 });
+  if (nErr) console.error("claim_medication_nudges failed", nErr.message);
+  const nudgeRows: Record<string, unknown>[] = [];
+  for (const r of (nudges ?? []) as DueReminder[]) {
+    const time = localTime(r.scheduled_at, r.timezone);
+    const info = { medicine_name: r.medicine_name, dose: r.dose, instructions: r.instructions, time };
+    if (r.channels.includes("web")) {
+      nudgeRows.push({
+        user_id: r.user_id, kind: "medication",
+        title: `⏰ Ichdingizmi? ${r.medicine_name}`, body: reminderBody("uz", info),
+        data: { reminder_id: r.reminder_id },
+      });
+    }
+    if (r.channels.includes("telegram") && r.telegram_chat_id && r.telegram_enabled) {
+      try { if (await sendTelegram(r.telegram_chat_id, r, time, true)) extra.nudged++; } catch (e) { console.error("nudge telegram failed", e); }
+    }
+  }
+  if (nudgeRows.length) await db.from("user_notifications").insert(nudgeRows);
+
+  // ---- 30 daqiqa: yaqinlarga xabar -----------------------------------------------
+  const { data: missed, error: mErr } = await db.rpc("claim_missed_for_family", { _limit: 300 });
+  if (mErr) console.error("claim_missed_for_family failed", mErr.message);
+  for (const m of (missed ?? []) as { reminder_id: string; patient_name: string; medicine_name: string; dose: string | null; scheduled_at: string; timezone: string; guardian_ids: string[] }[]) {
+    if (!m.guardian_ids?.length) continue;
+    const time = localTime(m.scheduled_at, m.timezone);
+    const text = `${m.patient_name} soat ${time} dagi dorini ichmadi: ${m.medicine_name}${m.dose ? ` (${m.dose})` : ""}. 30 daqiqa o'tdi.`;
+    await db.from("user_notifications").insert(m.guardian_ids.map((g) => ({
+      user_id: g, kind: "medication_missed", title: "⚠️ Dori ichilmadi", body: text, data: { reminder_id: m.reminder_id },
+    })));
+    for (const g of m.guardian_ids) {
+      const html = `⚠️ <b>Dori ichilmadi</b>\n\n${escHtml(text)}\n\nQo'ng'iroq qilib, eslatib qo'ying.`;
+      if (await telegramToUser(db, g, html)) extra.family++;
+    }
+  }
+
+  // ---- Dori tugayapti -------------------------------------------------------------
+  const { data: low, error: lErr } = await db.rpc("claim_low_stock_alerts");
+  if (lErr) console.error("claim_low_stock_alerts failed", lErr.message);
+  for (const l of (low ?? []) as { user_id: string; medicine_name: string; stock_count: number; days_left: number; telegram_chat_id: number | null; telegram_enabled: boolean }[]) {
+    const days = Math.max(0, Math.floor(Number(l.days_left)));
+    const body = `Qoldi: ${Number(l.stock_count)} ta (~${days} kunga yetadi). Dorixonadan oldindan sotib oling.`;
+    await db.from("user_notifications").insert({
+      user_id: l.user_id, kind: "medication_low_stock", title: `💊 Dori tugayapti: ${l.medicine_name}`, body, data: { url: "/medications" },
+    });
+    if (l.telegram_chat_id && l.telegram_enabled) {
+      if (await telegramToUser(db, l.user_id, `💊 <b>Dori tugayapti: ${escHtml(l.medicine_name)}</b>\n\n${escHtml(body)}`)) extra.lowStock++;
+    }
+  }
+
+  return json({ ...stats, ...extra });
 });

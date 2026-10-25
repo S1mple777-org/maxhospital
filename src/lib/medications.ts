@@ -39,6 +39,10 @@ export interface MedicationSchedule {
   channels: Channel[];
   is_active: boolean;
   created_at: string;
+  /** pills/doses left in the box (null = not tracked) */
+  stock_count?: number | null;
+  /** how many pills one dose takes */
+  per_dose?: number;
 }
 
 export interface MedicationReminder {
@@ -172,6 +176,30 @@ export async function stopSchedule(id: string): Promise<void> {
 export async function deleteSchedule(id: string): Promise<void> {
   const { error } = await supabase.from("medication_schedules" as any).delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+export async function setMedicationStock(scheduleId: string, count: number | null, perDose = 1): Promise<void> {
+  const { error } = await supabase.rpc("set_medication_stock" as any, { _schedule_id: scheduleId, _count: count, _per_dose: perDose });
+  if (error) throw new Error(error.message);
+}
+
+/** How many days the box lasts: floor(stock / per_dose) / doses per day. */
+export function stockDaysLeft(s: Pick<MedicationSchedule, "stock_count" | "per_dose" | "times">): number | null {
+  if (s.stock_count === null || s.stock_count === undefined || !s.times.length) return null;
+  const perDose = Number(s.per_dose ?? 1) || 1;
+  return Math.floor(Math.floor(Number(s.stock_count) / perDose) / s.times.length);
+}
+
+export interface Adherence {
+  days: number; total: number; taken: number; skipped: number; missed: number;
+  percent: number | null; streak: number;
+  by_medicine: { name: string; taken: number; total: number; percent: number }[];
+  by_day: { day: string; taken: number; total: number }[];
+}
+
+export async function loadAdherence(days = 7): Promise<Adherence | null> {
+  const { data, error } = await supabase.rpc("medication_adherence" as any, { _days: days });
+  return error || !data ? null : (data as unknown as Adherence);
 }
 
 export async function markReminder(id: string, status: "taken" | "skipped"): Promise<void> {

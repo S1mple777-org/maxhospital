@@ -64,3 +64,40 @@ if (!existsSync(iconPath)) {
   );
   console.log("✓ Bildirishnoma ikonkasi yaratildi.");
 }
+
+// Dori eslatmasi ovozi: budilnikka o'xshash "dit-dit-dit-dit" (res/raw/med_alarm.wav).
+// Fayl repoga qo'shilmaydi — shu yerda generatsiya qilinadi (22 kHz, mono, 16-bit, ~5 soniya).
+// Ovoz faqat YANGI kanalga beriladi (src/lib/localReminders.ts: "med-alarm"), chunki Android
+// kanal ovozini keyin o'zgartirishga ruxsat bermaydi.
+{
+  const rawDir = "android/app/src/main/res/raw";
+  const wavPath = `${rawDir}/med_alarm.wav`;
+  if (!existsSync(wavPath)) {
+    const rate = 22050;
+    const samples = [];
+    const tone = (freq, sec, amp = 0.8) => {
+      const n = Math.round(rate * sec), fade = Math.round(rate * 0.006);
+      for (let i = 0; i < n; i++) {
+        const env = Math.min(1, i / fade, (n - i) / fade);
+        // asosiy ton + oktava: quloqqa yoqimli, lekin baland eshitiladi
+        const v = Math.sin((2 * Math.PI * freq * i) / rate) * 0.75 + Math.sin((4 * Math.PI * freq * i) / rate) * 0.25;
+        samples.push(v * amp * env);
+      }
+    };
+    const silence = (sec) => { for (let i = 0; i < Math.round(rate * sec); i++) samples.push(0); };
+    for (let round = 0; round < 3; round++) {
+      for (let b = 0; b < 4; b++) { tone(b % 2 ? 1320 : 1046, 0.12); silence(0.07); }
+      silence(0.6);
+    }
+    const data = Buffer.alloc(samples.length * 2);
+    samples.forEach((v, i) => data.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(v * 32767))), i * 2));
+    const header = Buffer.alloc(44);
+    header.write("RIFF", 0); header.writeUInt32LE(36 + data.length, 4); header.write("WAVE", 8);
+    header.write("fmt ", 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
+    header.writeUInt32LE(rate, 24); header.writeUInt32LE(rate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34);
+    header.write("data", 36); header.writeUInt32LE(data.length, 40);
+    mkdirSync(rawDir, { recursive: true });
+    writeFileSync(wavPath, Buffer.concat([header, data]));
+    console.log(`✓ Dori eslatmasi ovozi yaratildi (${(samples.length / rate).toFixed(1)} s).`);
+  }
+}

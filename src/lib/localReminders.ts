@@ -6,13 +6,21 @@ import { isNativeApp } from "@/lib/native";
 import { localTime, markReminder, reminderBody, reminderTitle, type MedicationSchedule } from "@/lib/medications";
 import { supabase } from "@/integrations/supabase/client";
 
-const CHANNEL_ID = "med-reminders";
+// "med-alarm": budilnikka o'xshash o'z ovozi bor kanal (res/raw/med_alarm.wav, scripts/android-setup.mjs).
+// Eski "med-reminders" kanali ovozsiz bo'lib qolgan telefonlar bor edi; Android kanal ovozini keyin
+// o'zgartirishga ruxsat bermaydi, shuning uchun yangi kanal.
+const CHANNEL_ID = "med-alarm";
+const OLD_CHANNEL_ID = "med-reminders";
+const ALARM_SOUND = "med_alarm.wav";
 const ACTION_TYPE = "MED_REMINDER";
+/** Follow-up ("Ichdingizmi?") notifications use notify_id + this offset. */
+const FOLLOWUP_OFFSET = 1_000_000_000;
+const FOLLOWUP_MS = 10 * 60_000;
 const QUEUE_KEY = "mh_med_mark_queue";
 const CACHE_KEY = "mh_med_cache";
 const SYNC_DAYS = 14;
-/** Android keeps all alarms, but very large numbers slow the system down. */
-const MAX_LOCAL = 400;
+/** Each reminder also gets a follow-up; some phones (Samsung) allow ~500 alarms per app. */
+const MAX_LOCAL = 200;
 
 interface QueuedMark {
   id: string;
@@ -63,28 +71,40 @@ export async function initLocalReminders(): Promise<void> {
 
   await LocalNotifications.createChannel({
     id: CHANNEL_ID,
-    name: "Dori eslatmalari",
-    description: "Dori ichish vaqti kelganda eslatadi",
+    name: "Dori eslatmalari (budilnik)",
+    description: "Dori ichish vaqti kelganda budilnik ovozi bilan eslatadi",
     importance: 5,
     visibility: 1,
     vibration: true,
+    sound: ALARM_SOUND,
+    lights: true,
+    lightColor: "#0E7C74",
   });
+  try { await LocalNotifications.deleteChannel({ id: OLD_CHANNEL_ID }); } catch { /* not there */ }
 
   await LocalNotifications.registerActionTypes({
     types: [{
       id: ACTION_TYPE,
       actions: [
         { id: "taken", title: "✅ Ichdim" },
-        { id: "skip", title: "⏭ O'tkazib yubordim" },
+        { id: "snooze", title: "⏰ 10 daqiqa" },
+        { id: "skip", title: "⏭ O'tkazdim" },
       ],
     }],
   });
 
   await LocalNotifications.addListener("localNotificationActionPerformed", async (event) => {
-    const reminderId = event.notification.extra?.reminderId as string | undefined;
+    const extra = (event.notification.extra ?? {}) as MedExtra;
+    const reminderId = extra.reminderId;
     if (!reminderId) return;
+    const followupId = typeof extra.notifyId === "number" ? FOLLOWUP_OFFSET + extra.notifyId : null;
     if (event.actionId === "taken" || event.actionId === "skip") {
+      if (followupId) await LocalNotifications.cancel({ notifications: [{ id: followupId }] }).catch(() => undefined);
       await markOrQueue(reminderId, event.actionId === "taken" ? "taken" : "skipped");
+    } else if (event.actionId === "snooze" && followupId) {
+      // 10 daqiqadan keyin yana chalinadi (avtomatik qayta eslatma o'rniga).
+      await LocalNotifications.cancel({ notifications: [{ id: followupId }] }).catch(() => undefined);
+      await LocalNotifications.schedule({ notifications: [followupNotification(followupId, extra, Date.now() + FOLLOWUP_MS)] });
     }
   });
 
@@ -191,28 +211,60 @@ export async function syncLocalReminders(): Promise<{ scheduled: number } | null
       && new Date(r.scheduled_at).getTime() > Date.now())
     .slice(0, MAX_LOCAL);
 
-  if (!upcoming.length) return { scheduled: 0 };
+  // Vaqti endigina o'tgan (10 daqiqa ichida), hali javob berilmagan: faqat "Ichdingizmi?" qayta eslatmasi.
+  const recent = rows.filter(({ r, s }) => (r.status === "pending" || r.status === "sent") && s!.is_active && s!.channels.includes("app")
+    && new Date(r.scheduled_at).getTime() <= Date.now() && new Date(r.scheduled_at).getTime() + FOLLOWUP_MS > Date.now() + 5_000);
+
+  if (!upcoming.length && !recent.length) return { scheduled: 0 };
   if (!(await ensureNotificationPermission())) return { scheduled: 0 };
 
+  const infoOf = (r: any, s: MedicationSchedule) => ({
+    medicine_name: s.medicine_name, dose: s.dose ?? "", instructions: s.instructions ?? "",
+    time: localTime(r.scheduled_at, s.timezone),
+  });
   await LocalNotifications.schedule({
-    notifications: upcoming.map(({ r, s }) => {
-      const info = {
-        medicine_name: s!.medicine_name, dose: s!.dose, instructions: s!.instructions,
-        time: localTime(r.scheduled_at, s!.timezone),
-      };
-      return {
-        id: r.notify_id,
-        title: reminderTitle("uz", info),
-        body: reminderBody("uz", info),
-        schedule: { at: new Date(r.scheduled_at), allowWhileIdle: true },
-        channelId: CHANNEL_ID,
-        actionTypeId: ACTION_TYPE,
-        autoCancel: true,
-        extra: { kind: "med", reminderId: r.id },
-      };
-    }),
+    notifications: [
+      ...recent.map(({ r, s }) => followupNotification(FOLLOWUP_OFFSET + r.notify_id,
+        { kind: "med", reminderId: r.id, notifyId: r.notify_id, info: infoOf(r, s!) }, new Date(r.scheduled_at).getTime() + FOLLOWUP_MS)),
+      ...upcoming.flatMap(({ r, s }) => {
+      const info = infoOf(r, s!);
+      const extra = { kind: "med", reminderId: r.id, notifyId: r.notify_id, info };
+      const at = new Date(r.scheduled_at).getTime();
+      return [
+        {
+          id: r.notify_id,
+          title: reminderTitle("uz", info),
+          body: reminderBody("uz", info),
+          schedule: { at: new Date(at), allowWhileIdle: true },
+          channelId: CHANNEL_ID,
+          sound: ALARM_SOUND,
+          actionTypeId: ACTION_TYPE,
+          autoCancel: true,
+          extra,
+        },
+        // "Ichdim" bosilmasa, 10 daqiqadan keyin yana (bosilsa — bekor qilinadi).
+        followupNotification(FOLLOWUP_OFFSET + r.notify_id, extra, at + FOLLOWUP_MS),
+      ];
+    })],
   });
   return { scheduled: upcoming.length };
+}
+
+type MedExtra = { kind?: string; reminderId?: string; notifyId?: number; info?: Record<string, string> };
+
+function followupNotification(id: number, extra: MedExtra, atMs: number) {
+  const info = extra.info ?? {};
+  return {
+    id,
+    title: `⏰ Ichdingizmi? ${info.medicine_name ?? "Dori"}`,
+    body: reminderBody("uz", { medicine_name: info.medicine_name ?? "", dose: info.dose, instructions: info.instructions, time: info.time ?? "" }),
+    schedule: { at: new Date(atMs), allowWhileIdle: true },
+    channelId: CHANNEL_ID,
+    sound: ALARM_SOUND,
+    actionTypeId: ACTION_TYPE,
+    autoCancel: true,
+    extra: { ...extra, kind: "med" },
+  };
 }
 
 /** Removes everything this feature scheduled on the phone (e.g. on sign-out). */
@@ -262,6 +314,7 @@ export async function scheduleTestReminder(): Promise<boolean> {
       body: "Bu bildirishnoma keldi — dori eslatmalari telefoningizda ishlaydi.",
       schedule: { at: new Date(Date.now() + 60_000), allowWhileIdle: true },
       channelId: CHANNEL_ID,
+      sound: ALARM_SOUND,
       autoCancel: true,
       extra: { kind: "test" },
     }],
