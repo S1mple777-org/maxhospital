@@ -87,3 +87,14 @@ src/components/medications/                        sayt bildirishnomalari, owner
 src/lib/localReminders.ts                          ilova: internetsiz eslatmalar
 .github/workflows/reminders-cron.yml               zaxira cron
 ```
+
+## Budilnikdan farqi (2026-10-25)
+
+- **Budilnik ovozi:** ilovada o'z ovozi bor yangi kanal ("Dori eslatmalari (budilnik)", `res/raw/med_alarm.wav` — `scripts/android-setup.mjs` yaratadi).
+- **⏰ 10 daqiqa:** bildirishnomadagi tugma; "Ichdim" bosilmasa 10 daqiqadan keyin o'zi ham qayta chalinadi.
+- **Qayta eslatma (server):** 10 daqiqada javob bo'lmasa Telegram va saytga "Ichdingizmi?" (`claim_medication_nudges`).
+- **Oilaga xabar:** 30 daqiqada javob bo'lmasa qabul qilingan yaqinlarga (band_guardians) Telegram va sayt xabari (`claim_missed_for_family`). MaxBand bilan ikki marta yuborilmaydi.
+- **Dori tugayotgani:** qutidagi son "Ichdim" da kamayadi, ~3 kunlik qolganda ogohlantiradi (`set_medication_stock`, `claim_low_stock_alerts`).
+- **Statistika:** foiz, ketma-ket kunlar, dori bo'yicha (`medication_adherence`).
+
+Yuborish `dispatch-reminders` ichida; uni bazadagi pg_cron har daqiqada chaqiradi (`20261024190000_cron_scheduler.sql`).

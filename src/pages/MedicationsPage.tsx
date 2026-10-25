@@ -13,6 +13,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { isNativeApp } from "@/lib/native";
 import { cachedReminders, syncLocalReminders } from "@/lib/localReminders";
 import PhoneRemindersCheck from "@/components/medications/PhoneRemindersCheck";
+import MedAdherenceCard from "@/components/medications/MedAdherenceCard";
+import MedFamilyCard from "@/components/medications/MedFamilyCard";
+import StockEditor from "@/components/medications/StockEditor";
 import {
   DEFAULT_ROUTINE, MAX_DAYS, MAX_TIMES_PER_DAY, cleanTimes, deleteSchedule, draftPlanWithAi, fileToBase64,
   loadReminders, loadSchedules, loadSubscription, localTime, markReminder, normalizeTime, planItemErrors,
@@ -249,6 +252,9 @@ const MedicationsPage = () => {
 
           {/* Faqat ilovada: telefon haqiqatan chalinadimi */}
           <PhoneRemindersCheck />
+
+          {/* Ichish foizi va ketma-ket kunlar */}
+          {!offline && <MedAdherenceCard refreshKey={today.filter((r) => r.status === "taken").length} />}
 
           {offline && (
             <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
@@ -533,6 +539,7 @@ const MedicationsPage = () => {
                           {s.times.join(", ")} · {new Date(`${s.start_date}T00:00:00+05:00`).toLocaleDateString()} – {end.toLocaleDateString()} · {s.channels.join(", ")}
                           {!s.is_active && " · to'xtatilgan"}
                         </div>
+                        {s.is_active && <StockEditor s={s} onSaved={() => void loadAll()} />}
                       </div>
                       <div className="flex gap-1 shrink-0">
                         {s.is_active && (
@@ -546,6 +553,9 @@ const MedicationsPage = () => {
               </div>
             </section>
           )}
+
+          {/* Dori ichilmasa yaqinlarga xabar */}
+          {!offline && <MedFamilyCard />}
         </div>
       </div>
       <Footer />
