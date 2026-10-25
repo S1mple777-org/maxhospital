@@ -27,6 +27,8 @@ const lines = [
   '<uses-permission android:name="android.permission.USE_EXACT_ALARM" />',
   // Android 13+: bildirishnoma ko'rsatish ruxsati (ilova so'raydi).
   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+  // Ilova ichida yangilash: yangi APK ni o'rnatish oynasini ochish uchun (foydalanuvchi baribir tasdiqlaydi).
+  '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />',
   // Kamerasi yo'q qurilmalarda ham ilova o'rnatilishi uchun.
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-feature android:name="android.hardware.microphone" android:required="false" />',
@@ -99,5 +101,48 @@ if (!existsSync(iconPath)) {
     mkdirSync(rawDir, { recursive: true });
     writeFileSync(wavPath, Buffer.concat([header, data]));
     console.log(`✓ Dori eslatmasi ovozi yaratildi (${(samples.length / rate).toFixed(1)} s).`);
+  }
+}
+
+// Ilova ichida yangilash: AppInstaller native plagini (scripts/android/AppInstallerPlugin.java).
+//  - Java faylini Android loyihaga ko'chiradi
+//  - MainActivity'da ro'yxatdan o'tkazadi
+//  - FileProvider yuklangan APK ni ko'rsata olishi uchun res/xml/file_paths.xml ga cache/updates qo'shadi
+{
+  const javaDir = "android/app/src/main/java/uz/maxhospital/app";
+  mkdirSync(javaDir, { recursive: true });
+  writeFileSync(`${javaDir}/AppInstallerPlugin.java`, readFileSync("scripts/android/AppInstallerPlugin.java", "utf8"));
+
+  const mainPath = `${javaDir}/MainActivity.java`;
+  const main = existsSync(mainPath) ? readFileSync(mainPath, "utf8") : "";
+  if (!main.includes("registerPlugin(AppInstallerPlugin.class)")) {
+    writeFileSync(mainPath, `package uz.maxhospital.app;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AppInstallerPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+`);
+    console.log("✓ AppInstaller plagini MainActivity'ga qo'shildi.");
+  }
+
+  const pathsFile = "android/app/src/main/res/xml/file_paths.xml";
+  const entry = '<cache-path name="apk_updates" path="updates/" />';
+  if (existsSync(pathsFile)) {
+    const xml = readFileSync(pathsFile, "utf8");
+    if (!xml.includes('name="apk_updates"')) writeFileSync(pathsFile, xml.replace("</paths>", `    ${entry}\n</paths>`));
+  } else {
+    mkdirSync("android/app/src/main/res/xml", { recursive: true });
+    writeFileSync(pathsFile, `<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n    ${entry}\n</paths>\n`);
+  }
+  const manifestNow = readFileSync(manifestPath, "utf8");
+  if (!manifestNow.includes("androidx.core.content.FileProvider")) {
+    console.warn("! AndroidManifest.xml da FileProvider topilmadi — ilova ichida yangilash ishlamasligi mumkin.");
   }
 }

@@ -75,8 +75,12 @@ jobs:
           sed -i -E "s/versionName \"[^\"]*\"/versionName \"${APP_VERSION}\"/" android/app/build.gradle
           grep -E "versionCode|versionName" android/app/build.gradle
 
-      # Imzo kaliti secret sifatida qo'shilgan bo'lsa — imzolangan release APK,
-      # bo'lmasa — debug APK (o'rnatish uchun yetarli).
+      # Imzo: har APK bir xil kalit bilan imzolanishi SHART, aks holda Android yangi versiyani
+      # eskisining ustiga o'rnatmaydi (ilova ichida yangilash ham ishlamaydi). Uch holat:
+      #  1) ANDROID_KEYSTORE_BASE64 (+ PASSWORD, KEY_ALIAS, KEY_PASSWORD) — o'zingizning kalitingiz
+      #  2) faqat ANDROID_KEYSTORE_PASSWORD — kalitni shu workflow bir marta o'zi yaratadi va
+      #     android-signing/maxhospital.p12 ga (parol bilan himoyalangan holda) saqlaydi
+      #  3) hech narsa — debug APK (har safar boshqa kalit; yangilashda eskisini o'chirish kerak)
       - name: Build APK
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -84,26 +88,56 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          KS=""
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            KS="$RUNNER_TEMP/release.jks"; ALIAS="$KEY_ALIAS"; KPASS="${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          elif [ -n "$KEYSTORE_PASSWORD" ]; then
+            if [ ${#KEYSTORE_PASSWORD} -lt 12 ]; then
+              echo "::error::ANDROID_KEYSTORE_PASSWORD kamida 12 belgi bo'lsin"; exit 1
+            fi
+            if [ ! -f android-signing/maxhospital.p12 ]; then
+              echo "Imzo kaliti birinchi marta yaratilmoqda"
+              mkdir -p android-signing
+              keytool -genkeypair -noprompt -storetype PKCS12 -keystore android-signing/maxhospital.p12 \
+                -alias maxhospital -keyalg RSA -keysize 2048 -validity 10000 \
+                -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" \
+                -dname "CN=MaxHospital, O=MaxHospital, C=UZ"
+              if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+                git config user.name "github-actions[bot]"
+                git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git add -f android-signing/maxhospital.p12
+                git commit -m "Android imzo kaliti (parol bilan himoyalangan) [skip ci]"
+                # Kalit saqlanmasa keyingi build boshqa kalit yaratadi — shuning uchun push muvaffaqiyatsiz bo'lsa build to'xtaydi.
+                git pull --rebase origin main
+                git push origin HEAD:main
+              fi
+            fi
+            KS="$(pwd)/android-signing/maxhospital.p12"; ALIAS="maxhospital"; KPASS="$KEYSTORE_PASSWORD"
+          fi
+
+          export KPASS
           cd android
           chmod +x gradlew
-          if [ -n "$KEYSTORE_BASE64" ]; then
+          if [ -n "$KS" ]; then
             echo "Imzolangan release APK yig'ilmoqda"
             ./gradlew assembleRelease --no-daemon
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
             BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
             "$BUILD_TOOLS/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
             "$BUILD_TOOLS/apksigner" sign \
-              --ks "$RUNNER_TEMP/release.jks" \
+              --ks "$KS" \
               --ks-pass env:KEYSTORE_PASSWORD \
-              --ks-key-alias "$KEY_ALIAS" \
-              --key-pass env:KEY_PASSWORD \
+              --ks-key-alias "$ALIAS" \
+              --key-pass env:KPASS \
               --out "../MaxHospital-${APP_VERSION}.apk" \
               "$RUNNER_TEMP/aligned.apk"
             rm -f "$RUNNER_TEMP/release.jks"
+            echo "SIGNED=1" >> "$GITHUB_ENV"
           else
-            echo "Imzo kaliti yo'q — debug APK yig'ilmoqda"
+            echo "::warning::Imzo kaliti yo'q — debug APK. ANDROID_KEYSTORE_PASSWORD secret'ini qo'shing (ANDROID.md)."
             ./gradlew assembleDebug --no-daemon
             cp app/build/outputs/apk/debug/app-debug.apk "../MaxHospital-${APP_VERSION}.apk"
+            echo "SIGNED=0" >> "$GITHUB_ENV"
           fi
           ls -la ../MaxHospital-*.apk
 
@@ -130,3 +164,4 @@ jobs:
 
             Telefonga o'rnatish: pastdagi `.apk` faylni yuklab oling va oching.
             Telefon "noma'lum manbadan o'rnatish"ga ruxsat so'raydi — ruxsat bering.
+            Imzo: ${{ env.SIGNED == '1' && 'doimiy kalit (eskisining ustiga yangilanadi)' || 'debug (yangilashda eskisini o''chirish kerak)' }}

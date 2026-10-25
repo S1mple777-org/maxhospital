@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2, RefreshCw, Smartphone } from "lucide-react";
-import { applyQueuedUpdateNow, checkForUpdate, getUpdateState, openApkDownload, subscribeUpdates, type UpdateState } from "@/lib/appUpdate";
+import { applyQueuedUpdateNow, checkForUpdate, getUpdateState, installLatestApk, subscribeUpdates, type UpdateState } from "@/lib/appUpdate";
 import { isNativeApp } from "@/lib/native";
 
 /** Profil sahifasida (faqat ilovada): versiya, yangilanish holati, qo'lda tekshirish. */
@@ -19,7 +19,9 @@ const AppVersionCard = () => {
       </p>
       <div className="mt-3 flex gap-2">
         {s.needsApk ? (
-          <button onClick={openApkDownload} className="flex-1 rounded-xl bg-primary py-2 text-xs font-medium text-primary-foreground">APK ni yangilash</button>
+          <button onClick={() => void installLatestApk()} disabled={s.apkProgress !== null} className="flex-1 rounded-xl bg-primary py-2 text-xs font-medium text-primary-foreground disabled:opacity-70">
+            {s.apkProgress !== null ? `Yuklanmoqda... ${s.apkProgress}%` : "Ilovani yangilash"}
+          </button>
         ) : s.queued ? (
           <button onClick={() => void applyQueuedUpdateNow()} className="flex-1 rounded-xl bg-primary py-2 text-xs font-medium text-primary-foreground">Hozir yangilash</button>
         ) : (
