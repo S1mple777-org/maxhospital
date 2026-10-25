@@ -109,7 +109,7 @@ jobs:
                 git add -f android-signing/maxhospital.p12
                 git commit -m "Android imzo kaliti (parol bilan himoyalangan) [skip ci]"
                 # Kalit saqlanmasa keyingi build boshqa kalit yaratadi — shuning uchun push muvaffaqiyatsiz bo'lsa build to'xtaydi.
-                git pull --rebase origin main
+                git pull --rebase --autostash origin main
                 git push origin HEAD:main
               fi
             fi
