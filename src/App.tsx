@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -77,7 +77,8 @@ const App = () => (
                 <Route path="/health" element={<HealthPage />} />
                 <Route path="/pro" element={<ProPage />} />
                 <Route path="/medications" element={<MedicationsPage />} />
-                <Route path="/fitness" element={<FitnessPage />} />
+                <Route path="/maxfitness" element={<FitnessPage />} />
+                <Route path="/fitness" element={<Navigate to="/maxfitness" replace />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/lab-results" element={<LabResultsPage />} />
                 <Route path="/family" element={<FamilyPage />} />

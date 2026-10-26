@@ -384,7 +384,7 @@ export default function FitnessPage() {
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-2xl space-y-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Activity className="w-6 h-6 text-primary" /> Fitness reja</h1>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Activity className="w-6 h-6 text-primary" /> MaxFitness</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Kasalliklaringiz, yoshingiz va dorilaringizga moslangan shaxsiy 4 haftalik reja. Xavf bo'lsa — shifokoringiz tasdiqlaydi.
             </p>

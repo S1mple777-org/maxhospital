@@ -68,7 +68,7 @@ const FitnessApprovals = () => {
   return (
     <div className="mb-8">
       <h2 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-        <Activity className="w-4 h-4 text-primary" /> Fitness rejalar
+        <Activity className="w-4 h-4 text-primary" /> MaxFitness rejalar
         {pending > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700">{pending} ta tasdiq kutmoqda</span>}
       </h2>
       <div className="space-y-2">{rows.map((r) => <Row key={r.plan_id} r={r} onDone={load} />)}</div>

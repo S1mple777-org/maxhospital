@@ -231,10 +231,10 @@ Deno.serve(async (req) => {
     await db.from("user_notifications").insert({
       user_id: f.user_id, kind: "fitness", title: `🏃 Bugun mashq kuni: ${f.label}`,
       body: `${f.week}-hafta. Bajarib bo'lgach, qanchalik qiyin bo'lganini belgilang — reja sizga moslashadi.`,
-      data: { url: "/fitness", plan_id: f.plan_id },
+      data: { url: "/maxfitness", plan_id: f.plan_id },
     });
     await telegramToUser(db, f.user_id,
-      `🏃 <b>Bugun mashq kuni</b>\n\n${escHtml(f.label)} · ${f.week}-hafta\n<a href="${siteUrl()}/fitness">Bugungi mashqni ochish</a>`);
+      `🏃 <b>MaxFitness: bugun mashq kuni</b>\n\n${escHtml(f.label)} · ${f.week}-hafta\n<a href="${siteUrl()}/maxfitness">Bugungi mashqni ochish</a>`);
   }
   const { data: fa, error: faErr } = await db.rpc("claim_fitness_alerts", { _limit: 100 });
   if (faErr) console.warn("claim_fitness_alerts", faErr.message);

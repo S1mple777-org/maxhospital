@@ -176,10 +176,10 @@ BEGIN
   RETURNING id INTO _id;
 
   IF _status = 'pending_doctor' THEN
-    PERFORM public.fitness_notify(_doc_user, _id, 'Fitness rejani tasdiqlang',
+    PERFORM public.fitness_notify(_doc_user, _id, 'MaxFitness rejani tasdiqlang',
       public.fitness_patient_name(_uid) || ': ' || array_to_string(_risk, ', '),
       '/doctor-dashboard',
-      '🏃 <b>Fitness rejani tasdiqlang</b>' || E'\n\n' || '👤 ' || public.fitness_esc(public.fitness_patient_name(_uid))
+      '🏃 <b>MaxFitness rejani tasdiqlang</b>' || E'\n\n' || '👤 ' || public.fitness_esc(public.fitness_patient_name(_uid))
         || E'\n' || 'Sabab: ' || public.fitness_esc(array_to_string(_risk, ', ')));
   END IF;
   RETURN jsonb_build_object('id', _id, 'status', _status, 'risk_reasons', to_jsonb(_risk));
@@ -209,10 +209,10 @@ BEGIN
   WHERE id = _plan_id;
 
   PERFORM public.fitness_notify(_p.user_id, _plan_id,
-    CASE WHEN _approve THEN 'Fitness reja tasdiqlandi ✅' ELSE 'Fitness reja tasdiqlanmadi' END,
+    CASE WHEN _approve THEN 'MaxFitness reja tasdiqlandi ✅' ELSE 'MaxFitness reja tasdiqlanmadi' END,
     COALESCE(_n, CASE WHEN _approve THEN 'Shifokor rejangizni tasdiqladi. Boshlashingiz mumkin.' ELSE '' END),
-    '/fitness',
-    CASE WHEN _approve THEN '✅ <b>Fitness rejangiz tasdiqlandi</b>' ELSE '❌ <b>Fitness reja tasdiqlanmadi</b>' END
+    '/maxfitness',
+    CASE WHEN _approve THEN '✅ <b>MaxFitness rejangiz tasdiqlandi</b>' ELSE '❌ <b>MaxFitness reja tasdiqlanmadi</b>' END
       || COALESCE(E'\n\nShifokor izohi: ' || public.fitness_esc(_n), ''));
 END;
 $$;

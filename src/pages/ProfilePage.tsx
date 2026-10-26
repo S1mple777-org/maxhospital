@@ -361,7 +361,7 @@ const ProfilePage = () => {
                 { to: "/emergency-card", label: "MaxHospital Passport", icon: IdCard, cls: "text-red-500" },
                 { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
                 { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },
-                { to: "/fitness", label: "Fitness reja", icon: Activity, cls: "text-emerald-500" },
+                { to: "/maxfitness", label: "MaxFitness", icon: Activity, cls: "text-emerald-500" },
                 { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "" },
                 { to: "/users", label: "Foydalanuvchilar", icon: Users, cls: "" },
               ].map(({ to, label, icon: Icon, cls }) => (
