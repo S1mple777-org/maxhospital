@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown, Activity } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import AppVersionCard from "@/components/app/AppVersionCard";
 import { toast } from "sonner";
@@ -361,6 +361,7 @@ const ProfilePage = () => {
                 { to: "/emergency-card", label: "MaxHospital Passport", icon: IdCard, cls: "text-red-500" },
                 { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
                 { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },
+                { to: "/fitness", label: "Fitness reja", icon: Activity, cls: "text-emerald-500" },
                 { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "" },
                 { to: "/users", label: "Foydalanuvchilar", icon: Users, cls: "" },
               ].map(({ to, label, icon: Icon, cls }) => (

@@ -37,6 +37,7 @@ import PublicEmergencyCardPage from "./pages/PublicEmergencyCardPage";
 import SecondOpinionPage from "./pages/SecondOpinionPage";
 import MaxBandPage from "./pages/MaxBandPage";
 import CheckinPage from "./pages/CheckinPage";
+import FitnessPage from "./pages/FitnessPage";
 import AppUpdateBanner from "./components/app/AppUpdateBanner";
 import NotificationGate from "./components/app/NotificationGate";
 import ReminderListener from "./components/medications/ReminderListener";
@@ -76,6 +77,7 @@ const App = () => (
                 <Route path="/health" element={<HealthPage />} />
                 <Route path="/pro" element={<ProPage />} />
                 <Route path="/medications" element={<MedicationsPage />} />
+                <Route path="/fitness" element={<FitnessPage />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/lab-results" element={<LabResultsPage />} />
                 <Route path="/family" element={<FamilyPage />} />

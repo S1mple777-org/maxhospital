@@ -9,6 +9,7 @@ import { isFutureBooking, loadSecondOpinionRequests, orderQueue } from "@/lib/ca
 import { fmtSlotFull, notifyPatientCalled } from "@/lib/booking";
 import { toast } from "sonner";
 import TreatmentOverview from "@/components/care/TreatmentOverview";
+import FitnessApprovals from "@/components/fitness/FitnessApprovals";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -275,6 +276,7 @@ const DoctorDashboard = () => {
             </div>
           )}
 
+          <FitnessApprovals />
           <TreatmentOverview />
 
           {followups.length > 0 && (

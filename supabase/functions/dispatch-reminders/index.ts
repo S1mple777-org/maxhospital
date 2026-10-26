@@ -9,6 +9,8 @@ import { json, serviceClient } from "../_shared/http.ts";
 import { escHtml, isCronRequest, telegramToUser } from "../_shared/notify.ts";
 import { localTime, reminderBody, reminderSms, reminderTitle, smsPhone } from "../_shared/medication-plan.ts";
 
+const siteUrl = () => (Deno.env.get("SITE_URL") ?? "https://max-hospital1.netlify.app").replace(/\/+$/, "");
+
 interface DueReminder {
   reminder_id: string;
   user_id: string;
@@ -220,5 +222,25 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ ...stats, ...extra });
+  // ---- Fitness: bugungi mashq eslatmasi va shifokor/bemor xabarlari ---------------
+  const fitness = { reminders: 0, alerts: 0 };
+  const { data: fit, error: fErr } = await db.rpc("claim_fitness_reminders", { _limit: 300 });
+  if (fErr) console.warn("claim_fitness_reminders", fErr.message);
+  for (const f of (fit ?? []) as { plan_id: string; user_id: string; label: string; week: number }[]) {
+    fitness.reminders++;
+    await db.from("user_notifications").insert({
+      user_id: f.user_id, kind: "fitness", title: `🏃 Bugun mashq kuni: ${f.label}`,
+      body: `${f.week}-hafta. Bajarib bo'lgach, qanchalik qiyin bo'lganini belgilang — reja sizga moslashadi.`,
+      data: { url: "/fitness", plan_id: f.plan_id },
+    });
+    await telegramToUser(db, f.user_id,
+      `🏃 <b>Bugun mashq kuni</b>\n\n${escHtml(f.label)} · ${f.week}-hafta\n<a href="${siteUrl()}/fitness">Bugungi mashqni ochish</a>`);
+  }
+  const { data: fa, error: faErr } = await db.rpc("claim_fitness_alerts", { _limit: 100 });
+  if (faErr) console.warn("claim_fitness_alerts", faErr.message);
+  for (const a of (fa ?? []) as { user_id: string; html: string }[]) {
+    if (await telegramToUser(db, a.user_id, a.html)) fitness.alerts++;
+  }
+
+  return json({ ...stats, ...extra, fitness });
 });
