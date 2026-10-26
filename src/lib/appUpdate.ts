@@ -157,7 +157,9 @@ export type ApkInstallResult = "started" | "needs_permission" | "browser" | "err
 export async function installLatestApk(): Promise<ApkInstallResult> {
   if (!isNativeApp()) return "error";
   if (!Capacitor.isPluginAvailable("AppInstaller")) {
-    window.open(APK_DOWNLOAD_URL, "_blank");
+    // Eski APK: brauzerda Releases sahifasi emas, to'g'ridan-to'g'ri .apk fayl ochiladi
+    // (sahifada birinchi turgan "Source code (zip)" APK emas edi).
+    window.open((await latestApkUrl()) ?? APK_DOWNLOAD_URL, "_blank");
     return "browser";
   }
   if (state.apkProgress !== null) return "started";
