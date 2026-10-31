@@ -19,3 +19,7 @@ verify_jwt = false
 # MaxBand bilaguzugi chaqiradi: foydalanuvchi JWT si yo'q, qurilma tokeni (x-device-token) funksiya ichida tekshiriladi.
 [functions.device-api]
 verify_jwt = false
+
+# MaxFitness ovozli murabbiy: faqat ruxsat etilgan iboralar (coach.ts), natija keshlanadi; ilova ham chaqiradi.
+[functions.coach-voice]
+verify_jwt = false

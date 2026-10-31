@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Activity, AlertTriangle, Bell, CheckCircle2, ChevronDown, Clock, Dumbbell, HeartPulse, Loader2,
+  Activity, AlertTriangle, Bell, Headphones, CheckCircle2, ChevronDown, Clock, Dumbbell, HeartPulse, Loader2,
   RefreshCw, ShieldCheck, Stethoscope, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CoachPlayer from "@/components/fitness/CoachPlayer";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   CONDITION_UZ, GOAL_UZ, LEVEL_UZ, PLACE_UZ, RED_FLAG_UZ, WEEKDAY_UZ,
@@ -57,6 +58,7 @@ function SessionList({ s }: { s: FitnessSession }) {
 
 function PlanDetails({ plan, defaultWeek = 0 }: { plan: FitnessPlan; defaultWeek?: number }) {
   const [week, setWeek] = useState(defaultWeek);
+  const [coach, setCoach] = useState<FitnessSession | null>(null);
   const w = plan.weeks[week];
   return (
     <div className="space-y-4">
@@ -73,12 +75,18 @@ function PlanDetails({ plan, defaultWeek = 0 }: { plan: FitnessPlan; defaultWeek
       </p>
       {w.sessions.map((s, i) => (
         <div key={i}>
-          <p className="text-sm font-semibold text-foreground mb-2">
-            {WEEKDAY_UZ[plan.days[i]]} — {s.label} <span className="text-xs font-normal text-muted-foreground">· ~{s.total_minutes} daq</span>
-          </p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="flex-1 text-sm font-semibold text-foreground">
+              {WEEKDAY_UZ[plan.days[i]]} — {s.label} <span className="text-xs font-normal text-muted-foreground">· ~{s.total_minutes} daq</span>
+            </p>
+            <button onClick={() => setCoach(s)} className="text-xs px-2.5 py-1 rounded-lg border border-primary/40 text-primary flex items-center gap-1 shrink-0">
+              <Headphones className="w-3.5 h-3.5" /> Murabbiy
+            </button>
+          </div>
           <SessionList s={s} />
         </div>
       ))}
+      {coach && <CoachPlayer session={coach} onClose={() => setCoach(null)} />}
     </div>
   );
 }
@@ -235,6 +243,7 @@ function TodayCard({ row, sessions, onLogged }: { row: FitnessPlanRow; sessions:
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [coach, setCoach] = useState(false);
   const notStarted = today < row.start_date;
   const daysIn = Math.floor((Date.parse(today) - Date.parse(row.start_date)) / 86_400_000);
   const weekDone = sessions.filter((s) => s.week === info.week).length;
@@ -268,12 +277,21 @@ function TodayCard({ row, sessions, onLogged }: { row: FitnessPlanRow; sessions:
         <>
           <p className="text-sm font-medium text-foreground mb-2">{plan.weeks[info.week - 1].sessions[info.sessionIndex].label}</p>
           <SessionList s={plan.weeks[info.week - 1].sessions[info.sessionIndex]} />
+          {coach && (
+            <CoachPlayer session={plan.weeks[info.week - 1].sessions[info.sessionIndex]}
+              onClose={() => setCoach(false)} onFinish={() => setAsking(true)} />
+          )}
           {logged ? (
             <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" /> Bajarildi · qiyinlik {logged.rpe}/10{logged.pain ? " · og'riq qayd etildi" : ""}
             </p>
           ) : !asking ? (
-            <button onClick={() => setAsking(true)} className="w-full mt-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">✅ Bajarildi</button>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button onClick={() => setCoach(true)} className="py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-1.5">
+                <Headphones className="w-4 h-4" /> Murabbiy bilan
+              </button>
+              <button onClick={() => setAsking(true)} className="py-2.5 rounded-xl border border-primary/40 text-primary text-sm font-medium">✅ Bajarildi</button>
+            </div>
           ) : (
             <div className="mt-4 rounded-xl border border-border p-3 space-y-3">
               <div>
