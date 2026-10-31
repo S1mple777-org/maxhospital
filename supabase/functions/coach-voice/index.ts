@@ -1,16 +1,20 @@
 // MaxFitness ovozli murabbiy: iborani o'zbekcha ovozga aylantiradi va keshlaydi.
-//   POST { text } -> { url }   (url — ochiq "coach-voice" bucket'idagi .wav fayl)
+//   POST { text }        -> { url } faqat tayyor (keshdagi) ovoz uchun; yo'q bo'lsa 404 — ilova matn+signal bilan davom etadi
+//   POST { warm: true }  -> pg_cron har daqiqada: faol rejalar uchun yetishmayotgan iboralarni yaratadi
+// Gemini TTS bepul tarifda daqiqasiga ~3 so'rov — shuning uchun ovoz foydalanuvchi kutmasdan, fonda tayyorlanadi.
 // Faqat _shared/coach.ts yasay oladigan iboralar qabul qilinadi (allCoachPhrases), shuning uchun
 // funksiyadan ixtiyoriy matnni ovozga aylantirish uchun foydalanib bo'lmaydi. Bir ibora bir marta
 // yaratiladi va barcha foydalanuvchilar uchun keshdan beriladi.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, json, serviceClient } from "../_shared/http.ts";
-import { allCoachPhrases, phraseKey } from "../_shared/coach.ts";
+import { allCoachPhrases, coachSteps, phraseKey, stepPhrases } from "../_shared/coach.ts";
+import { generatePlan, type FitnessAnswers } from "../_shared/fitness.ts";
+import { isCronRequest } from "../_shared/notify.ts";
 
 const BUCKET = "coach-voice";
 const ALLOWED = allCoachPhrases();
 const voice = () => Deno.env.get("COACH_TTS_VOICE") || "Kore";
-const ttsModels = () => (Deno.env.get("COACH_TTS_MODELS") || "gemini-2.5-flash-preview-tts,gemini-2.5-pro-preview-tts")
+const ttsModels = () => (Deno.env.get("COACH_TTS_MODELS") || "gemini-2.5-flash-preview-tts")
   .split(",").map((m) => m.trim()).filter(Boolean);
 
 /** 24 kHz 16-bit PCM -> 16 kHz (hajm 1/3 kichik, nutq uchun yetarli). */
@@ -38,6 +42,8 @@ function wav(pcm: Int16Array, rate: number): Uint8Array {
   return new Uint8Array(buf);
 }
 
+class QuotaError extends Error {}
+
 async function tts(text: string): Promise<Uint8Array> {
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) throw new Error("GEMINI_API_KEY is not configured");
@@ -63,6 +69,7 @@ async function tts(text: string): Promise<Uint8Array> {
       return wav(resample(pcm, rate, 16000), 16000);
     }
     last = `${model}: ${res.status} ${body?.error?.message ?? "no audio"}`;
+    if (res.status === 429) throw new QuotaError(last);
     console.warn("coach-voice tts", last);
   }
   throw new Error(last);
@@ -76,26 +83,69 @@ async function ensureBucket(db: ReturnType<typeof serviceClient>) {
   bucketReady = true;
 }
 
+const pathFor = async (text: string) => `${voice()}/${await phraseKey(text, voice())}.wav`;
+
+/** Bucket'dagi tayyor fayllar nomlari. */
+async function existing(db: ReturnType<typeof serviceClient>): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data } = await db.storage.from(BUCKET).list(voice(), { limit: 1000, offset });
+    (data ?? []).forEach((f) => out.add(`${voice()}/${f.name}`));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
+/** Faol / tasdiq kutayotgan rejalar uchun kerakli barcha iboralar (navbat tartibida). */
+async function neededPhrases(db: ReturnType<typeof serviceClient>): Promise<string[]> {
+  const { data } = await db.from("fitness_plans").select("questionnaire, adapt_factor")
+    .in("status", ["active", "pending_doctor"]).order("created_at", { ascending: false }).limit(200);
+  const seen = new Set<string>();
+  for (const row of data ?? []) {
+    try {
+      const plan = generatePlan(row.questionnaire as FitnessAnswers, Number(row.adapt_factor) || 1);
+      for (const w of plan.weeks) for (const s of w.sessions) for (const p of stepPhrases(coachSteps(s))) seen.add(p);
+    } catch (e) { console.warn("coach-voice plan", e); }
+  }
+  return [...seen].filter((p) => ALLOWED.has(p));
+}
+
+async function warm(db: ReturnType<typeof serviceClient>, max: number) {
+  const have = await existing(db);
+  const todo: { text: string; path: string }[] = [];
+  for (const text of await neededPhrases(db)) {
+    const path = await pathFor(text);
+    if (!have.has(path)) todo.push({ text, path });
+  }
+  let made = 0;
+  for (const t of todo.slice(0, max)) {
+    try {
+      const audio = await tts(t.text);
+      const { error } = await db.storage.from(BUCKET).upload(t.path, audio, { contentType: "audio/wav", upsert: true, cacheControl: "31536000" });
+      if (error) throw new Error(error.message);
+      made++;
+    } catch (e) {
+      if (e instanceof QuotaError) break;      // keyingi daqiqada davom etadi
+      console.warn("coach-voice warm", t.text.slice(0, 40), (e as Error).message);
+    }
+  }
+  return { missing: todo.length, made };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  const { text } = await req.json().catch(() => ({}));
-  if (typeof text !== "string" || !ALLOWED.has(text)) return json({ error: "Unknown phrase" }, 400);
-
+  const body = await req.json().catch(() => ({}));
   const db = serviceClient();
   await ensureBucket(db);
-  const path = `${voice()}/${await phraseKey(text, voice())}.wav`;
-  const url = db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 
-  const head = await fetch(url, { method: "HEAD" }).catch(() => null);
-  if (head?.ok) return json({ url, cached: true });
-
-  try {
-    const audio = await tts(text);
-    const { error } = await db.storage.from(BUCKET).upload(path, audio, { contentType: "audio/wav", upsert: true, cacheControl: "31536000" });
-    if (error) throw new Error(error.message);
-    return json({ url, cached: false });
-  } catch (e) {
-    return json({ error: String((e as Error).message ?? e) }, 502);
+  if (body?.warm) {
+    if (!(await isCronRequest(req, db))) return json({ error: "Forbidden" }, 403);
+    return json(await warm(db, 3));
   }
+
+  const text = body?.text;
+  if (typeof text !== "string" || !ALLOWED.has(text)) return json({ error: "Unknown phrase" }, 400);
+  const url = db.storage.from(BUCKET).getPublicUrl(await pathFor(text)).data.publicUrl;
+  const head = await fetch(url, { method: "HEAD" }).catch(() => null);
+  return head?.ok ? json({ url }) : json({ error: "not ready" }, 404);
 });

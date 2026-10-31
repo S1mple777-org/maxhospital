@@ -151,7 +151,7 @@ export default function CoachPlayer({ session, onClose, onFinish }: {
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-sm text-foreground">Murabbiy ovozi tayyorlanmoqda… {progress.done}/{progress.total}</p>
-          <p className="text-xs text-muted-foreground">Birinchi marta biroz vaqt oladi, keyin darhol ochiladi.</p>
+          <p className="text-xs text-muted-foreground">Bir necha soniya…</p>
         </div>
       )}
 
@@ -179,7 +179,7 @@ export default function CoachPlayer({ session, onClose, onFinish }: {
                 </div>
                 {st.kind === "count" && <p className="text-sm text-muted-foreground">marta · jami {st.reps}</p>}
                 {item && st.kind === "say" && <p className="text-sm text-muted-foreground max-w-md">{item.how}</p>}
-                {!voiceOk && <p className="text-xs text-amber-600 max-w-sm">Ovozning bir qismi yuklanmadi (internet). Ekran va signal bo'yicha davom eting.</p>}
+                {!voiceOk && <p className="text-xs text-amber-600 max-w-sm">Murabbiy ovozi hali to'liq tayyor emas (yangi reja uchun bir necha daqiqada tayyorlanadi). Hozircha ekran va signal bo'yicha davom eting.</p>}
               </>
             )}
           </div>

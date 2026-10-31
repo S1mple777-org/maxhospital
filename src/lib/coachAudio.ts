@@ -25,8 +25,9 @@ export class CoachAudio {
       while (queue.length) {
         const text = queue.shift()!;
         try {
+          // Server faqat tayyor (oldindan yaratilgan) ovozni beradi; yo'q bo'lsa — ekran va signal bilan davom etamiz.
           const { data, error } = await supabase.functions.invoke("coach-voice", { body: { text } });
-          if (error || !data?.url) throw error ?? new Error("no url");
+          if (error || !data?.url) throw error ?? new Error("not ready");
           const res = await fetch(data.url);
           const buf = await this.ctx.decodeAudioData(await res.arrayBuffer());
           this.buffers.set(text, buf);
