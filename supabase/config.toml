@@ -27,3 +27,7 @@ verify_jwt = false
 # SOS: foydalanuvchi JWT funksiya ichida tekshiriladi; MaxBand uchun pg trigger x-cron-token bilan chaqiradi.
 [functions.sos]
 verify_jwt = false
+
+# MaxNutri: ovqat rasmini tanish (foydalanuvchi JWT funksiya ichida tekshiriladi).
+[functions.nutri-photo]
+verify_jwt = false

@@ -41,6 +41,7 @@ import FitnessPage from "./pages/FitnessPage";
 import SosPage from "./pages/SosPage";
 import MaxScorePage from "./pages/MaxScorePage";
 import HeredityPage from "./pages/HeredityPage";
+import NutriPage from "./pages/NutriPage";
 import AppUpdateBanner from "./components/app/AppUpdateBanner";
 import NotificationGate from "./components/app/NotificationGate";
 import ReminderListener from "./components/medications/ReminderListener";
@@ -84,6 +85,7 @@ const App = () => (
                 <Route path="/sos" element={<SosPage />} />
                 <Route path="/maxscore" element={<MaxScorePage />} />
                 <Route path="/irsiy-xavf" element={<HeredityPage />} />
+                <Route path="/maxnutri" element={<NutriPage />} />
                 <Route path="/fitness" element={<Navigate to="/maxfitness" replace />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/lab-results" element={<LabResultsPage />} />

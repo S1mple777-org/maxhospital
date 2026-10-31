@@ -10,6 +10,7 @@ import DailyIframe from "@daily-co/daily-js";
 import { usePlanStatus } from "@/lib/planPerks";
 import BandLivePanel from "@/components/band/BandLivePanel";
 import PassportForDoctor from "@/components/care/PassportForDoctor";
+import NutritionForDoctor from "@/components/care/NutritionForDoctor";
 import QueueStatusBanner from "@/components/booking/QueueStatusBanner";
 import { fmtSlotFull } from "@/lib/booking";
 
@@ -520,6 +521,7 @@ const ConsultationPage = () => {
 
         {/* MaxHospital Passport: allergies, conditions and medicines, if the patient allows it */}
         {isDoctor && id && (consultation?.status === "active" || followupOpen) && <PassportForDoctor consultationId={id} />}
+        {isDoctor && id && (consultation?.status === "active" || followupOpen) && <NutritionForDoctor consultationId={id} />}
 
         {/* Video container - always in DOM for Daily.co createFrame ref */}
         <div
