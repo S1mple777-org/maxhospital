@@ -2,6 +2,7 @@
 // Planning happens online (the schedule lives on the server); once synced,
 // the phone rings at the right time even without internet, and "✅ Ichdim"
 // taps made offline are queued and sent when the connection is back.
+import { voiceChannelId } from "@/lib/medVoice";
 import { isNativeApp } from "@/lib/native";
 import { localTime, markReminder, reminderBody, reminderTitle, type MedicationSchedule } from "@/lib/medications";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,6 +234,8 @@ export async function syncLocalReminders(): Promise<{ scheduled: number } | null
   if (!upcoming.length && !recent.length) return { scheduled: 0 };
   if (!(await ensureNotificationPermission())) return { scheduled: 0 };
 
+  // Yaqinning ovozi bo'lsa — shu ovozli kanal (APK 1.0.31+), aks holda budilnik.
+  const channel = (await voiceChannelId()) ?? CHANNEL_ID;
   const infoOf = (r: any, s: MedicationSchedule) => ({
     medicine_name: s.medicine_name, dose: s.dose ?? "", instructions: s.instructions ?? "",
     time: localTime(r.scheduled_at, s.timezone),
@@ -240,7 +243,7 @@ export async function syncLocalReminders(): Promise<{ scheduled: number } | null
   await LocalNotifications.schedule({
     notifications: [
       ...recent.map(({ r, s }) => followupNotification(FOLLOWUP_OFFSET + r.notify_id,
-        { kind: "med", reminderId: r.id, notifyId: r.notify_id, info: infoOf(r, s!) }, new Date(r.scheduled_at).getTime() + FOLLOWUP_MS)),
+        { kind: "med", reminderId: r.id, notifyId: r.notify_id, info: infoOf(r, s!) }, new Date(r.scheduled_at).getTime() + FOLLOWUP_MS, channel)),
       ...upcoming.flatMap(({ r, s }) => {
       const info = infoOf(r, s!);
       const extra = { kind: "med", reminderId: r.id, notifyId: r.notify_id, info };
@@ -251,14 +254,14 @@ export async function syncLocalReminders(): Promise<{ scheduled: number } | null
           title: reminderTitle("uz", info),
           body: reminderBody("uz", info),
           schedule: { at: new Date(at), allowWhileIdle: true },
-          channelId: CHANNEL_ID,
+          channelId: channel,
           sound: ALARM_SOUND,
           actionTypeId: ACTION_TYPE,
           autoCancel: true,
           extra,
         },
         // "Ichdim" bosilmasa, 10 daqiqadan keyin yana (bosilsa — bekor qilinadi).
-        followupNotification(FOLLOWUP_OFFSET + r.notify_id, extra, at + FOLLOWUP_MS),
+        followupNotification(FOLLOWUP_OFFSET + r.notify_id, extra, at + FOLLOWUP_MS, channel),
       ];
     })],
   });
@@ -267,14 +270,14 @@ export async function syncLocalReminders(): Promise<{ scheduled: number } | null
 
 type MedExtra = { kind?: string; reminderId?: string; notifyId?: number; info?: Record<string, string> };
 
-function followupNotification(id: number, extra: MedExtra, atMs: number) {
+function followupNotification(id: number, extra: MedExtra, atMs: number, channelId: string = CHANNEL_ID) {
   const info = extra.info ?? {};
   return {
     id,
     title: `⏰ Ichdingizmi? ${info.medicine_name ?? "Dori"}`,
     body: reminderBody("uz", { medicine_name: info.medicine_name ?? "", dose: info.dose, instructions: info.instructions, time: info.time ?? "" }),
     schedule: { at: new Date(atMs), allowWhileIdle: true },
-    channelId: CHANNEL_ID,
+    channelId,
     sound: ALARM_SOUND,
     actionTypeId: ACTION_TYPE,
     autoCancel: true,

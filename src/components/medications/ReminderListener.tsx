@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isNativeApp } from "@/lib/native";
 import { markReminder } from "@/lib/medications";
 import { clearLocalReminders, syncLocalReminders } from "@/lib/localReminders";
+import { playMyVoiceNote } from "@/lib/medVoice";
 
 /**
  * Mounted once in App:
@@ -43,12 +44,15 @@ const ReminderListener = () => {
             await (supabase.from("user_notifications" as any) as any).update({ read_at: new Date().toISOString() }).eq("id", n.id);
           };
 
-          // MaxBand SOS / fall: a red toast that stays until it is dismissed.
-          if (n.kind === "maxband_sos") {
+          // Saytda: yaqinning ovozidagi eslatma (ilovada bildirishnoma kanali o'zi chaladi).
+          if (n.kind === "medication" && reminderId && !isNativeApp()) void playMyVoiceNote();
+
+          // MaxBand SOS / fall / ilova SOS: a red toast that stays until it is dismissed.
+          if (n.kind === "maxband_sos" || n.kind === "sos") {
             toast.error(n.title, {
               description: n.body ?? undefined,
               duration: 30 * 60_000,
-              action: { label: "Ochish", onClick: () => window.location.assign(n.data?.link ?? "/maxband") },
+              action: { label: n.data?.url ? "Xaritada" : "Ochish", onClick: () => window.location.assign(n.data?.url ?? n.data?.link ?? "/maxband") },
             });
           } else toast(n.title, {
             description: n.body ?? undefined,

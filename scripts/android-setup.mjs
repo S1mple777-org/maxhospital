@@ -29,6 +29,10 @@ const lines = [
   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
   // Ilova ichida yangilash: yangi APK ni o'rnatish oynasini ochish uchun (foydalanuvchi baribir tasdiqlaydi).
   '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />',
+  // SOS: yaqinlarga joylashuvni yuborish (faqat SOS bosilganda so'raladi).
+  '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+  '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+  '<uses-feature android:name="android.hardware.location.gps" android:required="false" />',
   // Kamerasi yo'q qurilmalarda ham ilova o'rnatilishi uchun.
   '<uses-feature android:name="android.hardware.camera" android:required="false" />',
   '<uses-feature android:name="android.hardware.microphone" android:required="false" />',
@@ -133,10 +137,13 @@ public class MainActivity extends BridgeActivity {
   }
 
   const pathsFile = "android/app/src/main/res/xml/file_paths.xml";
-  const entry = '<cache-path name="apk_updates" path="updates/" />';
+  // apk_updates — ilova ichida yangilash; med_voice — yaqinning ovozidagi dori eslatmasi (bildirishnoma ovozi).
+  const entry = '<cache-path name="apk_updates" path="updates/" />\n    <files-path name="med_voice" path="voice/" />';
   if (existsSync(pathsFile)) {
-    const xml = readFileSync(pathsFile, "utf8");
-    if (!xml.includes('name="apk_updates"')) writeFileSync(pathsFile, xml.replace("</paths>", `    ${entry}\n</paths>`));
+    let xml = readFileSync(pathsFile, "utf8");
+    if (!xml.includes('name="apk_updates"')) xml = xml.replace("</paths>", '    <cache-path name="apk_updates" path="updates/" />\n</paths>');
+    if (!xml.includes('name="med_voice"')) xml = xml.replace("</paths>", '    <files-path name="med_voice" path="voice/" />\n</paths>');
+    writeFileSync(pathsFile, xml);
   } else {
     mkdirSync("android/app/src/main/res/xml", { recursive: true });
     writeFileSync(pathsFile, `<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n    ${entry}\n</paths>\n`);

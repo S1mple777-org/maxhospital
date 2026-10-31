@@ -18,6 +18,8 @@ export interface AppInstallerPlugin {
   notificationStatus(options: { channel?: string }): Promise<NativeNotificationStatus>;
   openNotificationSettings(options: { channel?: string }): Promise<void>;
   openAppSettings(): Promise<void>;
+  /** 1.0.31+ APK: yaqinning ovozi bilan chalinadigan bildirishnoma kanali. key="" — o'chirish. */
+  setVoiceChannel(options: { key: string; base64?: string }): Promise<{ channelId?: string }>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>("AppInstaller");

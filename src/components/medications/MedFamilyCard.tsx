@@ -8,7 +8,7 @@ import { acceptGuardian, inviteGuardian, loadGuardianLinks, removeGuardianLink, 
  * Yaqinlar: dori 30 daqiqada ichilmasa (eslatmaga "Ichdim" bosilmasa) ular Telegram va saytda xabar oladi.
  * MaxBand oila nazorati bilan bir xil ro'yxat (band_guardians): bir marta qo'shiladi, ikkalasida ishlaydi.
  */
-const MedFamilyCard = () => {
+const MedFamilyCard = ({ note }: { note?: string } = {}) => {
   const { user } = useAuth();
   const [links, setLinks] = useState<{ mine: GuardianLink[]; watching: GuardianLink[] } | null>(null);
   const [email, setEmail] = useState("");
@@ -28,8 +28,8 @@ const MedFamilyCard = () => {
     <section className="rounded-2xl border border-border bg-card p-4">
       <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Yaqinlarim</h2>
       <p className="text-xs text-muted-foreground mt-1">
-        Dorini 30 daqiqa ichida «Ichdim» deb belgilamasangiz, yaqiningizga Telegram va saytda xabar boradi:
-        «Onangiz soat 8:00 dagi dorini ichmadi». Avval o'zingizga 10 daqiqadan keyin qayta eslatiladi. Premium tarifda.
+        {note ?? <>Dorini 30 daqiqa ichida «Ichdim» deb belgilamasangiz, yaqiningizga Telegram va saytda xabar boradi:
+        «Onangiz soat 8:00 dagi dorini ichmadi». Avval o'zingizga 10 daqiqadan keyin qayta eslatiladi. Premium tarifda.</>}
       </p>
 
       {pendingForMe.length > 0 && (

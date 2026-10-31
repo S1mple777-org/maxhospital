@@ -60,6 +60,9 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-2">
+            {user && (
+              <Link to="/sos" className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-bold hover:bg-rose-700" aria-label="SOS — favqulodda yordam">SOS</Link>
+            )}
             {/* Language */}
             <div className="relative">
               <button onClick={() => { setLangOpen(!langOpen); setThemeOpen(false); setUserMenuOpen(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
@@ -157,6 +160,9 @@ const Navbar = () => {
             )}
           </div>
 
+          {user && (
+            <Link to="/sos" className="md:hidden ml-auto mr-1 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-bold" aria-label="SOS — favqulodda yordam">SOS</Link>
+          )}
           <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 text-foreground">
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

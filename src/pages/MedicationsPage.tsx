@@ -15,6 +15,7 @@ import { cachedReminders, syncLocalReminders } from "@/lib/localReminders";
 import PhoneRemindersCheck from "@/components/medications/PhoneRemindersCheck";
 import MedAdherenceCard from "@/components/medications/MedAdherenceCard";
 import MedFamilyCard from "@/components/medications/MedFamilyCard";
+import VoiceNoteCard from "@/components/medications/VoiceNoteCard";
 import StockEditor from "@/components/medications/StockEditor";
 import {
   DEFAULT_ROUTINE, MAX_DAYS, MAX_TIMES_PER_DAY, cleanTimes, deleteSchedule, draftPlanWithAi, fileToBase64,
@@ -556,6 +557,7 @@ const MedicationsPage = () => {
 
           {/* Dori ichilmasa yaqinlarga xabar */}
           {!offline && <MedFamilyCard />}
+          {!offline && <VoiceNoteCard />}
         </div>
       </div>
       <Footer />

@@ -4,7 +4,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
 import android.net.Uri;
+import android.util.Base64;
 import android.os.Build;
 import android.provider.Settings;
 import androidx.core.app.NotificationManagerCompat;
@@ -178,5 +180,49 @@ public class AppInstallerPlugin extends Plugin {
                 if (conn != null) conn.disconnect();
             }
         }).start();
+    }
+
+    /**
+     * Yaqinning ovozidagi dori eslatmasi: { key, base64 (WAV) } -> { channelId }.
+     * Ovozni ilova fayliga yozadi va shu ovoz bilan chalinadigan bildirishnoma kanalini yaratadi
+     * (Android 8+ da bildirishnoma ovozini faqat kanal belgilaydi). Eski "med-voice-*" kanallari o'chiriladi.
+     * key bo'sh bo'lsa — barcha ovozli kanallar o'chiriladi (oddiy budilnik ovoziga qaytish).
+     */
+    @PluginMethod
+    public void setVoiceChannel(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { call.reject("Android 8+ kerak"); return; }
+        String key = call.getString("key", "");
+        String b64 = call.getString("base64", "");
+        try {
+            NotificationManager nm = (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            String channelId = "med-voice-" + key.replaceAll("[^a-zA-Z0-9]", "");
+            for (NotificationChannel c : nm.getNotificationChannels()) {
+                if (c.getId().startsWith("med-voice-") && !c.getId().equals(channelId)) nm.deleteNotificationChannel(c.getId());
+            }
+            if (key.isEmpty()) { call.resolve(new JSObject()); return; }
+            if (nm.getNotificationChannel(channelId) == null) {
+                if (b64.isEmpty()) { call.reject("NEED_AUDIO"); return; }
+                File dir = new File(getContext().getFilesDir(), "voice");
+                dir.mkdirs();
+                File out = new File(dir, channelId + ".wav");
+                try (FileOutputStream fos = new FileOutputStream(out)) { fos.write(Base64.decode(b64, Base64.DEFAULT)); }
+                Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", out);
+                // Tizim (bildirishnoma ovozini chaladigan jarayon) faylni o'qiy olishi uchun
+                getContext().grantUriPermission("com.android.systemui", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getContext().grantUriPermission("android", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                NotificationChannel ch = new NotificationChannel(channelId, "Dori eslatmasi (yaqiningiz ovozi)", NotificationManager.IMPORTANCE_HIGH);
+                ch.setDescription("Dori vaqtida yaqiningiz yozib qo'ygan ovoz chalinadi");
+                ch.enableVibration(true);
+                ch.setSound(uri, new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                nm.createNotificationChannel(ch);
+            }
+            JSObject r = new JSObject();
+            r.put("channelId", channelId);
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject("Ovozli kanal yaratilmadi: " + e.getMessage());
+        }
     }
 }

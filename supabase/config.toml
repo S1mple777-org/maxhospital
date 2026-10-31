@@ -23,3 +23,7 @@ verify_jwt = false
 # MaxFitness ovozli murabbiy: faqat ruxsat etilgan iboralar (coach.ts), natija keshlanadi; ilova ham chaqiradi.
 [functions.coach-voice]
 verify_jwt = false
+
+# SOS: foydalanuvchi JWT funksiya ichida tekshiriladi; MaxBand uchun pg trigger x-cron-token bilan chaqiradi.
+[functions.sos]
+verify_jwt = false
