@@ -31,15 +31,15 @@ export function uzOrdinal(n: number): string {
 // ---- Iboralar (generator ham, server tekshiruvi ham shulardan foydalanadi) ----
 export const P = {
   intro: (label: string) => `Mashqni boshlaymiz. Bugun: ${label}. Telefonni yoningizga qo'ying va mening ovozimga quloq soling.`,
-  timed: (name: string, minutes: number, how: string) => `${name}. ${cap(uzNumber(minutes))} daqiqa. ${how}`,
+  exercise: (name: string, how: string) => `${name}. ${how}`,
+  minutes: (m: number) => `${cap(uzNumber(m))} daqiqa.`,
   half: "Yarmi o'tdi. Zo'r ketyapsiz!",
   last10: "Oxirgi o'n soniya!",
-  setStart: (name: string, how: string | null, set: number, reps: number) =>
-    `${how ? `${name}. ${how} ` : ""}${uzOrdinal(set)} yondashuv. ${cap(uzNumber(reps))} marta. Boshladik!`,
+  set: (set: number, reps: number) => `${uzOrdinal(set)} yondashuv. ${cap(uzNumber(reps))} marta. Boshladik!`,
   count: (n: number) => cap(uzNumber(n)),
   otherSide: "Endi boshqa tomonga.",
   rest: (sec: number) => `Dam oling. ${cap(uzNumber(sec))} soniya.`,
-  hold: (name: string, how: string | null, sec: number) => `${how ? `${name}. ${how} ` : ""}${cap(uzNumber(sec))} soniya. O'ng oyoq.`,
+  hold: (sec: number) => `${cap(uzNumber(sec))} soniya. O'ng oyoq.`,
   holdLeft: "Endi chap oyoq.",
   go: "Boshladik!",
   done: "Barakalla! Bugungi mashq tugadi. Endi qanchalik qiyin bo'lganini belgilang.",
@@ -50,18 +50,18 @@ export const SECONDS_PER_REP = 3.5;
 const SIDED = new Set(["bird_dog", "side_lying_leg"]);
 
 export type CoachStep =
-  | { kind: "say"; text: string; title: string; item: number }
+  | { kind: "say"; texts: string[]; title: string; item: number }
   | { kind: "timer"; seconds: number; title: string; item: number; cues: { at: number; say: string }[] }
   | { kind: "count"; reps: number; title: string; item: number }
   | { kind: "rest"; seconds: number; title: string; item: number };
 
 /** Mashg'ulot -> qadamlar ketma-ketligi. */
 export function coachSteps(s: CoachSession): CoachStep[] {
-  const out: CoachStep[] = [{ kind: "say", text: P.intro(s.label), title: s.label, item: -1 }];
+  const out: CoachStep[] = [{ kind: "say", texts: [P.intro(s.label)], title: s.label, item: -1 }];
   s.items.forEach((it: ExerciseItem, i) => {
     if (it.minutes) {
       const sec = it.minutes * 60;
-      out.push({ kind: "say", text: P.timed(it.name, it.minutes, it.how), title: it.name, item: i });
+      out.push({ kind: "say", texts: [P.exercise(it.name, it.how), P.minutes(it.minutes)], title: it.name, item: i });
       const cues = [{ at: Math.round(sec / 2), say: P.half }];
       if (sec >= 60) cues.push({ at: sec - 10, say: P.last10 });
       out.push({ kind: "timer", seconds: sec, title: it.name, item: i, cues });
@@ -69,27 +69,27 @@ export function coachSteps(s: CoachSession): CoachStep[] {
     }
     const sets = Math.max(1, it.sets ?? 1);
     for (let set = 1; set <= sets; set++) {
-      const how = set === 1 ? it.how : null;
+      const intro = set === 1 ? [P.exercise(it.name, it.how)] : [];
       if (it.reps) {
-        out.push({ kind: "say", text: P.setStart(it.name, how, set, it.reps), title: `${it.name} · ${set}/${sets}`, item: i });
+        out.push({ kind: "say", texts: [...intro, P.set(set, it.reps)], title: `${it.name} · ${set}/${sets}`, item: i });
         out.push({ kind: "count", reps: it.reps, title: `${it.name} · ${set}/${sets}`, item: i });
         if (SIDED.has(it.id)) {
-          out.push({ kind: "say", text: P.otherSide, title: it.name, item: i });
+          out.push({ kind: "say", texts: [P.otherSide], title: it.name, item: i });
           out.push({ kind: "count", reps: it.reps, title: `${it.name} · ${set}/${sets}`, item: i });
         }
       } else if (it.seconds) {
-        out.push({ kind: "say", text: P.hold(it.name, how, it.seconds), title: `${it.name} · ${set}/${sets}`, item: i });
+        out.push({ kind: "say", texts: [...intro, P.hold(it.seconds)], title: `${it.name} · ${set}/${sets}`, item: i });
         out.push({ kind: "timer", seconds: it.seconds, title: it.name, item: i, cues: [] });
-        out.push({ kind: "say", text: P.holdLeft, title: it.name, item: i });
+        out.push({ kind: "say", texts: [P.holdLeft], title: it.name, item: i });
         out.push({ kind: "timer", seconds: it.seconds, title: it.name, item: i, cues: [] });
       }
       if (set < sets) {
-        out.push({ kind: "say", text: P.rest(REST_SECONDS), title: "Dam olish", item: i });
+        out.push({ kind: "say", texts: [P.rest(REST_SECONDS)], title: "Dam olish", item: i });
         out.push({ kind: "rest", seconds: REST_SECONDS, title: "Dam olish", item: i });
       }
     }
   });
-  out.push({ kind: "say", text: P.done, title: "Tugadi", item: s.items.length });
+  out.push({ kind: "say", texts: [P.done], title: "Tugadi", item: s.items.length });
   return out;
 }
 
@@ -97,7 +97,7 @@ export function coachSteps(s: CoachSession): CoachStep[] {
 export function stepPhrases(steps: CoachStep[]): string[] {
   const set = new Set<string>();
   for (const st of steps) {
-    if (st.kind === "say") set.add(st.text);
+    if (st.kind === "say") st.texts.forEach((t) => set.add(t));
     if (st.kind === "timer") st.cues.forEach((c) => set.add(c.say));
     if (st.kind === "count") for (let n = 1; n <= st.reps; n++) set.add(P.count(n));
   }
@@ -107,21 +107,19 @@ export function stepPhrases(steps: CoachStep[]): string[] {
 
 const LABELS = ["Kuch mashqlari", "Yurish + muvozanat", "Aerob mashq"];
 
-/** Server ruxsat beradigan barcha iboralar. */
+/**
+ * Server ruxsat beradigan barcha iboralar (~170 ta, hamma foydalanuvchilar uchun umumiy).
+ * Iboralar bo'laklarga bo'lingan (mashq nomi + "O'n besh daqiqa."), shuning uchun har bir reja uchun
+ * yangi ovoz yaratish shart emas — bir marta yaratilgan to'plam hammaga yetadi.
+ */
 export function allCoachPhrases(): Set<string> {
   const s = new Set<string>([P.half, P.last10, P.otherSide, P.holdLeft, P.go, P.done, P.rest(REST_SECONDS)]);
   LABELS.forEach((l) => s.add(P.intro(l)));
   for (let n = 1; n <= 20; n++) s.add(P.count(n));
-  for (const e of Object.values(EXERCISES)) {
-    for (let m = 1; m <= 60; m++) s.add(P.timed(e.name, m, e.how));
-    for (let set = 1; set <= 3; set++) {
-      for (let r = 1; r <= 20; r++) s.add(P.setStart(e.name, set === 1 ? e.how : null, set, r));
-    }
-    for (const sec of [10, 15, 20, 30, 45, 60]) {
-      s.add(P.hold(e.name, e.how, sec));
-      s.add(P.hold(e.name, null, sec));
-    }
-  }
+  for (const e of Object.values(EXERCISES)) s.add(P.exercise(e.name, e.how));
+  for (let m = 1; m <= 60; m++) s.add(P.minutes(m));
+  for (let set = 1; set <= 3; set++) for (let r = 1; r <= 20; r++) s.add(P.set(set, r));
+  for (const sec of [10, 15, 20, 30, 45, 60]) s.add(P.hold(sec));
   return s;
 }
 

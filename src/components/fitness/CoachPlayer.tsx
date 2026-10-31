@@ -58,7 +58,10 @@ export default function CoachPlayer({ session, onClose, onFinish }: {
     const a = audio.current!;
     if (st.kind === "say") {
       setBig("");
-      await a.say(st.text);
+      for (const t of st.texts) {
+        if (!(await alive(id))) return;
+        await a.say(t);
+      }
     } else if (st.kind === "timer" || st.kind === "rest") {
       await tick(id, st.seconds, st.kind === "timer" ? st.cues : []);
       a.beep(660, 250); vibrate(200);

@@ -106,7 +106,8 @@ async function neededPhrases(db: ReturnType<typeof serviceClient>): Promise<stri
       for (const w of plan.weeks) for (const s of w.sessions) for (const p of stepPhrases(coachSteps(s))) seen.add(p);
     } catch (e) { console.warn("coach-voice plan", e); }
   }
-  return [...seen].filter((p) => ALLOWED.has(p));
+  // Avval faol rejalarga keraklilari, keyin qolgan barcha iboralar (hamma uchun bir marta)
+  return [...new Set([...seen, ...ALLOWED])].filter((p) => ALLOWED.has(p));
 }
 
 async function warm(db: ReturnType<typeof serviceClient>, max: number) {
@@ -116,7 +117,7 @@ async function warm(db: ReturnType<typeof serviceClient>, max: number) {
     const path = await pathFor(text);
     if (!have.has(path)) todo.push({ text, path });
   }
-  let made = 0;
+  let made = 0, quota: string | null = null;
   for (const t of todo.slice(0, max)) {
     try {
       const audio = await tts(t.text);
@@ -124,11 +125,11 @@ async function warm(db: ReturnType<typeof serviceClient>, max: number) {
       if (error) throw new Error(error.message);
       made++;
     } catch (e) {
-      if (e instanceof QuotaError) break;      // keyingi daqiqada davom etadi
+      if (e instanceof QuotaError) { quota = (e as Error).message.match(/requests per (minute|day)/)?.[0] ?? "429"; break; }
       console.warn("coach-voice warm", t.text.slice(0, 40), (e as Error).message);
     }
   }
-  return { missing: todo.length, made };
+  return { missing: todo.length, made, quota };
 }
 
 Deno.serve(async (req) => {
