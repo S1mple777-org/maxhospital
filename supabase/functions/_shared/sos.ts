@@ -88,13 +88,16 @@ export function sosMessage(kind: SosKind, c: SosContext): { title: string; plain
 export function sosSms(kind: SosKind, c: SosContext): string {
   const name = smsAscii(c.name).slice(0, 30);
   if (kind === "safe") return `MaxHospital: ${name} xavfsiz. SOS bekor qilindi.`;
+  // "https://" siz ham telefonlar havolani taniydi — SMS 1 bo'lakka (160 belgi) sig'ishi uchun.
+  const short = (u: string) => u.replace(/^https?:\/\//, "");
   const parts = [
-    `MaxHospital SOS! ${name} ${kind === "fall" ? "yiqildi (MaxBand)" : "yordam so'radi"}.`,
-    hasLoc(c) ? `Joy: ${mapUrl(c.lat!, c.lng!)}` : "Joy noma'lum.",
+    `SOS! ${name} ${kind === "fall" ? "yiqildi (MaxBand)" : "yordam so'radi"}.`,
+    hasLoc(c) ? `Joy: ${short(mapUrl(c.lat!, c.lng!))}` : "Joy noma'lum.",
     c.phone ? `Tel: +${c.phone}` : "",
-    c.cardUrl ? `Karta: ${c.cardUrl}` : "",
+    c.cardUrl ? `Karta: ${short(c.cardUrl)}` : "",
   ].filter(Boolean);
-  return smsAscii(parts.join(" "));
+  const text = smsAscii(parts.join(" "));
+  return text.length + 12 <= 160 ? `${text} MaxHospital` : text;
 }
 
 /** To'lov: balansdan, yetmagani qarzga. */

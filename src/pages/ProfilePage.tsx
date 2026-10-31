@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown, Activity } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown, Activity, Trophy, Dna, Siren } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import AppVersionCard from "@/components/app/AppVersionCard";
 import { toast } from "sonner";
@@ -362,6 +362,9 @@ const ProfilePage = () => {
                 { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
                 { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },
                 { to: "/maxfitness", label: "MaxFitness", icon: Activity, cls: "text-emerald-500" },
+                { to: "/maxscore", label: "MaxScore", icon: Trophy, cls: "text-amber-500" },
+                { to: "/irsiy-xavf", label: "Irsiy xavf xaritasi", icon: Dna, cls: "text-violet-500" },
+                { to: "/sos", label: "SOS sozlamalari", icon: Siren, cls: "text-rose-600" },
                 { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "" },
                 { to: "/users", label: "Foydalanuvchilar", icon: Users, cls: "" },
               ].map(({ to, label, icon: Icon, cls }) => (

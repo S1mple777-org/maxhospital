@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Activity, AlarmClock, Watch, Dumbbell } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Activity, AlarmClock, Watch, Dumbbell, Trophy, Dna } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -134,6 +134,12 @@ const Navbar = () => {
                     <Link to="/maxfitness" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Dumbbell className="w-4 h-4" /> MaxFitness
                     </Link>
+                    <Link to="/maxscore" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Trophy className="w-4 h-4" /> MaxScore
+                    </Link>
+                    <Link to="/irsiy-xavf" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
+                      <Dna className="w-4 h-4" /> Irsiy xavf xaritasi
+                    </Link>
                     <Link to="/wallet" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <Wallet className="w-4 h-4" /> {t("nav.wallet")}
                     </Link>
@@ -183,6 +189,8 @@ const Navbar = () => {
                   <Link to="/health" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.health")}</Link>
                   <Link to="/medications" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.meds")}</Link>
                   <Link to="/maxfitness" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">MaxFitness</Link>
+                  <Link to="/maxscore" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">MaxScore</Link>
+                  <Link to="/irsiy-xavf" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Irsiy xavf xaritasi</Link>
                   <Link to="/wallet" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.wallet")}</Link>
                   <Link to="/family" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.family")}</Link>
                   <Link to="/maxband" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.maxband")}</Link>
