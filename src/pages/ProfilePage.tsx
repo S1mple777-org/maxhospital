@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown, Activity, Trophy, Dna, Siren, Salad } from "lucide-react";
+import { User, Wallet, Shield, LogOut, Edit, Save, X, Phone, Home, MapPin, Briefcase, Clock, Send, Stethoscope, FileText, IdCard, Scale, FlaskConical, Sparkles, Users, Crown, Activity, Trophy, Dna, Siren, Salad, MessageCircle } from "lucide-react";
 import TelegramLinkSection from "@/components/TelegramLinkSection";
 import AppVersionCard from "@/components/app/AppVersionCard";
 import { toast } from "sonner";
@@ -358,6 +358,9 @@ const ProfilePage = () => {
             <h3 className="text-sm font-semibold text-foreground mb-3">Qo'shimcha xizmatlar</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
+                ...(isDoctor ? [{ to: "/doctor-dashboard", label: "Shifokor kabineti", icon: MessageCircle, cls: "text-primary" }] : []),
+                { to: "/start-consultation", label: "Konsultatsiya", icon: Stethoscope, cls: "text-primary" },
+                { to: "/health", label: "Salomatligim", icon: Activity, cls: "text-rose-500" },
                 { to: "/emergency-card", label: "MaxHospital Passport", icon: IdCard, cls: "text-red-500" },
                 { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
                 { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },

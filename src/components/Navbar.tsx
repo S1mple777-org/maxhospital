@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, MessageCircle, Wallet, Users, Activity, AlarmClock, Watch, Dumbbell, Trophy, Dna, Salad } from "lucide-react";
+import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, Wallet, Users, AlarmClock, Watch, Dumbbell, Trophy, Dna, Salad } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,13 +22,12 @@ const themes = [
 const Navbar = () => {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const { user, profile, hasRole, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const isDoctor = hasRole("doctor");
 
   const navItems = [
     { label: t("nav.home"), href: "/" },
@@ -117,17 +116,6 @@ const Navbar = () => {
                     <Link to="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <User className="w-4 h-4" /> {t("nav.profile")}
                     </Link>
-                    {isDoctor && (
-                      <Link to="/doctor-dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                        <MessageCircle className="w-4 h-4" /> Shifokor kabineti
-                      </Link>
-                    )}
-                    <Link to="/start-consultation" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <Stethoscope className="w-4 h-4" /> Konsultatsiya
-                    </Link>
-                    <Link to="/health" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
-                      <Activity className="w-4 h-4" /> {t("nav.health")}
-                    </Link>
                     <Link to="/medications" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary">
                       <AlarmClock className="w-4 h-4" /> {t("nav.meds")}
                     </Link>
@@ -188,8 +176,6 @@ const Navbar = () => {
               {user ? (
                 <>
                   <Link to="/profile" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.profile")}</Link>
-                  <Link to="/start-consultation" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Konsultatsiya</Link>
-                  <Link to="/health" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.health")}</Link>
                   <Link to="/medications" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.meds")}</Link>
                   <Link to="/maxfitness" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">MaxFitness</Link>
                   <Link to="/maxnutri" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">MaxNutri</Link>
@@ -199,7 +185,6 @@ const Navbar = () => {
                   <Link to="/family" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.family")}</Link>
                   <Link to="/maxband" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.maxband")}</Link>
                   <Link to="/pro" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">{t("nav.pro")}</Link>
-                  {isDoctor && <Link to="/doctor-dashboard" onClick={() => setMobileOpen(false)} className="block text-sm font-medium text-foreground">Shifokor kabineti</Link>}
                   <button onClick={handleSignOut} className="block text-sm font-medium text-destructive">Chiqish</button>
                 </>
               ) : (
