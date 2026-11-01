@@ -11,7 +11,7 @@
 //   - Diabet: ADA "Standards of Care" — uglevodni hisoblash va "likopcha usuli" (yarmi sabzavot);
 //     bir mahalga 45–60 g uglevod — ko'p diabet maktablarida boshlang'ich mo'ljal, aniq miqdorni shifokor belgilaydi.
 
-export type FoodCat = "main" | "soup" | "bread" | "breakfast" | "salad" | "fruit" | "sweet" | "drink" | "fast" | "basic";
+export type FoodCat = "main" | "soup" | "bread" | "breakfast" | "salad" | "veg" | "fruit" | "sweet" | "drink" | "fast" | "basic";
 
 export interface Food {
   id: string;
@@ -47,6 +47,13 @@ export const FOODS: Food[] = [
   f("tovuq_shashlik", "Tovuq shashlik", "main", 150, "3 six", 180, 24, 9, 1, 400),
   f("somsa", "Somsa (go'shtli)", "main", 120, "1 dona", 300, 10, 18, 25, 450, 0, 1),
   f("dolma", "Do'lma", "main", 250, "1 likopcha", 150, 8, 9, 9, 350, 0, 2, true),
+  f("pelmeni", "Pelmeni", "main", 250, "1 likopcha", 230, 10, 10, 25, 450),
+  f("xonim", "Xonim (xonum)", "main", 300, "1 likopcha", 160, 6, 6, 21, 350, 0, 1.5),
+  f("shivit_oshi", "Shivit oshi", "main", 350, "1 likopcha", 130, 4, 5, 17, 300, 0, 1.2),
+  f("kotlet", "Kotlet (go'shtli)", "main", 100, "1 dona", 230, 14, 16, 8, 500),
+  f("tovuq_qovurma", "Tovuq (qovurilgan)", "main", 150, "1 bo'lak", 240, 22, 16, 3, 400),
+  f("sabzavot_ragu", "Sabzavotli ragu", "main", 300, "1 likopcha", 80, 2, 4, 9, 250, 0, 2.5, true),
+  f("blin", "Blin / blinchik", "breakfast", 100, "2 dona", 230, 6, 10, 29, 300, 3),
   f("moshxorda", "Moshxo'rda", "soup", 400, "1 kosa", 95, 4, 3, 13, 300, 0, 2.5),
   f("shorva", "Sho'rva (go'shtli)", "soup", 400, "1 kosa", 60, 4, 3, 4, 350, 0, 1, true),
   f("mastava", "Mastava", "soup", 400, "1 kosa", 75, 3.5, 3, 9, 330, 0, 1),
@@ -67,11 +74,45 @@ export const FOODS: Food[] = [
   f("makaron", "Makaron", "basic", 200, "1 likopcha", 150, 5, 1.5, 30, 5, 0, 1.8),
   f("tovuq", "Tovuq go'shti (qaynatilgan)", "basic", 150, "1 bo'lak", 170, 25, 7, 0, 70),
   f("baliq", "Baliq (qovurilgan)", "basic", 150, "1 bo'lak", 200, 20, 11, 5, 300),
+  f("mol_goshti", "Mol go'shti (qaynatilgan)", "basic", 150, "1 bo'lak", 250, 26, 15, 0, 60),
+  f("qoy_goshti", "Qo'y go'shti (qaynatilgan)", "basic", 150, "1 bo'lak", 290, 25, 21, 0, 70),
+  f("qazi", "Qazi / kolbasa (ot go'shti)", "basic", 60, "3 bo'lak", 330, 15, 30, 1, 1200),
+  f("tuxum_qaynatilgan", "Tuxum (qaynatilgan)", "breakfast", 100, "2 dona", 155, 13, 11, 1.1, 124),
+  f("kartoshka_pyure", "Kartoshka pyure", "basic", 200, "1 likopcha", 110, 2, 4, 16, 300, 0, 1.5),
+  f("kartoshka_qovurma", "Qovurilgan kartoshka", "basic", 200, "1 likopcha", 150, 2.5, 7, 19, 250, 0, 2),
+  f("jo_xori_botqa", "Suli (oatmeal) bo'tqa", "breakfast", 250, "1 kosa", 71, 2.5, 1.5, 12, 4, 0, 1.7),
+  f("suzma", "Suzma (tvorog)", "breakfast", 100, "1 piyola", 120, 17, 5, 3, 40),
+  f("ayron", "Ayron / chalop", "drink", 250, "1 stakan", 35, 1.8, 1.5, 3.5, 60),
+  f("sariyog", "Sariyog'", "basic", 10, "1 choy qoshiq", 717, 0.9, 81, 0.1, 11),
+  f("osimlik_yogi", "O'simlik yog'i", "basic", 14, "1 osh qoshiq", 884, 0, 100, 0, 0),
   f("kartoshka_fri", "Kartoshka fri", "fast", 150, "1 porsiya", 312, 3.4, 15, 41, 210, 0, 3.8),
   // Salat va sabzavot
   f("achchiq_chuchuk", "Achchiq-chuchuk / shakarob", "salad", 150, "1 likopcha", 20, 1, 0.2, 4, 150, 0, 1.2, true),
   f("sabzavot_salat", "Sabzavotli salat (yog'li)", "salad", 150, "1 likopcha", 60, 1.2, 4.5, 4.5, 180, 0, 1.8, true),
   f("olivye", "Olivye (stolichniy)", "salad", 150, "1 likopcha", 160, 5, 13, 6, 400, 0, 1),
+  // Sabzavotlar (taxminan 100 g xom yoki oddiy qaynatilgan, tuzsiz)
+  f("pomidor", "Pomidor", "veg", 150, "1 ta o'rtacha", 18, 0.9, 0.2, 3.9, 5, 0, 1.2, true),
+  f("bodring", "Bodring", "veg", 120, "1 ta o'rtacha", 15, 0.7, 0.1, 3.6, 2, 0, 0.5, true),
+  f("sabzi", "Sabzi", "veg", 80, "1 ta o'rtacha", 41, 0.9, 0.2, 9.6, 69, 0, 2.8, true),
+  f("piyoz", "Piyoz", "veg", 80, "1 ta o'rtacha", 40, 1.1, 0.1, 9.3, 4, 0, 1.7, true),
+  f("kartoshka", "Kartoshka (qaynatilgan)", "veg", 200, "2 ta o'rtacha", 87, 1.9, 0.1, 20, 6, 0, 1.8),
+  f("baklajon", "Baqlajon (pishirilgan)", "veg", 150, "1 porsiya", 35, 0.8, 0.2, 8.7, 1, 0, 2.5, true),
+  f("qalampir", "Bolgar qalampiri", "veg", 120, "1 ta", 26, 1, 0.3, 6, 4, 0, 2.1, true),
+  f("karam", "Oq karam", "veg", 100, "1 piyola", 25, 1.3, 0.1, 5.8, 18, 0, 2.5, true),
+  f("gulkaram", "Gulkaram", "veg", 150, "1 piyola", 25, 1.9, 0.3, 5, 30, 0, 2, true),
+  f("brokkoli", "Brokkoli", "veg", 150, "1 piyola", 34, 2.8, 0.4, 6.6, 33, 0, 2.6, true),
+  f("lavlagi", "Lavlagi (qaynatilgan)", "veg", 100, "1 ta kichik", 44, 1.7, 0.2, 10, 77, 0, 2, true),
+  f("qovoq", "Qovoq (pishirilgan)", "veg", 200, "1 porsiya", 20, 0.7, 0.1, 5, 1, 0, 1.1, true),
+  f("kabachok", "Qovoqcha (kabachok)", "veg", 200, "1 ta", 17, 1.2, 0.3, 3.1, 8, 0, 1, true),
+  f("turp", "Turp / redis", "veg", 50, "5 dona", 16, 0.7, 0.1, 3.4, 39, 0, 1.6, true),
+  f("kokat", "Ko'katlar (kashnich, shivit, rayhon)", "veg", 30, "bir hovuch", 23, 2.1, 0.5, 3.7, 46, 0, 2.8, true),
+  f("ismaloq", "Ismaloq", "veg", 100, "bir hovuch", 23, 2.9, 0.4, 3.6, 79, 0, 2.2, true),
+  f("qoziqorin", "Qo'ziqorin", "veg", 100, "1 piyola", 22, 3.1, 0.3, 3.3, 5, 0, 1, true),
+  f("makkajoxori", "Makkajo'xori (qaynatilgan)", "veg", 100, "1 ta so'ta (donlari)", 96, 3.4, 1.5, 21, 15, 0, 2.4),
+  f("loviya", "Loviya (qaynatilgan)", "veg", 150, "1 kosa", 127, 8.7, 0.5, 22.8, 1, 0, 6.4),
+  f("noxat", "No'xat (qaynatilgan)", "veg", 150, "1 kosa", 164, 8.9, 2.6, 27, 7, 0, 7.6),
+  f("mosh", "Mosh (qaynatilgan)", "veg", 150, "1 kosa", 105, 7, 0.4, 19, 2, 0, 7.6),
+  f("kok_noxat", "Ko'k no'xat", "veg", 80, "yarim piyola", 81, 5.4, 0.4, 14, 5, 0, 5.7),
   // Mevalar
   f("olma", "Olma", "fruit", 180, "1 dona", 52, 0.3, 0.2, 14, 1, 0, 2.4),
   f("banan", "Banan", "fruit", 120, "1 dona", 89, 1.1, 0.3, 23, 1, 0, 2.6),
@@ -82,17 +123,33 @@ export const FOODS: Food[] = [
   f("xurmo", "Xurmo", "fruit", 170, "1 dona", 70, 0.6, 0.2, 18.6, 1, 0, 3.6),
   f("mayiz", "Mayiz / quruq meva", "fruit", 40, "bir hovuch", 300, 3, 0.5, 79, 11, 0, 3.7),
   f("yongoq", "Yong'oq / bodom", "fruit", 30, "bir hovuch", 650, 15, 65, 14, 2, 0, 6.7),
+  f("nok", "Nok", "fruit", 180, "1 dona", 57, 0.4, 0.1, 15, 1, 0, 3.1),
+  f("shaftoli", "Shaftoli", "fruit", 150, "1 dona", 39, 0.9, 0.3, 9.5, 0, 0, 1.5),
+  f("oruk", "O'rik", "fruit", 105, "3 dona", 48, 1.4, 0.4, 11, 1, 0, 2),
+  f("gilos", "Gilos", "fruit", 100, "bir hovuch", 63, 1, 0.2, 16, 0, 0, 2.1),
+  f("olcha", "Olcha", "fruit", 100, "bir hovuch", 50, 1, 0.3, 12, 3, 0, 1.6),
+  f("behi", "Behi", "fruit", 150, "1 dona", 57, 0.4, 0.1, 15, 4, 0, 1.9),
+  f("apelsin", "Apelsin", "fruit", 150, "1 dona", 47, 0.9, 0.1, 12, 0, 0, 2.4),
+  f("mandarin", "Mandarin", "fruit", 80, "1 dona", 53, 0.8, 0.3, 13, 2, 0, 1.8),
+  f("anjir", "Anjir", "fruit", 100, "2 dona", 74, 0.8, 0.3, 19, 1, 0, 2.9),
+  f("qulupnay", "Qulupnay", "fruit", 150, "1 piyola", 32, 0.7, 0.3, 7.7, 1, 0, 2),
+  f("olxori", "Olxo'ri", "fruit", 100, "3 dona", 46, 0.7, 0.3, 11, 0, 0, 1.4),
+  f("kivi", "Kivi", "fruit", 80, "1 dona", 61, 1.1, 0.5, 15, 3, 0, 3),
   // Shirinlik
   f("holva", "Holva", "sweet", 50, "2 bo'lak", 520, 12, 30, 54, 50, 45),
   f("chak_chak", "Chak-chak", "sweet", 60, "1 bo'lak", 450, 6, 20, 60, 100, 35),
   f("tort", "Tort / pirojniy", "sweet", 100, "1 bo'lak", 370, 5, 18, 48, 250, 30),
   f("konfet", "Shokoladli konfet", "sweet", 30, "3 dona", 530, 5, 30, 60, 50, 50),
   f("pechenye", "Pechenye", "sweet", 50, "4–5 dona", 450, 6, 18, 68, 350, 25),
+  f("shokolad", "Shokolad", "sweet", 30, "3 bo'lak", 540, 5, 31, 60, 50, 50),
+  f("muzqaymoq", "Muzqaymoq", "sweet", 80, "1 sharik", 207, 3.5, 11, 24, 80, 21),
+  f("chips", "Chips", "fast", 40, "1 kichik paket", 540, 6, 35, 50, 530, 1, 4),
   // Ichimlik
   f("choy", "Choy (shakarsiz)", "drink", 250, "1 piyola", 1, 0, 0, 0.3, 3),
   f("choy_shakar", "Choy (2 qoshiq shakar bilan)", "drink", 250, "1 piyola", 32, 0, 0, 8, 3, 8),
   f("gazli", "Gazli ichimlik (Coca-Cola va h.k.)", "drink", 330, "1 banka", 42, 0, 0, 10.6, 4, 10.6),
   f("sharbat", "Paketli sharbat", "drink", 250, "1 stakan", 46, 0.2, 0, 11, 5, 9),
+  f("kofe", "Kofe (sutli, 3 in 1)", "drink", 200, "1 stakan", 35, 0.5, 1, 6, 25, 5.5),
   f("kompot", "Kompot (shakarli)", "drink", 250, "1 stakan", 50, 0.1, 0, 12.5, 2, 10),
   // Fast food
   f("lavash", "Lavash / shaurma", "fast", 350, "1 dona", 230, 11, 11, 22, 600, 1, 1.5),
@@ -104,7 +161,7 @@ export const FOODS: Food[] = [
 export const FOOD_BY_ID = new Map(FOODS.map((x) => [x.id, x]));
 
 export const CAT_UZ: Record<FoodCat, string> = {
-  main: "Asosiy taomlar", soup: "Sho'rvalar", bread: "Non", breakfast: "Nonushta", salad: "Salat",
+  main: "Asosiy taomlar", soup: "Sho'rvalar", bread: "Non", breakfast: "Nonushta", salad: "Salat", veg: "Sabzavot",
   fruit: "Meva", sweet: "Shirinlik", drink: "Ichimlik", fast: "Fast food", basic: "Garnir va go'sht",
 };
 
@@ -217,7 +274,7 @@ export function judgeMeal(items: MealItem[], p: NutriProfile, t: Targets): Verdi
 export function suggestFoods(eaten: Totals, t: Targets, p: NutriProfile, limit = 6): { food: Food; reason: string }[] {
   const leftK = t.kcal - eaten.kcal, leftNa = t.sodiumMax - eaten.sodium, leftC = t.carbsMax - eaten.carbs;
   return FOODS
-    .filter((x) => x.cat !== "sweet" && x.cat !== "fast" && x.id !== "gazli" && x.id !== "sharbat" && x.id !== "kolbasa")
+    .filter((x) => x.cat !== "sweet" && x.cat !== "fast" && x.id !== "gazli" && x.id !== "sharbat" && !["kolbasa", "qazi", "sariyog", "osimlik_yogi", "kofe"].includes(x.id))
     .map((x) => {
       const k = x.portion / 100;
       const kc = x.kcal * k, na = x.sodium * k, c = x.carbs * k;

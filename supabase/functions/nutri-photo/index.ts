@@ -40,7 +40,7 @@ const MIME = ["image/jpeg", "image/png", "image/webp"];
 const DAILY = 30, HOURLY = 12;
 
 const SYSTEM = `You identify food in a photo for MaxHospital (Uzbekistan). Return each dish/drink you can SEE.
-For each item pick "food_id" ONLY from this catalog (Uzbek home and street food), or null if nothing matches; "name": what it is in Uzbek;
+For each item pick "food_id" ONLY from this catalog (Uzbek home and street food), or null only if nothing even close matches (a plain variant of a listed food, e.g. boiled vs raw, is a match); "name": what it is in Uzbek;
 "grams": your estimate of the amount actually on the plate/in the glass, using plate/bowl/bread size as scale (typical portions are in the catalog);
 "confidence": 0..1.
 Catalog:
