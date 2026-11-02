@@ -359,6 +359,7 @@ const ProfilePage = () => {
             <div className="grid grid-cols-2 gap-2">
               {[
                 ...(isDoctor ? [{ to: "/doctor-dashboard", label: "Shifokor kabineti", icon: MessageCircle, cls: "text-primary" }] : []),
+                { to: "/doctors", label: "Shifokorlar", icon: Stethoscope, cls: "text-primary" },
                 { to: "/start-consultation", label: "Konsultatsiya", icon: Stethoscope, cls: "text-primary" },
                 { to: "/health", label: "Salomatligim", icon: Activity, cls: "text-rose-500" },
                 { to: "/emergency-card", label: "MaxHospital Passport", icon: IdCard, cls: "text-red-500" },
