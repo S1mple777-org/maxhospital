@@ -5,10 +5,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone, Pill, Watch
+  Crown, Users, Building2, Wallet, Plus, Trash2, Edit, Save, X, UserPlus, UserMinus, Upload, Image, Megaphone, Pill, Watch, Stethoscope
 } from "lucide-react";
 import PlansEditor from "@/components/medications/PlansEditor";
 import BandCodesAdmin from "@/components/band/BandCodesAdmin";
+import DoctorPayouts from "@/components/care/DoctorPayouts";
 
 type AdminType = "financial" | "dept_head" | "journalist";
 
@@ -213,6 +214,7 @@ const OwnerPanel = () => {
     { id: "subscriptions", label: "Majburiy obuna", icon: Megaphone },
     { id: "pro-plans", label: "Pro tariflar", icon: Pill },
     { id: "maxband", label: "MaxBand kodlari", icon: Watch },
+    { id: "doctor-pay", label: "Shifokorlar maoshi", icon: Stethoscope },
   ];
 
   const IconUploader = () => (
@@ -415,6 +417,8 @@ const OwnerPanel = () => {
             {activeTab === "pro-plans" && <PlansEditor />}
 
             {activeTab === "maxband" && <BandCodesAdmin />}
+
+            {activeTab === "doctor-pay" && <DoctorPayouts />}
 
             {/* Subscriptions Tab */}
             {activeTab === "subscriptions" && (
