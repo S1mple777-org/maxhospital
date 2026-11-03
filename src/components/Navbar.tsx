@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Menu, X, Globe, Palette, Stethoscope, User, Shield, Crown, LogOut, Wallet, Users, AlarmClock, Watch, Dumbbell, Trophy, Dna, Salad } from "lucide-react";
 import { Language } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 const languages: { code: Language; label: string; flag: string }[] = [
   { code: "uz", label: "O'zbek", flag: "🇺🇿" },
@@ -28,6 +28,13 @@ const Navbar = () => {
   const [langOpen, setLangOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 8);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
 
   const navItems = [
     { label: t("nav.home"), href: "/" },
@@ -41,7 +48,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 nav-bg border-b border-border">
+    <nav className={`fixed top-0 left-0 right-0 z-50 nav-bg border-b transition-shadow duration-300 backdrop-blur-md ${scrolled ? "border-border shadow-sm" : "border-transparent"}`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
@@ -53,7 +60,8 @@ const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-6">
             {navItems.map((item) => (
-              <Link key={item.href} to={item.href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">{item.label}</Link>
+              <NavLink key={item.href} to={item.href} end={item.href === "/"}
+                className={({ isActive }) => `relative py-1 text-sm font-medium transition-colors after:absolute after:left-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-primary after:transition-all ${isActive ? "text-primary after:w-full" : "text-muted-foreground hover:text-primary after:w-0 hover:after:w-full"}`}>{item.label}</NavLink>
             ))}
           </div>
 

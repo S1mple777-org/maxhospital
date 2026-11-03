@@ -353,37 +353,51 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* Secondary services moved out of the main menu */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Qo'shimcha xizmatlar</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {[
+          {/* Xizmatlar: mazmuniga qarab guruhlangan */}
+          {(() => {
+            const groups: { title: string; items: { to: string; label: string; icon: any; cls: string }[] }[] = [
+              { title: "Shifokor va maslahat", items: [
                 ...(isDoctor ? [{ to: "/doctor-dashboard", label: "Shifokor kabineti", icon: MessageCircle, cls: "text-primary" }] : []),
-                { to: "/doctors", label: "Shifokorlar", icon: Stethoscope, cls: "text-primary" },
                 { to: "/start-consultation", label: "Konsultatsiya", icon: Stethoscope, cls: "text-primary" },
+                { to: "/doctors", label: "Shifokorlar", icon: Users, cls: "text-primary" },
+                { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "text-violet-500" },
+                { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "text-primary" },
+              ] },
+              { title: "Salomatligim", items: [
                 { to: "/health", label: "Salomatligim", icon: Activity, cls: "text-rose-500" },
                 { to: "/emergency-card", label: "MaxHospital Passport", icon: IdCard, cls: "text-red-500" },
-                { to: "/second-opinion", label: "Ikkinchi fikr", icon: Scale, cls: "" },
-                { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "" },
+                { to: "/lab-results", label: "Tahlil natijalari", icon: FlaskConical, cls: "text-primary" },
+                { to: "/irsiy-xavf", label: "Irsiy xavf xaritasi", icon: Dna, cls: "text-violet-500" },
+              ] },
+              { title: "Har kungi parvarish", items: [
                 { to: "/maxfitness", label: "MaxFitness", icon: Activity, cls: "text-emerald-500" },
                 { to: "/maxnutri", label: "MaxNutri", icon: Salad, cls: "text-emerald-600" },
                 { to: "/maxscore", label: "MaxScore", icon: Trophy, cls: "text-amber-500" },
-                { to: "/irsiy-xavf", label: "Irsiy xavf xaritasi", icon: Dna, cls: "text-violet-500" },
+              ] },
+              { title: "Xavfsizlik va jamoa", items: [
                 { to: "/sos", label: "SOS sozlamalari", icon: Siren, cls: "text-rose-600" },
-                { to: "/ai-assistant", label: "AI yordamchi", icon: Sparkles, cls: "" },
-                { to: "/users", label: "Foydalanuvchilar", icon: Users, cls: "" },
-              ].map(({ to, label, icon: Icon, cls }) => (
-                <button
-                  key={to}
-                  onClick={() => navigate(to)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border text-sm text-foreground hover:bg-secondary transition-colors text-left"
-                >
-                  <Icon className={`w-4 h-4 shrink-0 ${cls}`} />
-                  <span className="truncate">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+                { to: "/users", label: "Foydalanuvchilar", icon: Users, cls: "text-primary" },
+              ] },
+            ];
+            return (
+              <div className="mb-6 space-y-5">
+                {groups.map((g) => (
+                  <div key={g.title}>
+                    <h3 className="text-sm font-semibold text-foreground mb-2">{g.title}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {g.items.map(({ to, label, icon: Icon, cls }) => (
+                        <button key={to} onClick={() => navigate(to)}
+                          className="lift flex items-center gap-3 px-3 py-3 rounded-2xl border border-border bg-card text-sm text-foreground text-left">
+                          <span className="w-9 h-9 shrink-0 rounded-xl bg-secondary flex items-center justify-center"><Icon className={`w-4 h-4 ${cls}`} /></span>
+                          <span className="truncate font-medium">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* My Prescriptions Link */}
           <button

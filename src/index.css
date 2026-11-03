@@ -293,3 +293,32 @@
 .stagger-4 { animation-delay: 0.4s; }
 .stagger-5 { animation-delay: 0.5s; }
 .stagger-6 { animation-delay: 0.6s; }
+
+/* ---- Yurak urishi chizig'i (Hero) ---- */
+@keyframes ecg-draw {
+  0%   { stroke-dashoffset: 1; opacity: 1; }
+  70%  { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+.ecg-trace {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ecg-draw 4.2s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+@keyframes beat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.18); }
+  24% { transform: scale(1); }
+  36% { transform: scale(1.1); }
+}
+.heart-beat { animation: beat 1.2s ease-in-out infinite; transform-origin: center; }
+
+/* Tez-tez ishlatiladigan yengil ko'tarilish: faqat kursor ustida */
+.lift { transition: transform .2s ease, box-shadow .2s ease; }
+.lift:hover { transform: translateY(-3px); box-shadow: var(--card-shadow-hover); }
+
+/* Animatsiyani kamaytirishni so'ragan foydalanuvchilar uchun */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+  .ecg-trace { stroke-dashoffset: 0; opacity: 1; }
+}
