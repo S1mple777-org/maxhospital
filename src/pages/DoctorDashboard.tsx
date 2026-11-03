@@ -10,6 +10,7 @@ import { fmtSlotFull, notifyPatientCalled } from "@/lib/booking";
 import { toast } from "sonner";
 import TreatmentOverview from "@/components/care/TreatmentOverview";
 import FitnessApprovals from "@/components/fitness/FitnessApprovals";
+import DoctorEarnings from "@/components/care/DoctorEarnings";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -167,6 +168,8 @@ const DoctorDashboard = () => {
               {isOnline ? "Online" : "Offline"}
             </button>
           </div>
+
+          <DoctorEarnings />
 
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-card rounded-xl p-4 border border-border text-center">
