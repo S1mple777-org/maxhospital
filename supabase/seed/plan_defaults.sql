@@ -15,6 +15,6 @@ INSERT INTO public.plan_limits (
   home_diary, weekly_report, emergency_card, family_members)
 VALUES
   ('free',    5,    10, false, 0,  50000,  0, 0, NULL,  0,  0, false, false, false, 0),
-  ('pro',     50,   20, true,  5,  100000, 4, 1, 15000, 72, 0, true,  true,  true,  0),
-  ('premium', NULL, 30, true,  20, 150000, 6, 3, 10000, 72, 1, true,  true,  true,  4)
+  ('pro',     20,   20, true,  5,  100000, 4, 1, 15000, 72, 0, true,  true,  true,  0),
+  ('premium', 50,   30, true,  20, 150000, 6, 3, 10000, 72, 1, true,  true,  true,  4)
 ON CONFLICT (plan_id) DO NOTHING;
