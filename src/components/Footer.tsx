@@ -68,7 +68,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {t("footer.address")}</li>
               <li className="flex items-center gap-2"><Phone className="w-4 h-4" />+998 93 265 21 58</li>
-              <li className="flex items-center gap-2"><Mail className="w-4 h-4" />iabduraxmondadaboyev7@gmail.com</li>
+              <li className="flex items-center gap-2"><Mail className="w-4 h-4" />abduraxmondadaboyev7@gmail.com</li>
             </ul>
           </motion.div>
         </motion.div>
