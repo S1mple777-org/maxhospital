@@ -11,6 +11,16 @@ const iconMap: Record<string, any> = {
   fingerprint: Fingerprint, eye: Eye, "smile-plus": SmilePlus, stethoscope: Stethoscope,
 };
 
+const colorMap: Record<string, string> = {
+  bone: "from-red-400 to-orange-400",
+  heart: "from-pink-400 to-rose-400",
+  brain: "from-purple-400 to-violet-400",
+  baby: "from-blue-400 to-cyan-400",
+  fingerprint: "from-amber-400 to-yellow-400",
+  eye: "from-teal-400 to-emerald-400",
+  "smile-plus": "from-green-400 to-lime-400",
+  stethoscope: "from-indigo-400 to-blue-400",
+};
 
 const containerVariants = {
   hidden: {},
@@ -18,8 +28,11 @@ const containerVariants = {
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  hidden: { opacity: 0, y: 40, scale: 0.9, rotateX: 15 },
+  visible: {
+    opacity: 1, y: 0, scale: 1, rotateX: 0,
+    transition: { type: "spring" as const, stiffness: 150, damping: 18 },
+  },
 };
 
 const DepartmentsSection = () => {
@@ -37,6 +50,9 @@ const DepartmentsSection = () => {
   return (
     <section id="departments" className="py-20 relative">
       <div className="absolute inset-0 bg-secondary/30" />
+      {/* Decorative floating shapes */}
+      <div className="absolute top-10 left-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl animate-float-slow" />
+      <div className="absolute bottom-10 right-10 w-40 h-40 bg-accent/10 rounded-full blur-2xl animate-float-reverse" />
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
@@ -46,7 +62,15 @@ const DepartmentsSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-3">{t("departments.title")}</h2>
+          <motion.h2
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, type: "spring" }}
+            className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3"
+          >
+            {t("departments.title")}
+          </motion.h2>
           <p className="text-muted-foreground max-w-md mx-auto">{t("departments.subtitle")}</p>
         </motion.div>
 
@@ -59,21 +83,28 @@ const DepartmentsSection = () => {
         >
           {departments.map((dept) => {
             const Icon = iconMap[dept.icon] || Stethoscope;
+            const color = colorMap[dept.icon] || "from-teal-400 to-emerald-400";
             return (
               <motion.div
                 key={dept.id}
                 variants={cardVariants}
+                whileHover={{ y: -8, scale: 1.03, transition: { type: "spring", stiffness: 300 } }}
                 className="group cursor-pointer"
               >
-                <div className="bg-card rounded-2xl p-6 border border-border lift text-center">
+                <div className="bg-card rounded-xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 text-center relative overflow-hidden">
+                  {/* Shimmer on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-shimmer pointer-events-none" />
                   {dept.icon_url ? (
-                    <div className="w-14 h-14 rounded-2xl mx-auto mb-4 overflow-hidden">
+                    <div className="w-14 h-14 rounded-xl mx-auto mb-4 overflow-hidden group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                       <img src={dept.icon_url} alt={getName(dept)} className="w-full h-full object-cover" />
                     </div>
                   ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-accent text-accent-foreground flex items-center justify-center mx-auto mb-4 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                      <Icon className="w-7 h-7" />
-                    </div>
+                    <motion.div
+                      whileHover={{ rotate: [0, -10, 10, -5, 0], transition: { duration: 0.5 } }}
+                      className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-4 transition-transform duration-300`}
+                    >
+                      <Icon className="w-7 h-7 text-white" />
+                    </motion.div>
                   )}
                   <h3 className="font-display font-semibold text-sm text-foreground">{getName(dept)}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{Number(dept.price_uzs).toLocaleString()} UZS</p>
